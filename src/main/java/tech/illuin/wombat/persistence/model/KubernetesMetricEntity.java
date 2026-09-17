@@ -19,7 +19,7 @@ public class KubernetesMetricEntity extends PanacheEntityBase
     @Column(columnDefinition = "INTEGER")
     public Long id;
 
-    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Column(name = "instant_ms", nullable = false, columnDefinition = "INTEGER")
     public long instantMs;
 
     @Convert(converter = KubernetesDataConverter.class)

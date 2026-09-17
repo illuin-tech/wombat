@@ -1,0 +1,53 @@
+quarkus:
+  rest-client:
+    boavizta-api-url:
+      uri: "http://localhost:0/boavizta"
+    ecologits-api-url:
+      uri: "http://localhost:0/ecologits"
+  datasource:
+    db-kind: sqlite
+    jdbc:
+      url: "jdbc:sqlite:target/wombat-test.db"
+      min-size: 0
+  hibernate-orm:
+    schema-management:
+      strategy: none
+  flyway:
+    migrate-at-start: true
+    clean-at-start: true
+    clean-disabled: false
+    locations: classpath:db/migration/${quarkus.datasource.db-kind}
+  scheduler:
+    enabled: false
+  devservices:
+    enabled: false
+  kubernetes-client:
+    devservices:
+      enabled: false
+  log:
+    category:
+      "org.testcontainers.dockerclient":
+        level: "OFF"
+      "tech.illuin.wombat.persistence.backup":
+        level: "OFF"
+  jacoco:
+    data-file: target/jacoco.exec
+    reuse-data-file: true
+    report: false
+
+monitor:
+  heartbeat: "0 0 0 ? * MON#5 2099"
+  environments-file: monitored-environments-test.yaml
+
+persistence:
+  enable-kubernetes-metrics-persister: true
+
+backup:
+  enabled: false
+  s3:
+    endpoint: "http://localhost:0"
+    bucket: "wombat-test"
+    region: "us-east-1"
+    key-prefix: "tests/"
+    access-key: "test"
+    secret-key: "test"

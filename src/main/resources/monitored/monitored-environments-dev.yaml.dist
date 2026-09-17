@@ -1,0 +1,81 @@
+resolvers:
+  kubernetes:
+    impact:
+      default: boavizta
+      handlers:
+        - id: boavizta
+          type: boavizta
+          mode: whatever
+    cost:
+      default: opencost
+      handlers:
+        - id: opencost
+          type: opencost
+          host: whatever
+        - id: random
+          type: random
+  llm:
+    impact:
+      default: ecologits
+      handlers:
+        - id: ecologits
+          type: ecologits
+    cost:
+      default: csv-a-la-con
+      handlers:
+        - type: csv-a-la-con
+          source: machin.csv
+        - type: csv-my-llm-a-con
+          source: machin.csv
+
+environments:
+  # Map key and `id` must match: the key is how the file is indexed, `id` is what core.asset.Environment carries
+  # and what assets reference through `environment-id`.
+  preprod:
+    id: preprod
+    assets:
+      - type: KUBERNETES_API
+        id: my-cluster
+        environment-id: preprod
+        name: My cluster (preprod)
+        namespace: my-namespace
+        config-path: /path/to/kubeconfig
+        heartbeat-skip: 1
+        resolvers:
+          cost: random
+        # Impact profile (formerly a shared profile referenced by profile-id), now inlined per asset.
+        profile:
+          provider: aws
+          instance-type: c5a.4xlarge
+          location: FRA
+          lifespan: 43800  # hours
+      - type: LLM_STATIC
+        id: my-llm
+        environment-id: preprod
+        name: My LLM (preprod)
+        resolvers:
+          cost: csv-my-llm-a-con
+        profile:
+          provider: mistralai
+          model: mistral-large-latest
+          location: FRA
+          request-profile:
+            output-token-count: 500
+            request-per-year: 1000000000
+      - type: LLM_PROMETHEUS
+        id: my-served-llm
+        environment-id: preprod
+        name: My served LLM (preprod)
+        prometheus-url: http://prometheus.my-namespace:9090/
+        heartbeat-skip: 10
+        # Basic auth is optional. `password-env` names the environment variable holding the password — never the
+        # password itself, which would end up in the assets table and in the config-history snapshots. The app
+        # refuses to start when a declared variable is unset or empty (see RequiredSecretsCheck).
+        username: prometheus
+        password-env: WOMBAT_PROMETHEUS_PASSWORD
+        profile:
+          provider: mistralai
+          model: mistral-large-latest
+          location: FRA
+          dynamic-profile:
+            query: 'sum(increase(generation_tokens_total{model_name="mistral-large-latest"}[10s]))'

@@ -1,0 +1,39 @@
+{#include impactLayout.html}
+
+{#headScripts}
+  <script src="/vendor/easepick.umd.min.js"></script>
+  <script src="/impactError.js"></script>
+{/headScripts}
+
+<!-- Filter bar -->
+<form class="filter-bar" method="get" action="" id="filterForm">
+  <div class="filter-group date-range-group">
+    <span class="filter-label">Date range</span>
+    <input type="text" id="dateRangePicker" class="date-range-picker"
+           placeholder="Pick range…"
+           data-from-utc="{timeRange.start.asIsoUtc()}"
+           data-to-utc="{timeRange.end.asIsoUtc()}"
+           data-max-span-ms="{maxSpan.millis}"
+           readonly/>
+    <input type="hidden" name="from" id="inputFrom"/>
+    <input type="hidden" name="to" id="inputTo"/>
+  </div>
+  <button type="submit" class="btn-apply">Apply</button>
+</form>
+
+<!-- Main -->
+<div class="main">
+  <div class="error-card">
+    <div class="error-header">
+      <div class="error-dot"></div>
+      <span class="error-label">No data</span>
+    </div>
+    <div class="error-title">No CPU usage found</div>
+    <div class="error-body">
+      No CPU metrics were recorded for the selected time range.
+      Try a wider range or check that the monitoring agent is running.
+    </div>
+  </div>
+</div>
+
+{/include}

@@ -1,0 +1,76 @@
+quarkus:
+  banner:
+    path: wombat-banner.txt
+  http:
+    limits:
+      max-initial-line-length: 32768
+  rest-client:
+    logging:
+      scope: none
+      body-limit: 1024
+    boavizta-api-url:
+      uri: "https://api.boavizta.org/v1/"
+    ecologits-api-url:
+      uri: "https://api.ecologits.ai/"
+  log:
+    category:
+      "persistence":
+        min-level: TRACE
+        level: TRACE
+      "io.quarkus.kubernetes.client.deployment.DevServicesKubernetesProcessor":
+        level: "OFF"
+      "io.quarkus.datasource.deployment.devservices.DevServicesDatasourceProcessor":
+        level: "OFF"
+  datasource:
+    db-kind: sqlite
+    jdbc:
+      url: "jdbc:sqlite:./../data/db/local.db"
+      min-size: 0
+  hibernate-orm:
+    schema-management:
+      strategy: none
+  flyway:
+    migrate-at-start: false
+    locations: classpath:db/migration/${quarkus.datasource.db-kind}
+  kubernetes-client:
+    devservices:
+      enabled: false
+  micrometer:
+    binder:
+      netty:
+        enabled: false
+      http-client:
+        enabled: false
+
+monitor:
+  heartbeat: "*/10 * * * * ?" # every 10s
+
+metrics:
+  aggregation-window:
+    duration: 5
+    unit: MINUTES
+
+ui:
+  max-date-range:
+    duration: 1
+    unit: MONTHS
+
+connector:
+  boavizta:
+    uri: "https://api.boavizta.org/v1/"
+  ecologits:
+    uri: "https://api.ecologits.ai/"
+
+persistence:
+  enable-kubernetes-metrics-persister: true
+
+backup:
+  enabled: true
+  cron: "0 0 2 * * ?"
+  cleanup:
+    enabled: true
+    cron: "0 0 3 * * ?"
+    retain-last: 10
+
+llm-simulator:
+  enabled: false

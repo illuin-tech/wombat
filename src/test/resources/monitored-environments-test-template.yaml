@@ -1,0 +1,41 @@
+environments:
+  preprod:
+    id: preprod
+    assets:
+      - type: KUBERNETES_API
+        id: my-cluster
+        environment-id: preprod
+        name: My cluster (preprod)
+        namespace: my-namespace
+        config-path: /path/to/kubeconfig
+        heartbeat-skip: 1
+        profile:
+          provider: aws
+          instance-type: c5a.4xlarge
+          location: FRA
+          lifespan: 43800  # hours
+      - type: LLM_STATIC
+        id: my-llm
+        environment-id: preprod
+        name: My LLM (preprod)
+        profile:
+          provider: mistralai
+          model: mistral-large-latest
+          location: FRA
+          request-profile:
+            output-token-count: 500
+            request-per-year: 1000000000
+      - type: LLM_PROMETHEUS
+        id: my-served-llm
+        environment-id: preprod
+        name: My served LLM (preprod)
+        prometheus-url: http://prometheus.my-namespace:9090/
+        heartbeat-skip: 10
+        username: prometheus
+        password-env: WOMBAT_PROMETHEUS_PASSWORD
+        profile:
+          provider: mistralai
+          model: mistral-large-latest
+          location: FRA
+          dynamic-profile:
+            query: 'sum(increase(generation_tokens_total{model_name="mistral-large-latest"}[10s]))'

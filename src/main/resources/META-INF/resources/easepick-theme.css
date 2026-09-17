@@ -1,0 +1,141 @@
+:host {
+  --color-bg-default: var(--surface, #fff);
+  --color-fg-default: var(--text, #132418);
+  --color-bg-primary: var(--accent-green, #16a34a);
+  --color-fg-primary: #ffffff;
+  --color-bg-secondary: var(--surface2, #f7faf8);
+  --color-fg-secondary: var(--text-muted, #4d7060);
+  --color-fg-muted: var(--text-dim, #9ab4a6);
+  --color-bg-inrange: var(--accent-green-soft, #dcfce7);
+  --color-fg-inrange: var(--text, #132418);
+  --color-border-default: var(--border, #e3ede8);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.container {
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 30, 15, 0.12), 0 1px 4px rgba(0, 30, 15, 0.06);
+  border: 1px solid var(--color-border-default);
+  overflow: hidden;
+}
+
+.calendar .header { font-weight: 600; }
+.day { transition: background 0.12s, color 0.12s; }
+.day.start, .day.end {
+  background: var(--color-bg-primary) !important;
+  color: var(--color-fg-primary) !important;
+  font-weight: 600;
+}
+.day.in-range {
+  background: var(--color-bg-inrange) !important;
+  color: var(--color-fg-inrange) !important;
+}
+.day.unit:hover:not(.locked) {
+  background: var(--color-bg-inrange);
+  color: var(--color-fg-default);
+}
+.day.locked {
+  opacity: 0.35;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  background: transparent !important;
+  color: var(--color-fg-muted) !important;
+  text-decoration: line-through;
+}
+
+/* ── Time plugin inputs ── */
+.time-plugin-container {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border-default);
+  background: var(--color-bg-secondary);
+}
+.time-plugin-container::before {
+  content: "Start";
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+.time-plugin-container::after {
+  content: "End";
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+.time-plugin-custom-block {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.time-plugin-input,
+input[type="time"] {
+  background: var(--color-bg-default);
+  border: 1.5px solid var(--color-border-default);
+  color: var(--color-fg-default);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 90px;
+}
+.time-plugin-input:focus,
+input[type="time"]:focus {
+  border-color: var(--color-bg-primary);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+/* ── Preset plugin (bottom row pills) ── */
+.preset-plugin-container {
+  display: flex !important;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border-default);
+  background: var(--color-bg-default);
+}
+.preset-button {
+  background: var(--color-bg-inrange);
+  border: none;
+  color: var(--color-bg-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s, transform 0.1s;
+}
+.preset-button:hover {
+  background: var(--color-bg-primary);
+  color: var(--color-fg-primary);
+}
+.preset-button:active {
+  transform: scale(0.97);
+}
+
+/* ── Header (month nav arrows) ── */
+.header .button-previous-month,
+.header .button-next-month {
+  background: transparent;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  transition: background 0.15s;
+}
+.header .button-previous-month:hover,
+.header .button-next-month:hover {
+  background: var(--color-bg-secondary);
+}
+
+.footer { padding: 10px 14px; border-top: 1px solid var(--color-border-default); }

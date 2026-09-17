@@ -1,0 +1,484 @@
+{#include impactLayout.html}
+
+{#headScripts}
+  <script src="/vendor/chart.umd.min.js"></script>
+  <script src="/vendor/easepick.umd.min.js"></script>
+{/headScripts}
+
+{#headerExtra}
+  <div class="header-meta" id="headerMeta"
+       data-start="{env.timeRange.start.asIsoUtc()}"
+       data-end="{env.timeRange.end.asIsoUtc()}"></div>
+{/headerExtra}
+
+<!-- Filter bar -->
+<form class="filter-bar" method="get" action="" id="filterForm">
+  <div class="filter-group date-range-group">
+    <span class="filter-label">Date range</span>
+    <input type="text" id="dateRangePicker" class="date-range-picker"
+           placeholder="Pick range…"
+           data-from-utc="{env.timeRange.start.asIsoUtc()}"
+           data-to-utc="{env.timeRange.end.asIsoUtc()}"
+           data-max-span-ms="{maxSpan.millis}"
+           readonly/>
+    <input type="hidden" name="from" id="inputFrom"/>
+    <input type="hidden" name="to" id="inputTo"/>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Environment</span>
+    <div class="container-picker" id="envPicker">
+      <button type="button" class="container-trigger" id="envTrigger">
+        <span id="envCount"></span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="trigger-chevron">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="container-dropdown" id="envDropdown">
+        <div class="container-list" id="envList">
+          {#for environment in environments.options}
+          <label class="container-item">
+            <input type="radio" name="environment" value="{environment.id}"
+                   data-label="{environment.name}"
+                   {#if environment.id == environments.selectedId}checked{/if}/>
+            <span>{environment.name}</span>
+          </label>
+          {/for}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Assets</span>
+    <div class="container-picker" id="assetPicker">
+      <button type="button" class="container-trigger" id="assetTrigger">
+        <span id="assetCount"></span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="trigger-chevron">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="container-dropdown" id="assetDropdown">
+        <div class="container-list" id="assetList">
+          {#for asset in assets.all}
+          <label class="container-item">
+            <input type="checkbox" name="assets" value="{asset.id}"
+                   data-label="{asset.name}"
+                   {#if assets.selectedIds.contains(asset.id)}checked{/if}/>
+            <span>{asset.name} &mdash; {asset.id}{#if asset.namespace} / {asset.namespace}{/if}</span>
+          </label>
+          {/for}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Services</span>
+    <div class="container-picker" id="servicePicker">
+      <button type="button" class="container-trigger" id="serviceTrigger">
+        <span id="serviceCount"></span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" class="trigger-chevron">
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="container-dropdown" id="serviceDropdown">
+        <input type="text" id="serviceSearch" class="container-search" placeholder="Search…" autocomplete="off"/>
+        <div class="container-actions">
+          <button type="button" id="btnSelectAll">Select all</button>
+          <button type="button" id="btnSelectNone">Select none</button>
+        </div>
+        <div class="container-list" id="serviceList">
+          {#for service in env.allServices}
+          <label class="container-item">
+            <input type="checkbox" name="containers" value="{service}"
+                   {#if env.includedServices.contains(service)}checked{/if}/>
+            <span>{service}</span>
+          </label>
+          {/for}
+        </div>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn-apply">Apply</button>
+  <button type="button" class="btn-reset" id="btnReset">Reset</button>
+</form>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    <div class="kpi-card green">
+      <div class="kpi-label">Global GWP</div>
+      <div class="kpi-value-row">
+        <div class="kpi-main">
+          <div class="kpi-value">{env.globalImpact.gwp.totalValue().asDecimal()}</div>
+          <div class="kpi-unit">kgCO2eq</div>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-side-val">{env.dockerImpact.gwp.totalValue().asDecimal()}</span>
+          <span class="kpi-split-key"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>Docker</span>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-side-val">{env.llmImpact.gwp.totalValue().asDecimal()}</span>
+          <span class="kpi-split-key"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
+        </div>
+      </div>
+      <div class="kpi-split">
+        <div class="kpi-split-item">
+          <span class="kpi-split-key">Embedded</span>
+          <span class="kpi-split-val">{env.globalImpact.gwp.embedded.value.asDecimal()}</span>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-split-key">Use</span>
+          <span class="kpi-split-val">{env.globalImpact.gwp.use.value.asDecimal()}</span>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Primary Energy</div>
+      <div class="kpi-value-row">
+        <div class="kpi-main">
+          <div class="kpi-value">{env.globalImpact.pe.totalValue().asDecimal()}</div>
+          <div class="kpi-unit">MJ</div>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-side-val">{env.dockerImpact.pe.totalValue().asDecimal()}</span>
+          <span class="kpi-split-key"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>Docker</span>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-side-val">{env.llmImpact.pe.totalValue().asDecimal()}</span>
+          <span class="kpi-split-key"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
+        </div>
+      </div>
+      <div class="kpi-split">
+        <div class="kpi-split-item">
+          <span class="kpi-split-key">Embedded</span>
+          <span class="kpi-split-val">{env.globalImpact.pe.embedded.value.asDecimal()}</span>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-split-key">Use</span>
+          <span class="kpi-split-val">{env.globalImpact.pe.use.value.asDecimal()}</span>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card yellow">
+      <div class="kpi-label">Abiotic Resources</div>
+      <div class="kpi-value-row">
+        <div class="kpi-main">
+          <div class="kpi-value">{env.globalImpact.adp.totalValue().asDecimal()}</div>
+          <div class="kpi-unit">kgSbeq</div>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-side-val">{env.dockerImpact.adp.totalValue().asDecimal()}</span>
+          <span class="kpi-split-key"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>Docker</span>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-side-val">{env.llmImpact.adp.totalValue().asDecimal()}</span>
+          <span class="kpi-split-key"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
+        </div>
+      </div>
+      <div class="kpi-split">
+        <div class="kpi-split-item">
+          <span class="kpi-split-key">Embedded</span>
+          <span class="kpi-split-val">{env.globalImpact.adp.embedded.value.asDecimal()}</span>
+        </div>
+        <div class="kpi-split-item">
+          <span class="kpi-split-key">Use</span>
+          <span class="kpi-split-val">{env.globalImpact.adp.use.value.asDecimal()}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GWP shares + assets tracked -->
+  <div class="overview-row">
+    <div class="chart-card">
+      <div class="chart-title">GWP shares</div>
+      <div class="chart-wrap"><canvas id="chartSharesDonut"></canvas></div>
+      <div id="sharesLegend" class="shares-legend"></div>
+    </div>
+    <div class="kpi-card yellow">
+      <div class="stat-row">
+        <div class="stat">
+          <div class="kpi-label">Assets</div>
+          <div class="kpi-value green">{env.assetCount}</div>
+        </div>
+        <div class="stat">
+          <div class="kpi-label">Services tracked</div>
+          <div class="kpi-value yellow">{env.serviceCount}</div>
+        </div>
+        <div class="stat">
+          <div class="kpi-label"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>Docker services</div>
+          <div class="kpi-value blue">{env.dockerServiceCount}</div>
+        </div>
+        <div class="stat">
+          <div class="kpi-label"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM services</div>
+          <div class="kpi-value purple">{env.llmServiceCount}</div>
+        </div>
+      </div>
+      <div class="asset-breakdown">
+        {#for asset in env.kubernetesPanels}
+        <div class="asset-block">
+          <div class="asset-head" role="button" tabindex="0">
+            <button type="button" class="asset-expand" title="Expand details" aria-label="Expand details">⤢</button>
+            <span class="asset-id">{asset.name}</span>
+            <div class="asset-tags">
+              <span class="asset-type-tag kubernetes"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>KUBERNETES</span>
+              <span class="asset-type-tag measure">{asset.regime.label()}</span>
+            </div>
+            <span class="asset-count">{asset.serviceIds.size()} services</span>
+          </div>
+          <div class="asset-detail collapsed">
+            <div class="card-section">
+              <div class="card-section-label">Cluster / Namespace</div>
+              <div class="namespace-list">
+                {#for cluster in asset.clusters}
+                <span class="namespace-tag">{cluster.id} / {cluster.namespace}</span>
+                {/for}
+              </div>
+            </div>
+            <div class="card-section">
+              <div class="card-section-label">Services</div>
+              <div class="service-tags">
+                {#for service in asset.serviceIds}
+                <span class="service-tag"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>{service}</span>
+                {/for}
+              </div>
+            </div>
+            <div class="params-inline">
+              <div class="param-item">
+                <span class="param-key">Provider</span>
+                <span class="param-val">{asset.provider}</span>
+              </div>
+              <div class="param-item">
+                <span class="param-key">Instance type</span>
+                <span class="param-val">{asset.instanceType}</span>
+              </div>
+              <div class="param-item">
+                <span class="param-key">Location</span>
+                <span class="param-val">{asset.location}</span>
+              </div>
+              <div class="param-item">
+                <span class="param-key">Lifespan</span>
+                <span class="param-val">{asset.lifespan} h</span>
+              </div>
+              <div class="param-item">
+                <span class="param-key">vCPU</span>
+                <span class="param-val">{asset.specification.vcpu}</span>
+              </div>
+              <div class="param-item">
+                <span class="param-key">Memory</span>
+                <span class="param-val">{asset.specification.memory} GB</span>
+              </div>
+            </div>
+            <div class="card-section asset-load">
+              <div class="card-section-label">Asset load over period</div>
+              <div class="asset-load-row">
+                <div class="param-item">
+                  <span class="param-key">CPU used</span>
+                  <span class="param-val">{asset.load.cpuUsageCores.asDecimal()} cores</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">Load factor</span>
+                  <span class="param-val">{asset.load.loadPercent.asDecimal()} %</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">Nodes used</span>
+                  <span class="param-val">{asset.load.nodeCount}</span>
+                </div>
+              </div>
+              <div class="asset-load-note">
+                Load values are computed across all services of this asset and are not affected by the service filter above.
+              </div>
+            </div>
+          </div>
+        </div>
+        {/for}
+        {#for llm in env.llmPanels}
+        <div class="asset-block">
+          <div class="asset-head" role="button" tabindex="0">
+            <button type="button" class="asset-expand" title="Expand details" aria-label="Expand details">⤢</button>
+            <span class="asset-id">{llm.name}</span>
+            <div class="asset-tags">
+              <span class="asset-type-tag llm"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
+              <span class="asset-type-tag measure">{llm.regime.label()}</span>
+            </div>
+            <span class="asset-count">1 service</span>
+          </div>
+          <div class="asset-detail collapsed">
+            <div class="card-section">
+              <div class="card-section-label">Model</div>
+              <div class="service-tags">
+                <span class="service-tag"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>{llm.model}</span>
+              </div>
+            </div>
+            <div class="params-inline">
+              <div class="param-item">
+                <span class="param-key">Provider</span>
+                <span class="param-val">{llm.provider}</span>
+              </div>
+              <div class="param-item">
+                <span class="param-key">Location</span>
+                <span class="param-val">{llm.location}</span>
+              </div>
+              <div class="param-item">
+                {#if llm.regime.name == 'MODELED'}
+                <span class="param-key">Output tokens / request</span>
+                {#else}
+                <span class="param-key">Output token total</span>
+                {/if}
+                <span class="param-val">{llm.outputTokenCount}</span>
+              </div>
+              {#if llm.regime.name == 'MODELED'}
+              <div class="param-item">
+                <span class="param-key">Requests / year</span>
+                <span class="param-val">{llm.requestPerYear}</span>
+              </div>
+              {/if}
+            </div>
+            <div class="card-section asset-load">
+              <div class="card-section-label">Usage over period</div>
+              <div class="asset-load-row">
+                {#if llm.regime.name == 'MODELED'}
+                <div class="param-item">
+                  <span class="param-key">Requests</span>
+                  <span class="param-val">{llm.requestCount.asDecimal()}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">GWP / request</span>
+                  <span class="param-val">{llm.gwpPerRequest.value.asDecimal()} {llm.gwpPerRequest.unit.symbol()}</span>
+                </div>
+                {/if}
+                <div class="param-item">
+                  <span class="param-key">GWP total</span>
+                  <span class="param-val">{llm.gwpTotal.value.asDecimal()} {llm.gwpTotal.unit.symbol()}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">Energy total</span>
+                  <span class="param-val">{llm.energyTotal.value.asDecimal()} {llm.energyTotal.unit.symbol()}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">PE total</span>
+                  <span class="param-val">{llm.peTotal.value.asDecimal()} {llm.peTotal.unit.symbol()}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">ADPe total</span>
+                  <span class="param-val">{llm.adpeTotal.value.asDecimal()} {llm.adpeTotal.unit.symbol()}</span>
+                </div>
+              </div>
+              <div class="asset-load-note">
+                {#if llm.regime.name == 'MODELED'}
+                Estimated from the profile's typical request (EcoLogits) prorated over the selected period; not affected by the service filter above.
+                {#else}
+                Computed with EcoLogits from output tokens measured over the selected period; not affected by the service filter above.
+                {/if}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/for}
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric charts -->
+  <div class="metrics-row">
+    <div class="chart-card green">
+      <div class="chart-title">GWP — Global Warming Potential (kgCO2eq)</div>
+      <div class="chart-wrap hbar"><div class="hbar-inner"><canvas id="chartGwp"></canvas></div></div>
+    </div>
+    <div class="chart-card blue">
+      <div class="chart-title">Primary Energy (MJ)</div>
+      <div class="chart-wrap hbar"><div class="hbar-inner"><canvas id="chartPe"></canvas></div></div>
+    </div>
+    <div class="chart-card yellow">
+      <div class="chart-title">Abiotic Resource Depletion (kgSbeq)</div>
+      <div class="chart-wrap hbar"><div class="hbar-inner"><canvas id="chartAdp"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- Services table -->
+  <div class="table-card">
+    <div class="table-head">Per-service breakdown</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="th-toggle"></th>
+          <th>Service</th>
+          <th>GWP total (kgCO2eq)</th>
+          <th>GWP embedded</th>
+          <th>GWP use</th>
+          <th>PE total (MJ)</th>
+          <th>PE embedded</th>
+          <th>PE use</th>
+          <th>ADP total (kgSbeq)</th>
+          <th>ADP embedded</th>
+          <th>ADP use</th>
+          <th>GWP share</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#for s in env.serviceImpacts}
+        <tr class="service-summary" data-idx="{s_count}">
+          <td class="td-toggle"><span class="row-chevron">▶</span></td>
+          <td class="id" title="{s.assetName} / {s.service}">
+            {#if s.container}<img class="svc-icon" src="/icons/docker.svg" alt="container"/>{#else if s.llm}<img class="svc-icon" src="/icons/llm.svg" alt="llm"/>{/if}{s.service}
+          </td>
+          <td class="metric gwp bold">{s.footprint.gwp.totalValue().asDecimal()}</td>
+          <td class="metric gwp use">{s.footprint.gwp.embedded.value.asDecimal()}</td>
+          <td class="metric gwp use">{s.footprint.gwp.use.value.asDecimal()}</td>
+          <td class="metric pe bold">{s.footprint.pe.totalValue().asDecimal()}</td>
+          <td class="metric pe use">{s.footprint.pe.embedded.value.asDecimal()}</td>
+          <td class="metric pe use">{s.footprint.pe.use.value.asDecimal()}</td>
+          <td class="metric adp bold">{s.footprint.adp.totalValue().asDecimal()}</td>
+          <td class="metric adp use">{s.footprint.adp.embedded.value.asDecimal()}</td>
+          <td class="metric adp use">{s.footprint.adp.use.value.asDecimal()}</td>
+          <td>
+            <span class="badge">
+              {#if env.impactShares.containsKey(s.label)}
+                {env.impactShares.get(s.label).asPercent()}
+              {#else}
+                &mdash;
+              {/if}
+            </span>
+          </td>
+        </tr>
+        <tr class="service-detail collapsed" id="detail-{s_count}">
+          <td colspan="12">
+            <div class="detail-charts">
+              <div class="detail-chart-card">
+                <div class="chart-title">GWP (kgCO2eq)</div>
+                <div class="detail-chart-wrap"><canvas id="detailGwp-{s_count}"></canvas></div>
+              </div>
+              <div class="detail-chart-card">
+                <div class="chart-title">Primary Energy (MJ)</div>
+                <div class="detail-chart-wrap"><canvas id="detailPe-{s_count}"></canvas></div>
+              </div>
+              <div class="detail-chart-card">
+                <div class="chart-title">Abiotic Resources (kgSbeq)</div>
+                <div class="detail-chart-wrap"><canvas id="detailAdp-{s_count}"></canvas></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {/for}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Asset detail modal -->
+<div class="asset-modal-overlay" id="assetModal" hidden>
+  <div class="asset-modal" role="dialog" aria-modal="true" aria-labelledby="assetModalTitle">
+    <div class="asset-modal-head">
+      <span class="asset-modal-title" id="assetModalTitle"></span>
+      <button type="button" class="asset-modal-close" id="assetModalClose" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="asset-modal-body" id="assetModalBody"></div>
+  </div>
+</div>
+
+{#include impactScript.html /}
+<script src="/impact.js"></script>
+
+{/include}

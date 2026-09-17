@@ -1,0 +1,27 @@
+environments:
+  # `id` is what core.asset.Environment carries and what assets reference through `environment-id`.
+  test:
+    id: test
+    assets:
+      - type: KUBERNETES_API
+        id: test-cluster
+        environment-id: test
+        name: Test Cluster
+        namespace: test-ns
+        config-path: src/test/resources/test-kubeconfig.yaml
+        profile:
+          provider: aws
+          instance-type: c5.large
+          location: FRA
+          lifespan: 43800
+      - type: LLM_STATIC
+        id: test-llm
+        environment-id: test
+        name: Test LLM
+        profile:
+          provider: mistralai
+          model: mistral-large-latest
+          location: FRA
+          request-profile:
+            output-token-count: 500
+            request-per-year: 1000000

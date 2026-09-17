@@ -1,0 +1,52 @@
+quarkus:
+  datasource:
+    jdbc:
+      url: "jdbc:sqlite:data/db/local.db"
+    # To run against the compose `postgres` service instead, replace the two lines above with:
+    #   db-kind: postgresql
+    #   username: wombat
+    #   password: wombat
+    #   jdbc:
+    #     url: "jdbc:postgresql://localhost:5432/wombat"
+    # db-kind also selects the Flyway chain (classpath:db/migration/${quarkus.datasource.db-kind})
+    # and is fixed at build time, so dev mode has to be restarted after switching.
+
+# Connector endpoints, read through BoaviztaProperties / EcologitsProperties. Both are required with no default.
+connector:
+  boavizta:
+    uri: "http://localhost:5001/v1/"
+  ecologits:
+    uri: "http://localhost:5002/"
+
+monitor:
+  environments-file: monitored/monitored-environments-dev.yaml
+
+# Which SDK modules get wired into the app. Each defaults to true, so this block is only needed to switch one off
+# (e.g. no reachable cluster or Prometheus in a local setup). A disabled module is simply absent from the registry,
+# so assets of its type are skipped rather than failing.
+module:
+  kubernetes-api:
+    enabled: true
+  llm-prometheus:
+    enabled: true
+  llm-static:
+    enabled: true
+
+backup:
+  enabled: true
+  cron: "0 0 * * * ?"  # hourly
+  s3:
+    key-prefix: sqlite/
+    endpoint: http://localhost:8333
+    bucket: wombat-bucket
+    access-key: admin
+    secret-key: secret
+
+llm-simulator:
+  enabled: false
+  cron: "*/10 * * * * ?"
+  metric-name: generation.tokens
+  models:
+    - name: mistral-large-latest
+      min-tokens: 100
+      max-tokens: 2000

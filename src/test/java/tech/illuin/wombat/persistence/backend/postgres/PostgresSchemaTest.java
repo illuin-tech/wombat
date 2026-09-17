@@ -62,7 +62,7 @@ class PostgresSchemaTest
 
         assertEquals("bigint", types.get("id"));
         // Epoch millis overflow the 32-bit INTEGER the SQLite column definition names.
-        assertEquals("bigint", types.get("instantms"));
+        assertEquals("bigint", types.get("instant_ms"));
         assertEquals("text", types.get("data"));
         // SQLite REAL is 64-bit and maps to double fields; Postgres REAL would only be 32-bit.
         assertEquals("double precision", types.get("cpu_nanocores"));
@@ -74,8 +74,8 @@ class PostgresSchemaTest
     {
         Map<String, String> types = postgresColumnTypes("model_metrics");
 
-        assertEquals("bigint", types.get("instantms"));
-        assertEquals("bigint", types.get("outputtokens"));
+        assertEquals("bigint", types.get("instant_ms"));
+        assertEquals("bigint", types.get("output_tokens"));
     }
 
     @Test
@@ -150,11 +150,11 @@ class PostgresSchemaTest
             stmt.execute("SET enable_seqscan = off");
 
             String metricsPlan = explain(stmt, "SELECT id FROM server_metrics WHERE "
-                + JsonPathDialect.POSTGRESQL.text("data", "cluster") + " = 'c1' AND instantMs >= 0");
+                + JsonPathDialect.POSTGRESQL.text("data", "cluster") + " = 'c1' AND instant_ms >= 0");
             assertTrue(metricsPlan.contains("idx_server_metrics_cluster_instant"), metricsPlan);
 
             String modelPlan = explain(stmt, "SELECT id FROM model_metrics WHERE "
-                + JsonPathDialect.POSTGRESQL.text("data", "assetId") + " = 'a1' AND instantMs >= 0");
+                + JsonPathDialect.POSTGRESQL.text("data", "assetId") + " = 'a1' AND instant_ms >= 0");
             assertTrue(modelPlan.contains("idx_model_metrics_asset_instant"), modelPlan);
         }
     }
@@ -173,7 +173,7 @@ class PostgresSchemaTest
         String values = id == null ? "" : id + ", ";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(
-                 "INSERT INTO server_metrics (" + columns + "instantMs, data, cpu_nanocores, ram_bytes)"
+                 "INSERT INTO server_metrics (" + columns + "instant_ms, data, cpu_nanocores, ram_bytes)"
                  + " VALUES (" + values + "1000, '{\"cluster\":\"c1\"}', 1, 1) RETURNING id"))
         {
             rs.next();

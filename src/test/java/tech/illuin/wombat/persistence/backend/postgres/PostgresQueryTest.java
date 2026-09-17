@@ -44,12 +44,12 @@ class PostgresQueryTest
              Statement stmt = conn.createStatement())
         {
             stmt.executeUpdate(
-                "INSERT INTO server_metrics (instantMs, data, cpu_nanocores, ram_bytes) VALUES"
+                "INSERT INTO server_metrics (instant_ms, data, cpu_nanocores, ram_bytes) VALUES"
                 + " (1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"api\"}', 1.5e9, 2e9),"
                 + " (1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"web\"}', 0.5e9, 1e9),"
                 + " (2000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c2\",\"namespace\":\"ns2\",\"pod\":\"p2\",\"container\":\"api\"}', 1.0e9, 1e9)");
             stmt.executeUpdate(
-                "INSERT INTO model_metrics (instantMs, data, outputTokens) VALUES"
+                "INSERT INTO model_metrics (instant_ms, data, output_tokens) VALUES"
                 + " (1000, '{\"profileId\":\"a1\",\"model\":\"m\"}', 100),"
                 + " (2000, '{\"profileId\":\"a1\",\"model\":\"m\"}', 200),"
                 + " (1500, '{\"profileId\":\"b2\",\"model\":\"m\"}', 999)");
@@ -59,7 +59,7 @@ class PostgresQueryTest
     @Test
     void findByRangeAndClusters_filtersOnTheJsonClusterLabel() throws SQLException
     {
-        String sql = "SELECT count(*) FROM server_metrics WHERE instantMs >= 0 AND instantMs <= 3000"
+        String sql = "SELECT count(*) FROM server_metrics WHERE instant_ms >= 0 AND instant_ms <= 3000"
             + " AND " + CLUSTER + " IN ('c1')";
 
         assertEquals(2L, scalar(sql).longValue());
@@ -84,7 +84,7 @@ class PostgresQueryTest
         List<String[]> rows = rows(
             "SELECT " + CONTAINER + " AS container,"
             + " SUM(cpu_nanocores) * 1.0 / SUM(SUM(cpu_nanocores)) OVER () AS share FROM server_metrics"
-            + " WHERE instantMs >= 0 AND instantMs <= 3000 AND " + CLUSTER + " IN ('c1')"
+            + " WHERE instant_ms >= 0 AND instant_ms <= 3000 AND " + CLUSTER + " IN ('c1')"
             + " GROUP BY " + CONTAINER, 2);
 
         assertEquals(2, rows.size());
@@ -100,7 +100,7 @@ class PostgresQueryTest
         List<String[]> rows = rows(
             "SELECT " + CONTAINER + " AS container,"
             + " SUM(cpu_nanocores) * 1.0 / SUM(SUM(cpu_nanocores)) OVER () AS share FROM server_metrics"
-            + " WHERE instantMs >= 0 AND instantMs <= 3000"
+            + " WHERE instant_ms >= 0 AND instant_ms <= 3000"
             + " GROUP BY " + CONTAINER, 2);
 
         double total = rows.stream().mapToDouble(row -> Double.parseDouble(row[1])).sum();
@@ -114,7 +114,7 @@ class PostgresQueryTest
             "SELECT DISTINCT " + CONTAINER + " AS container,"
             + " " + CLUSTER + " AS cluster,"
             + " " + NAMESPACE + " AS namespace FROM server_metrics"
-            + " WHERE instantMs >= 0 AND instantMs <= 3000 AND " + CLUSTER + " IN ('c1', 'c2')"
+            + " WHERE instant_ms >= 0 AND instant_ms <= 3000 AND " + CLUSTER + " IN ('c1', 'c2')"
             + " ORDER BY container, cluster, namespace", 3);
 
         assertEquals(3, rows.size());
@@ -158,14 +158,14 @@ class PostgresQueryTest
     {
         return "SELECT AVG(perInstant) FROM ("
             + " SELECT SUM(cpu_nanocores) AS perInstant FROM server_metrics"
-            + " WHERE instantMs >= 0 AND instantMs <= 3000" + clusterFilter
-            + " GROUP BY instantMs) AS per_instant";
+            + " WHERE instant_ms >= 0 AND instant_ms <= 3000" + clusterFilter
+            + " GROUP BY instant_ms) AS per_instant";
     }
 
     private static String sumOutputTokens(String profileId, long startMs, long endMs)
     {
-        return "SELECT COALESCE(SUM(outputTokens), 0) FROM model_metrics"
-            + " WHERE instantMs >= " + startMs + " AND instantMs <= " + endMs
+        return "SELECT COALESCE(SUM(output_tokens), 0) FROM model_metrics"
+            + " WHERE instant_ms >= " + startMs + " AND instant_ms <= " + endMs
             + " AND " + PROFILE_ID + " = '" + profileId + "'";
     }
 

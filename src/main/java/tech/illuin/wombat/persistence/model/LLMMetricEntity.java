@@ -20,13 +20,13 @@ public class LLMMetricEntity extends PanacheEntityBase
     @Column(columnDefinition = "INTEGER")
     public Long id;
 
-    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Column(name = "instant_ms", nullable = false, columnDefinition = "INTEGER")
     public long instantMs;
 
     @Convert(converter = LLMDataConverter.class)
     @Column(nullable = false)
     public LLMData data;
 
-    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Column(name = "output_tokens", nullable = false, columnDefinition = "INTEGER")
     public long outputTokens;
 }

@@ -43,7 +43,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     {
         if (clusterIds.isEmpty()) return findByRange(startMs, endMs);
         StringBuilder sql = new StringBuilder(
-            "SELECT * FROM server_metrics WHERE instantMs >= :start AND instantMs <= :end");
+            "SELECT * FROM server_metrics WHERE instant_ms >= :start AND instant_ms <= :end");
         this.appendClusterFilter(sql, clusterIds);
 
         Query query = bind(getEntityManager().createNativeQuery(sql.toString(), KubernetesMetricEntity.class), startMs, endMs, clusterIds);
@@ -58,9 +58,9 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         StringBuilder sql = new StringBuilder(
             "SELECT AVG(perInstant) FROM ("
             + " SELECT SUM(cpu_nanocores) AS perInstant FROM server_metrics"
-            + " WHERE instantMs >= :start AND instantMs <= :end");
+            + " WHERE instant_ms >= :start AND instant_ms <= :end");
         this.appendClusterFilter(sql, clusterIds);
-        sql.append(" GROUP BY instantMs) AS per_instant");
+        sql.append(" GROUP BY instant_ms) AS per_instant");
 
         Query query = bind(getEntityManager().createNativeQuery(sql.toString()), startMs, endMs, clusterIds);
         Object result = query.getSingleResult();
@@ -74,7 +74,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         StringBuilder sql = new StringBuilder(
             "SELECT " + container + " AS container,"
             + " SUM(cpu_nanocores) * 1.0 / SUM(SUM(cpu_nanocores)) OVER () AS share FROM server_metrics"
-            + " WHERE instantMs >= :start AND instantMs <= :end");
+            + " WHERE instant_ms >= :start AND instant_ms <= :end");
         this.appendClusterFilter(sql, clusterIds);
         sql.append(" GROUP BY ").append(container);
 
@@ -98,7 +98,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
             "SELECT DISTINCT " + this.dialect.text(DATA, SERVICE_ID) + " AS container,"
             + " " + this.dialect.text(DATA, "cluster") + " AS cluster,"
             + " " + this.dialect.text(DATA, "namespace") + " AS namespace FROM server_metrics"
-            + " WHERE instantMs >= :start AND instantMs <= :end");
+            + " WHERE instant_ms >= :start AND instant_ms <= :end");
         this.appendClusterFilter(sql, clusterIds);
         sql.append(" ORDER BY container, cluster, namespace");
 

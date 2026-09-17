@@ -28,8 +28,8 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     public long sumOutputTokens(long startMs, long endMs, String assetId)
     {
         Query query = getEntityManager().createNativeQuery(
-            "SELECT COALESCE(SUM(outputTokens), 0) FROM model_metrics"
-            + " WHERE instantMs >= :start AND instantMs <= :end"
+            "SELECT COALESCE(SUM(output_tokens), 0) FROM model_metrics"
+            + " WHERE instant_ms >= :start AND instant_ms <= :end"
             + " AND " + this.dialect.text("data", "assetId") + " = :assetId");
         query.setParameter("start", startMs);
         query.setParameter("end", endMs);

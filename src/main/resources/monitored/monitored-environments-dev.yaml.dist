@@ -1,33 +1,3 @@
-resolvers:
-  kubernetes:
-    impact:
-      default: boavizta
-      handlers:
-        - id: boavizta
-          type: boavizta
-          mode: whatever
-    cost:
-      default: opencost
-      handlers:
-        - id: opencost
-          type: opencost
-          host: whatever
-        - id: random
-          type: random
-  llm:
-    impact:
-      default: ecologits
-      handlers:
-        - id: ecologits
-          type: ecologits
-    cost:
-      default: csv-a-la-con
-      handlers:
-        - type: csv-a-la-con
-          source: machin.csv
-        - type: csv-my-llm-a-con
-          source: machin.csv
-
 environments:
   # Map key and `id` must match: the key is how the file is indexed, `id` is what core.asset.Environment carries
   # and what assets reference through `environment-id`.
@@ -68,11 +38,11 @@ environments:
         name: My served LLM (preprod)
         prometheus-url: http://prometheus.my-namespace:9090/
         heartbeat-skip: 10
-        # Basic auth is optional. `password-env` names the environment variable holding the password — never the
+        # Basic auth is optional. `password-key` names the environment variable holding the password — never the
         # password itself, which would end up in the assets table and in the config-history snapshots. The app
         # refuses to start when a declared variable is unset or empty (see RequiredSecretsCheck).
         username: prometheus
-        password-env: WOMBAT_PROMETHEUS_PASSWORD
+        password-key: WOMBAT_PROMETHEUS_PASSWORD
         profile:
           provider: mistralai
           model: mistral-large-latest

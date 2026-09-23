@@ -18,7 +18,24 @@ connector:
   ecologits:
     uri: "http://localhost:5002/"
 
+# Secret resolution directory / keystore (optional)
+#wombat:
+#  secret:
+#    directory:
+#      path: /secrets
+
+metrics:
+  aggregation-window:
+    duration: 5
+    unit: MINUTES
+
+ui:
+  max-date-range:
+    duration: 1
+    unit: MONTHS
+
 monitor:
+  heartbeat: "*/10 * * * * ?"
   environments-file: monitored/monitored-environments-dev.yaml
 
 # Which SDK modules get wired into the app. Each defaults to true, so this block is only needed to switch one off
@@ -35,6 +52,10 @@ module:
 backup:
   enabled: true
   cron: "0 0 * * * ?"  # hourly
+  cleanup:
+    enabled: true
+    cron: "0 0 3 * * ?"
+    retain-last: 10
   s3:
     key-prefix: sqlite/
     endpoint: http://localhost:8333

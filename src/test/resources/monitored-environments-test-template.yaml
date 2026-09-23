@@ -32,7 +32,7 @@ environments:
         prometheus-url: http://prometheus.my-namespace:9090/
         heartbeat-skip: 10
         username: prometheus
-        password-env: WOMBAT_PROMETHEUS_PASSWORD
+        password-key: WOMBAT_PROMETHEUS_PASSWORD
         profile:
           provider: mistralai
           model: mistral-large-latest

@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import io.quarkus.arc.All;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -27,7 +29,9 @@ import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.module.api.ModuleRegistration;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
+import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
+import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 
 import java.util.List;
@@ -49,8 +53,10 @@ public class WombatModuleConfig
     private static final Logger logger = LoggerFactory.getLogger(WombatModuleConfig.class);
 
     private static final String MODULE_KUBERNETES_API = "kubernetes-api";
+    private static final String MODULE_KUBERNETES_SIMULATION = "kubernetes-simulation";
     private static final String MODULE_LLM_PROMETHEUS = "llm-prometheus";
     private static final String MODULE_LLM_STATIC = "llm-static";
+    private static final String MODULE_LLM_SIMULATION = "llm-simulation";
     private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData _) -> new AssetCost(asset.environmentId(), asset.id());
 
     @Singleton
@@ -85,6 +91,12 @@ public class WombatModuleConfig
     }
 
     @Singleton @CoreModule
+    public ModuleRegistration provideKubernetesSimulationModule()
+    {
+        return ModuleRegistration.of(MODULE_KUBERNETES_SIMULATION, new KubernetesSimulatedModule());
+    }
+
+    @Singleton @CoreModule
     public ModuleRegistration provideLLMPrometheusModule(WombatModuleProperties properties)
     {
         if (!properties.llmPrometheus().enabled())
@@ -100,6 +112,12 @@ public class WombatModuleConfig
             return ModuleRegistration.disabled(MODULE_LLM_STATIC);
 
         return ModuleRegistration.of(MODULE_LLM_STATIC, new LLMStaticModule());
+    }
+
+    @Singleton @CoreModule
+    public ModuleRegistration provideLLMSimulationModule()
+    {
+        return ModuleRegistration.of(MODULE_LLM_SIMULATION, new LLMSimulatedModule());
     }
 
     @Singleton
@@ -127,6 +145,12 @@ public class WombatModuleConfig
      * candidates wherever a plain {@code ObjectMapper} is injected — the REST-client serialisers among them — and the
      * build fails on an ambiguous dependency. Restricting the bean types leaves each resolvable only as itself.
      */
+
+    public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)
+    {
+        registerSubTypes(modules, mapper);
+    }
+
     @Singleton
     @Typed(YAMLMapper.class)
     public YAMLMapper provideYAMLMapper(List<WombatModule> modules)

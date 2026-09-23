@@ -42,10 +42,12 @@ public class MonitorConfig
     private static InputStream open(String location) throws IOException
     {
         Path path = Path.of(location);
-        if (Files.isReadable(path)) return Files.newInputStream(path);
+        if (Files.isReadable(path))
+            return Files.newInputStream(path);
 
         InputStream classpath = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
-        if (classpath != null) return classpath;
+        if (classpath != null)
+            return classpath;
 
         throw new IllegalStateException("Monitored resources file not found on filesystem or classpath: '" + location + "'");
     }

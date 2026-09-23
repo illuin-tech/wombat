@@ -13,6 +13,7 @@ import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.core.source.persistence.micrometer.MicrometerMetricPersister;
+import tech.illuin.wombat.module.WombatModuleConfig.DefaultHandlers;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ public class WombatCoreConfig
         WombatContextProvider contextProvider,
         WombatMetricPersister persister,
         List<WombatModule> modules,
-        @All List<WombatModuleConfig.DefaultHandlers> defaultHandlers
+        @All List<DefaultHandlers> defaultHandlers
     ) {
         return new WombatCore(contextProvider, persister, modules, defaults -> defaultHandlers.forEach(
             dh -> defaults.register(

@@ -61,11 +61,11 @@ public class ImpactController
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response<List<AssetImpact>> getImpact(@Valid ImpactRequest input)
+    public Response<List<AssetImpact>> getImpact(@Valid ImpactRequest request)
     {
         try {
-            TimeRange timeRange = input.sourceTimeRange() == null ? currentMonthTimeRange() : input.sourceTimeRange();
-            AssetFilter scope = scope(input.environments());
+            TimeRange timeRange = request.sourceTimeRange() == null ? currentMonthTimeRange() : request.sourceTimeRange();
+            AssetFilter scope = scope(request.environments());
 
             List<AssetImpact> assetImpacts = this.calculate(timeRange, scope);
 

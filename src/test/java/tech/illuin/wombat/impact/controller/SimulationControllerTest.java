@@ -29,7 +29,7 @@ class SimulationControllerTest
 
     private static final String LLM_ASSET_JSON = """
         {
-          "type": "LLM_SIMULATED",
+          "type": "LLM",
           "activity": {
             "range": {
               "start": "2024-01-01T00:00:00Z",
@@ -52,7 +52,7 @@ class SimulationControllerTest
 
     private static final String KUBERNETES_ASSET_JSON = """
         {
-          "type": "KUBERNETES_SIMULATED",
+          "type": "KUBERNETES",
           "activity": {
             "range": {
               "start": "2024-01-01T00:00:00Z",
@@ -186,7 +186,7 @@ class SimulationControllerTest
     {
         String llmNoActivity = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -201,7 +201,7 @@ class SimulationControllerTest
 
         String kubernetesNoActivity = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",
@@ -231,7 +231,7 @@ class SimulationControllerTest
     {
         String llmNullActivity = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -247,7 +247,7 @@ class SimulationControllerTest
 
         String kubernetesNullActivity = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",
@@ -289,7 +289,7 @@ class SimulationControllerTest
     {
         String kubernetesNullContainerShares = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",
@@ -309,7 +309,7 @@ class SimulationControllerTest
 
         String kubernetesMissingContainerShares = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",
@@ -346,7 +346,7 @@ class SimulationControllerTest
     {
         String llmNullRange = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -366,7 +366,7 @@ class SimulationControllerTest
 
         String llmMissingRange = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -385,7 +385,7 @@ class SimulationControllerTest
 
         String kubernetesNullRange = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",
@@ -404,7 +404,7 @@ class SimulationControllerTest
 
         String kubernetesMissingRange = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",
@@ -454,7 +454,7 @@ class SimulationControllerTest
     {
         String llmNullStart = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -477,7 +477,7 @@ class SimulationControllerTest
 
         String llmNullEnd = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -500,7 +500,7 @@ class SimulationControllerTest
 
         String llmStartEqualsEnd = """
             {
-              "type": "LLM_SIMULATED",
+              "type": "LLM",
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
@@ -523,7 +523,7 @@ class SimulationControllerTest
 
         String kubernetesStartAfterEnd = """
             {
-              "type": "KUBERNETES_SIMULATED",
+              "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
                 "instance-type": "c5.large",

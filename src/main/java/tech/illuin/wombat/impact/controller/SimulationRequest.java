@@ -33,8 +33,8 @@ public record SimulationRequest(
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
     @JsonSubTypes({
-        @JsonSubTypes.Type(value = SimulatedLLM.class, name = "LLM_SIMULATED"),
-        @JsonSubTypes.Type(value = SimulatedKubernetes.class, name = "KUBERNETES_SIMULATED")
+        @JsonSubTypes.Type(value = SimulatedLLM.class, name = "LLM"),
+        @JsonSubTypes.Type(value = SimulatedKubernetes.class, name = "KUBERNETES")
     })
     public sealed interface SimulatedAsset permits SimulatedLLM, SimulatedKubernetes
     {

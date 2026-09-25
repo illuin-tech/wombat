@@ -21,16 +21,21 @@ import java.util.concurrent.Executors;
 @ApplicationScoped
 public class MetricsConfig
 {
+    public static final Duration SAMPLING = Duration.ofMinutes(5);
+
+    public static final Duration COMPACTION = Duration.ofHours(1);
+
+    public static final long COMPACTION_MILLIS = COMPACTION.toMillis();
+
+    public static final Duration COMPACTION_DELAY = Duration.ofMinutes(1);
 
     private static final Logger logger = LoggerFactory.getLogger(MetricsConfig.class);
 
     @Singleton
     public WombatStepMeterRegistry provideStepRegistry(
-        MetricsProperties properties,
         KubernetesMetricRepository kubernetesMetricRepository,
         LLMModelMetricRepository llmModelMetricRepository
     ) {
-        Duration window = properties.aggregationWindow().asDuration();
         StepRegistryConfig stepConfig = new StepRegistryConfig()
         {
             @Override
@@ -42,7 +47,7 @@ public class MetricsConfig
             @Override
             public Duration step()
             {
-                return window;
+                return SAMPLING;
             }
 
             @Override
@@ -57,8 +62,7 @@ public class MetricsConfig
     void onStart(
         @Observes StartupEvent event,
         MeterRegistry rootRegistry,
-        WombatStepMeterRegistry stepRegistry,
-        MetricsProperties properties
+        WombatStepMeterRegistry stepRegistry
     ) {
         if (!(rootRegistry instanceof CompositeMeterRegistry composite))
             throw new IllegalArgumentException("Root registry is not composite");
@@ -66,7 +70,7 @@ public class MetricsConfig
         logger.info("Root MeterRegistry implementation: {}", rootRegistry.getClass().getName());
         stepRegistry.start(Executors.defaultThreadFactory());
         composite.add(stepRegistry);
-        logger.info("Attached SqliteStepMeterRegistry to CompositeMeterRegistry (step={})", properties.aggregationWindow().asDuration());
+        logger.info("Attached SqliteStepMeterRegistry to CompositeMeterRegistry (step={})", SAMPLING);
     }
 
     void onStop(@Observes ShutdownEvent event, WombatStepMeterRegistry stepRegistry)

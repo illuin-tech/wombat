@@ -4,6 +4,7 @@ import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
+import tech.illuin.wombat.impact.timeline.ImpactTimeline;
 
 import java.util.List;
 
@@ -15,7 +16,8 @@ public class Templates
         EnvironmentImpact env,
         AssetSelection assets,
         EnvironmentSelection environments,
-        MaxSpan maxSpan
+        MaxSpan maxSpan,
+        ImpactTimeline timeline
     );
 
     public static native TemplateInstance impactError(TimeRange timeRange, MaxSpan maxSpan);

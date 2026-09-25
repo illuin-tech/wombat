@@ -40,7 +40,8 @@ class MetricDataConverterTest
     void storedJson_usesTheKeysTheNativeQueriesAddress()
     {
         // KubernetesMetricRepository groups on `serviceId` and filters on `cluster`; LLMModelMetricRepository
-        // filters on `assetId`. A rename here silently breaks those queries, which have no compiler to catch it.
+        // filters on `assetId` and, when the page narrows to some of an asset's models, on `model`.
+        // A rename here silently breaks those queries, which have no compiler to catch it.
         String kubernetesJson = this.kubernetes.convertToDatabaseColumn(new KubernetesData(
             "svc", "asset", "env", "cluster-1", "ns", "pod", 1.0, 2.0));
         assertContainsKey(kubernetesJson, "serviceId");
@@ -49,6 +50,7 @@ class MetricDataConverterTest
 
         String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", "asset", "env", "model", 1L));
         assertContainsKey(llmJson, "assetId");
+        assertContainsKey(llmJson, "model");
     }
 
     @Test

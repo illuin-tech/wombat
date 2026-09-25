@@ -8,4 +8,11 @@
   var adpEmbedded   = [{#for s in env.serviceImpacts}{s.footprint.adp.embedded.value}{#if s_hasNext},{/if}{/for}];
   var adpUse        = [{#for s in env.serviceImpacts}{s.footprint.adp.use.value}{#if s_hasNext},{/if}{/for}];
   var sharesValues  = [{#for v in env.impactShares.values()}{v}{#if v_hasNext},{/if}{/for}];
+  var timelineStarts = [{#for start in timeline.bucketStarts}{start}{#if start_hasNext},{/if}{/for}];
+  var timelineStepMs = {timeline.stepMs};
+  var timelineSeries = [{#for s in timeline.series}{
+    key: "{s.key}", label: "{s.label}", unit: "{s.unit}",
+    embedded: [{#for b in s.buckets}{b.embedded}{#if b_hasNext},{/if}{/for}],
+    use: [{#for b in s.buckets}{b.use}{#if b_hasNext},{/if}{/for}]
+  }{#if s_hasNext},{/if}{/for}];
 </script>

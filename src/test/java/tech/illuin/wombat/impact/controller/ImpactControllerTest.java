@@ -56,6 +56,8 @@ class ImpactControllerTest
     {
         KubernetesMetricEntity row = new KubernetesMetricEntity();
         row.instantMs = instantMs;
+        row.windowMs = 3_600_000L;
+        row.compacted = true;
         row.data = new KubernetesData(container, "test-asset", "test-env", "test-cluster", "test-ns", pod, cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;

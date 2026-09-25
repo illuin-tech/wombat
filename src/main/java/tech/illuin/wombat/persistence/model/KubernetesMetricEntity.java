@@ -22,6 +22,9 @@ public class KubernetesMetricEntity extends PanacheEntityBase
     @Column(name = "instant_ms", nullable = false, columnDefinition = "INTEGER")
     public long instantMs;
 
+    @Column(name = "window_ms", nullable = false, columnDefinition = "INTEGER")
+    public long windowMs;
+
     @Convert(converter = KubernetesDataConverter.class)
     @Column(nullable = false)
     public KubernetesData data;
@@ -31,4 +34,8 @@ public class KubernetesMetricEntity extends PanacheEntityBase
 
     @Column(name = "ram_bytes", nullable = false, columnDefinition = "REAL")
     public double ramBytes;
+
+    @Convert(converter = CompactionFlagConverter.class)
+    @Column(name = "compacted", nullable = false, columnDefinition = "INTEGER")
+    public boolean compacted;
 }

@@ -10,6 +10,7 @@ import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.impact.llm.LLMModelMetricRepository;
+import tech.illuin.wombat.persistence.micrometer.data.Aggregation;
 import tech.illuin.wombat.persistence.micrometer.data.MetricGroup;
 import tech.illuin.wombat.persistence.micrometer.data.TagGroup;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
@@ -25,10 +26,12 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     private final KubernetesMetricRepository kubernetesRepository;
     private final LLMModelMetricRepository llmRepository;
     private final Clock clock;
+    private final long stepMs;
+    private long lastPublishedBucketMs;
 
-    private static final Set<String> KUBERNETES_VALUES = Set.of(
-        METRIC_K8S_CPU,
-        METRIC_K8S_RAM
+    private static final Map<String, Aggregation> KUBERNETES_VALUES = Map.of(
+        METRIC_K8S_CPU, Aggregation.MEAN,
+        METRIC_K8S_RAM, Aggregation.MEAN
     );
     private static final Set<String> KUBERNETES_TAGS = Set.of(
         TAG_ENVIRONMENT,
@@ -40,8 +43,8 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
         TAG_K8S_CONTAINER
     );
 
-    private static final Set<String> LLM_VALUES = Set.of(
-        METRIC_LLM_OUTPUT_TOKENS
+    private static final Map<String, Aggregation> LLM_VALUES = Map.of(
+        METRIC_LLM_OUTPUT_TOKENS, Aggregation.SUM
     );
     private static final Set<String> LLM_TAGS = Set.of(
         TAG_ENVIRONMENT,
@@ -62,6 +65,8 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
         this.kubernetesRepository = kubernetesRepository;
         this.llmRepository = llmRepository;
         this.clock = clock;
+        this.stepMs = config.step().toMillis();
+        this.lastPublishedBucketMs = Long.MIN_VALUE;
     }
 
     @Override
@@ -73,15 +78,26 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     @Override
     protected void publish()
     {
-        logger.info("publish() invoked at wallTime={}", this.clock.wallTime());
-        long ms = this.clock.wallTime();
+        long bucketMs = this.closedBucketStart();
+        if (bucketMs <= this.lastPublishedBucketMs)
+        {
+            logger.debug("Window {} was already published, skipping (wallTime={})", bucketMs, this.clock.wallTime());
+            return;
+        }
+        this.lastPublishedBucketMs = bucketMs;
+        logger.info("publish() invoked at wallTime={} for window starting at {}", this.clock.wallTime(), bucketMs);
 
         List<Meter> meters = this.getMeters();
-        this.publishKubernetesData(ms, gather(meters, KUBERNETES_TAGS, KUBERNETES_VALUES));
-        this.publishLLMData(ms, gather(meters, LLM_TAGS, LLM_VALUES));
+        this.publishKubernetesData(bucketMs, gather(meters, KUBERNETES_TAGS, KUBERNETES_VALUES));
+        this.publishLLMData(bucketMs, gather(meters, LLM_TAGS, LLM_VALUES));
     }
 
-    private static Collection<MetricGroup> gather(List<Meter> meters, Set<String> tagKeys, Set<String> valueKeys)
+    private long closedBucketStart()
+    {
+        return (this.clock.wallTime() / this.stepMs - 1) * this.stepMs;
+    }
+
+    private static Collection<MetricGroup> gather(List<Meter> meters, Set<String> tagKeys, Map<String, Aggregation> valueKeys)
     {
         Map<TagGroup, MetricGroup> groups = new HashMap<>();
         for (Meter meter : meters)
@@ -122,6 +138,7 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
             );
             KubernetesMetricEntity row = new KubernetesMetricEntity();
             row.instantMs = ms;
+            row.windowMs = this.stepMs;
             row.data = data;
             row.cpuNanocores = data.cpuNanocores();
             row.ramBytes = data.ramBytes();

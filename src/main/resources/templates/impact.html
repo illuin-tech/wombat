@@ -104,6 +104,32 @@
 <!-- Main -->
 <div class="main">
 
+  {#if !timeline.empty}
+  <!-- Impact histogram -->
+  <div class="chart-card green">
+    <div class="chart-head">
+      <div class="chart-title">Impact over time — {timeline.stepLabel}</div>
+      <div class="chart-controls">
+        <div class="chart-pills" id="timelinePills" role="group" aria-label="Metric shown">
+          {#for s in timeline.series}
+          <button type="button" class="chart-pill{#if s_count == 1} active{/if}" data-series="{s.key}"
+                  aria-pressed="{#if s_count == 1}true{#else}false{/if}">{s.label}</button>
+          {/for}
+        </div>
+        <div class="chart-pills" id="timelineModes" role="group" aria-label="Chart shape">
+          <button type="button" class="chart-pill" data-mode="bar" aria-pressed="false">Bars</button>
+          <button type="button" class="chart-pill active" data-mode="line" aria-pressed="true">Lines</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap timeline"><canvas id="chartImpactTimeline"></canvas></div>
+    <div class="chart-note">
+      The range total split over its {timeline.bucketCount} {timeline.stepPlural}: embedded spread evenly, use by
+      the activity measured in each bucket. Buckets no measurement covers carry embedded only.
+    </div>
+  </div>
+  {/if}
+
   <!-- KPI row -->
   <div class="kpi-row">
     <div class="kpi-card green">

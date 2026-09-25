@@ -29,4 +29,8 @@ public class LLMMetricEntity extends PanacheEntityBase
 
     @Column(name = "output_tokens", nullable = false, columnDefinition = "INTEGER")
     public long outputTokens;
+
+    @Convert(converter = CompactionFlagConverter.class)
+    @Column(name = "compacted", nullable = false, columnDefinition = "INTEGER")
+    public boolean compacted;
 }

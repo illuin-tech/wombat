@@ -1,13 +1,14 @@
 package tech.illuin.wombat.impact.controller;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
+import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
-import tech.illuin.wombat.core.asset.AssetType;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 
@@ -37,8 +38,8 @@ class EnvironmentDescriptionTest
         assertEquals("Production", config.name());
         assertEquals(timeRange, config.timeRange());
         assertEquals(2, config.assets().size());
-        assertEquals(new EnvironmentDescription.AssetSummary("cluster-1", "Cluster One", AssetType.KUBERNETES_API), config.assets().getFirst());
-        assertEquals(new EnvironmentDescription.AssetSummary("llm-1", "LLM One", AssetType.LLM_STATIC), config.assets().getLast());
+        assertEquals(new EnvironmentDescription.AssetSummary("cluster-1", "Cluster One", KubernetesAPIModule.TYPE), config.assets().getFirst());
+        assertEquals(new EnvironmentDescription.AssetSummary("llm-1", "LLM One", LLMStaticModule.TYPE), config.assets().getLast());
     }
 
     @Test

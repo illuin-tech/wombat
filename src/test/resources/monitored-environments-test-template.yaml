@@ -2,7 +2,7 @@ environments:
   preprod:
     id: preprod
     assets:
-      - type: KUBERNETES_API
+      - type: tech.illuin.wombat-module.kubernetes-api
         id: my-cluster
         environment-id: preprod
         name: My cluster (preprod)
@@ -14,7 +14,7 @@ environments:
           instance-type: c5a.4xlarge
           location: FRA
           lifespan: 43800  # hours
-      - type: LLM_STATIC
+      - type: tech.illuin.wombat-module.llm-static
         id: my-llm
         environment-id: preprod
         name: My LLM (preprod)
@@ -25,7 +25,7 @@ environments:
           request-profile:
             output-token-count: 500
             request-per-year: 1000000000
-      - type: LLM_PROMETHEUS
+      - type: tech.illuin.wombat-module.llm-prometheus
         id: my-served-llm
         environment-id: preprod
         name: My served LLM (preprod)

@@ -1,20 +1,30 @@
 package tech.illuin.wombat.module;
 
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
+import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
+import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
+import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
-import tech.illuin.wombat.impact.llm.LLMModelMetricRepository;
-import tech.illuin.wombat.module.api.ModuleRegistration;
+import tech.illuin.wombat.module.extension.CompositeExtensionLoader;
+import tech.illuin.wombat.module.extension.ExtensionLoader;
+import tech.illuin.wombat.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
-import tech.illuin.wombat.persistence.dialect.JsonPathDialect;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Exercises the producers directly rather than through CDI: the toggles are plain logic over
@@ -26,97 +36,63 @@ class WombatModuleConfigTest
     private final WombatModuleConfig config = new WombatModuleConfig();
 
     @Test
-    void enabledByDefault_everyModuleIsRegistered()
+    void provideWombatExtensionLoader_returnsCompositeExtensionLoader()
     {
-        assertTrue(this.kubernetes(all(true)).enabled());
-        assertTrue(this.llmPrometheus(all(true)).enabled());
-        assertTrue(this.config.provideLLMStaticModule(all(true)).enabled());
+        WombatModuleProperties properties = properties(true, true, true);
+        ExtensionLoader loader = this.config.provideWombatExtensionLoader(properties);
+
+        assertInstanceOf(CompositeExtensionLoader.class, loader);
     }
 
     @Test
-    void kubernetesApiDisabled_yieldsADisabledRegistrationCarryingNoModule()
+    void provideWombatModules_loadsModulesFromExtensionLoader()
     {
-        ModuleRegistration registration = this.kubernetes(only("kubernetes-api", false));
+        ExtensionLoader loader = mock(ExtensionLoader.class);
+        List<WombatModule> expected = List.of(new KubernetesAPIModule(), new LLMStaticModule());
+        when(loader.load()).thenReturn(expected);
 
-        assertEquals("kubernetes-api", registration.id());
-        assertFalse(registration.enabled());
-        assertTrue(registration.modules().isEmpty());
+        List<WombatModule> result = this.config.provideWombatModules(loader);
+
+        assertEquals(expected, result);
+        verify(loader).load();
     }
 
     @Test
-    void llmPrometheusDisabled_yieldsADisabledRegistrationCarryingNoModule()
+    void provideMappers_registerSubtypesForGivenModules()
     {
-        ModuleRegistration registration = this.llmPrometheus(only("llm-prometheus", false));
-
-        assertEquals("llm-prometheus", registration.id());
-        assertFalse(registration.enabled());
-        assertTrue(registration.modules().isEmpty());
-    }
-
-    @Test
-    void llmStaticDisabled_yieldsADisabledRegistrationCarryingNoModule()
-    {
-        ModuleRegistration registration = this.config.provideLLMStaticModule(only("llm-static", false));
-
-        assertEquals("llm-static", registration.id());
-        assertFalse(registration.enabled());
-        assertTrue(registration.modules().isEmpty());
-    }
-
-    @Test
-    void assembledModules_containOnlyTheEnabledOnes()
-    {
-        WombatModuleProperties properties = only("llm-prometheus", false);
-
-        List<WombatModule> modules = this.config.provideWombatModules(List.of(
-            this.kubernetes(properties),
-            this.llmPrometheus(properties),
-            this.config.provideLLMStaticModule(properties)
-        ));
-
-        assertEquals(2, modules.size());
-        assertTrue(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
-        assertTrue(modules.stream().anyMatch(LLMStaticModule.class::isInstance));
-        assertFalse(modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
-    }
-
-    @Test
-    void assembledModules_areEmptyWhenEverythingIsDisabled()
-    {
-        WombatModuleProperties properties = all(false);
-
-        List<WombatModule> modules = this.config.provideWombatModules(List.of(
-            this.kubernetes(properties),
-            this.llmPrometheus(properties),
-            this.config.provideLLMStaticModule(properties)
-        ));
-
-        assertTrue(modules.isEmpty());
-    }
-
-    private ModuleRegistration kubernetes(WombatModuleProperties properties)
-    {
-        return this.config.provideKubernetesAPIModule(properties);
-    }
-
-    private ModuleRegistration llmPrometheus(WombatModuleProperties properties)
-    {
-        return this.config.provideLLMPrometheusModule(properties);
-    }
-
-    private static WombatModuleProperties all(boolean enabled)
-    {
-        return properties(enabled, enabled, enabled);
-    }
-
-    /** Every module enabled except the named one, so a test only states the toggle it cares about. */
-    private static WombatModuleProperties only(String disabledModule, boolean enabled)
-    {
-        return properties(
-            !"kubernetes-api".equals(disabledModule) || enabled,
-            !"llm-prometheus".equals(disabledModule) || enabled,
-            !"llm-static".equals(disabledModule) || enabled
+        List<WombatModule> modules = List.of(
+            new KubernetesAPIModule(),
+            new LLMPrometheusModule(),
+            new LLMStaticModule()
         );
+
+        JsonMapper jsonMapper = this.config.provideJsonMapper(modules);
+        assertNotNull(jsonMapper);
+
+        YAMLMapper yamlMapper = this.config.provideYAMLMapper(modules);
+        assertNotNull(yamlMapper);
+    }
+
+    @Test
+    void provideDefaults_createsHandlersForFamilies()
+    {
+        KubernetesMetricResolver k8sResolver = mock(KubernetesMetricResolver.class);
+        BoaviztaClient boaviztaClient = mock(BoaviztaClient.class);
+        WombatModuleConfig.DefaultHandlers k8sHandlers = WombatModuleConfig.provideKubernetesDefaults(k8sResolver, boaviztaClient);
+
+        assertEquals(ServiceFamily.KUBERNETES_CONTAINER, k8sHandlers.family());
+        assertNotNull(k8sHandlers.activityResolver());
+        assertNotNull(k8sHandlers.impactResolver());
+        assertNotNull(k8sHandlers.costResolver());
+
+        LLMMetricResolver llmResolver = mock(LLMMetricResolver.class);
+        EcologitsClient ecologitsClient = mock(EcologitsClient.class);
+        WombatModuleConfig.DefaultHandlers llmHandlers = WombatModuleConfig.provideLLMDefaults(llmResolver, ecologitsClient);
+
+        assertEquals(ServiceFamily.LLM, llmHandlers.family());
+        assertNotNull(llmHandlers.activityResolver());
+        assertNotNull(llmHandlers.impactResolver());
+        assertNotNull(llmHandlers.costResolver());
     }
 
     private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmStatic)
@@ -124,21 +100,33 @@ class WombatModuleConfigTest
         return new WombatModuleProperties()
         {
             @Override
-            public ModuleProperties kubernetesApi()
+            public KubernetesApiProperties kubernetesApi()
             {
                 return () -> kubernetesApi;
             }
 
             @Override
-            public ModuleProperties llmPrometheus()
+            public LlmPrometheusProperties llmPrometheus()
             {
                 return () -> llmPrometheus;
             }
 
             @Override
-            public ModuleProperties llmStatic()
+            public LlmStaticProperties llmStatic()
             {
                 return () -> llmStatic;
+            }
+
+            @Override
+            public ExtensionProperties extension()
+            {
+                return new ExtensionProperties() {
+                    @Override
+                    public Path path()
+                    {
+                        return Path.of("extensions");
+                    }
+                };
             }
         };
     }

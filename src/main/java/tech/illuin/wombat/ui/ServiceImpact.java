@@ -7,20 +7,16 @@ public record ServiceImpact(
     String assetName,
     String service,
     String label,
-    boolean container,
-    boolean llm,
+    AssetType assetType,
     Footprint footprint
-)
-{
+) {
     public static ServiceImpact of(String assetName, tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact impact)
     {
-        AssetType type = impact.assetType();
         return new ServiceImpact(
             assetName,
             impact.serviceId(),
             assetName + " / " + impact.serviceId(),
-            type == AssetType.KUBERNETES_API,
-            type == AssetType.LLM_STATIC || type == AssetType.LLM_PROMETHEUS,
+            impact.assetType(),
             impact.footprint()
         );
     }

@@ -12,12 +12,7 @@ import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.persistence.dialect.JsonPathDialect;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalDouble;
+import java.util.*;
 import java.util.function.ToDoubleFunction;
 
 @ApplicationScoped
@@ -58,7 +53,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
-    public OptionalDouble averageCpuPerInstant(long startMs, long endMs, List<String> clusterIds)
+    public Optional<Double> averageCpuPerInstant(long startMs, long endMs, List<String> clusterIds)
     {
         StringBuilder sql = new StringBuilder(
             "SELECT SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) FROM ("
@@ -69,7 +64,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
 
         Query query = bind(getEntityManager().createNativeQuery(sql.toString()), startMs, endMs, clusterIds);
         Object result = query.getSingleResult();
-        return result == null ? OptionalDouble.empty() : OptionalDouble.of(((Number) result).doubleValue());
+        return result == null ? Optional.empty() : Optional.of(((Number) result).doubleValue());
     }
 
     @Override
@@ -147,7 +142,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         return locations;
     }
 
-    @Override
+    @Override @Transactional
     public List<Long> uncompactedBuckets(long stepMs, long beforeMs)
     {
         String bucket = MetricBuckets.expression(stepMs);

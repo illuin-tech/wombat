@@ -1,6 +1,10 @@
 package tech.illuin.wombat.monitor;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetType;
@@ -19,6 +23,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The `.dist` template is what a developer copies to bootstrap a local configuration, so a key that drifted out of
@@ -47,23 +52,48 @@ class MonitoredEnvironmentsTemplateTest
     {
         List<Asset> assets = load().allAssets();
 
-        assertInstanceOf(KubernetesAPIAsset.class, byType(assets, AssetType.KUBERNETES_API));
-        assertInstanceOf(LLMStaticAsset.class, byType(assets, AssetType.LLM_STATIC));
-        assertInstanceOf(LLMPrometheusAsset.class, byType(assets, AssetType.LLM_PROMETHEUS));
+        assertInstanceOf(KubernetesAPIAsset.class, byType(assets, KubernetesAPIModule.TYPE));
+        assertInstanceOf(LLMStaticAsset.class, byType(assets, LLMStaticModule.TYPE));
+        assertInstanceOf(LLMPrometheusAsset.class, byType(assets, LLMPrometheusModule.TYPE));
     }
 
     @Test
     void theTemplateReferencesItsPrometheusPasswordByVariableName()
     {
-        LLMPrometheusAsset asset = (LLMPrometheusAsset) byType(load().allAssets(), AssetType.LLM_PROMETHEUS);
+        LLMPrometheusAsset asset = (LLMPrometheusAsset) byType(load().allAssets(), LLMPrometheusModule.TYPE);
 
         assertInstanceOf(SecretAware.class, asset);
         assertEquals(Set.of("WOMBAT_PROMETHEUS_PASSWORD"), asset.requiredSecretKeys());
     }
 
+    @Test
+    void invalidEnvironmentThrowsConstraintViolationException()
+    {
+        String invalidYaml = """
+            environments:
+              bad-env:
+                id: ""
+                assets:
+                  - type: tech.illuin.wombat-module.kubernetes-api
+                    id: ""
+                    environment-id: ""
+                    name: ""
+                    config-path: ""
+            """;
+        YAMLMapper yamlMapper = mapper();
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        assertThrows(ConstraintViolationException.class, () -> {
+            MonitoredEnvironments envs = yamlMapper.readValue(invalidYaml, MonitoredEnvironments.class);
+            Set<ConstraintViolation<MonitoredEnvironments>> violations = validator.validate(envs);
+            if (!violations.isEmpty())
+                throw new ConstraintViolationException(violations);
+        });
+    }
+
     private static MonitoredEnvironments load()
     {
-        return new MonitorConfig().provideMonitoredEnvironments(new TemplateProperties(TEMPLATE), mapper());
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        return new MonitorConfig().provideMonitoredEnvironments(new TemplateProperties(TEMPLATE), mapper(), validator);
     }
 
     /**
@@ -83,7 +113,7 @@ class MonitoredEnvironmentsTemplateTest
     private static Asset byType(List<Asset> assets, AssetType type)
     {
         return assets.stream()
-            .filter(asset -> asset.type() == type)
+            .filter(asset -> asset.type().equals(type))
             .findFirst()
             .orElseThrow(() -> new AssertionError("Template declares no " + type + " asset"));
     }

@@ -64,7 +64,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         return perBucket;
     }
 
-    @Override
+    @Override @Transactional
     public List<Long> uncompactedBuckets(long stepMs, long beforeMs)
     {
         String bucket = MetricBuckets.expression(stepMs);

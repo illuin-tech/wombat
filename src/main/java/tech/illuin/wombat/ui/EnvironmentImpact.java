@@ -1,6 +1,8 @@
 package tech.illuin.wombat.ui;
 
+import tech.illuin.wombat.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.Asset;
+import tech.illuin.wombat.core.asset.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProfile;
 import tech.illuin.wombat.core.connector.ecologits.connector.model.EcologitsEstimationResponse;
@@ -39,7 +41,8 @@ public record EnvironmentImpact(
     List<String> includedServices,
     List<AssetPanel> assetPanels,
     List<ServiceLine> serviceLines,
-    TimeRange timeRange
+    TimeRange timeRange,
+    List<UnrecognizedAsset> unrecognizedAssets
 ) {
     /**
      * Folds the per-asset impacts produced by the SDK's impact-calculator into the single view model the impact page
@@ -54,6 +57,16 @@ public record EnvironmentImpact(
         List<Asset> assets,
         Collection<String> requestedServices,
         TimeRange timeRange
+    ) {
+        return from(assetImpacts, assets, requestedServices, timeRange, List.of());
+    }
+
+    public static EnvironmentImpact from(
+        List<AssetImpact> assetImpacts,
+        List<Asset> assets,
+        Collection<String> requestedServices,
+        TimeRange timeRange,
+        List<UnrecognizedAsset> unrecognizedAssets
     ) {
         Map<String, String> assetNames = new LinkedHashMap<>();
         assets.forEach(asset -> assetNames.putIfAbsent(asset.id(), asset.name()));
@@ -129,7 +142,8 @@ public record EnvironmentImpact(
             List.copyOf(included),
             panels,
             serviceLines(services),
-            timeRange
+            timeRange,
+            unrecognizedAssets != null ? unrecognizedAssets : List.of()
         );
     }
 
@@ -161,12 +175,12 @@ public record EnvironmentImpact(
 
     public long dockerServiceCount()
     {
-        return this.serviceImpacts.stream().filter(ServiceImpact::container).count();
+        return this.serviceImpacts.stream().filter(s -> s.assetType().family() == ServiceFamily.KUBERNETES_CONTAINER).count();
     }
 
     public long llmServiceCount()
     {
-        return this.serviceImpacts.stream().filter(ServiceImpact::llm).count();
+        return this.serviceImpacts.stream().filter(s -> s.assetType().family() == ServiceFamily.LLM).count();
     }
 
     private static AssetPanel kubernetesPanel(String name, Footprint footprint, List<KubernetesImpact> impacts)
@@ -232,8 +246,8 @@ public record EnvironmentImpact(
         return services.stream()
             .map(service -> new ServiceLine(
                 service.service(),
-                service.container() ? tech.illuin.wombat.core.asset.ActivityRegime.MEASURED : tech.illuin.wombat.core.asset.ActivityRegime.MODELED,
-                service.container() ? tech.illuin.wombat.core.asset.ServiceFamily.KUBERNETES_CONTAINER : tech.illuin.wombat.core.asset.ServiceFamily.LLM,
+                service.assetType().regime(),
+                service.assetType().family(),
                 footprintAmount(service.footprint().gwp(), AmountUnit.kg_co2eq),
                 new Amount(0.0, AmountUnit.kwh),
                 footprintAmount(service.footprint().pe(), AmountUnit.mj),

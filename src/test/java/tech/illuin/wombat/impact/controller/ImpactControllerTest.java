@@ -84,7 +84,7 @@ class ImpactControllerTest
             .body("payload[0].provider", is("BOAVIZTA"))
             .body("payload[0].footprint.gwp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
-            .body("payload[0].serviceImpacts[0].assetType", is("KUBERNETES_API"));
+            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"));
     }
 
     @Test
@@ -124,7 +124,7 @@ class ImpactControllerTest
             .body("payload.environmentId", containsInAnyOrder("test", "test"))
             .body("payload.find { it.assetId == 'test-llm' }.provider", is("ECOLOGITS"))
             .body("payload.find { it.assetId == 'test-llm' }.footprint.gwp", notNullValue())
-            .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].assetType", is("LLM_STATIC"))
+            .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.llm-static"))
             .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].profile.model", is("mistral-large-latest"))
             .body("payload.find { it.assetId == 'test-cluster' }.provider", is("BOAVIZTA"));
     }
@@ -185,7 +185,7 @@ class ImpactControllerTest
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
-            .body("payload.type", containsInAnyOrder("KUBERNETES_API", "LLM_STATIC"))
+            .body("payload.type.name", containsInAnyOrder("tech.illuin.wombat-module.kubernetes-api", "tech.illuin.wombat-module.llm-static"))
             .body("payload.find { it.id == 'test-cluster' }.name", is("Test Cluster"));
     }
 

@@ -4,18 +4,15 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import tech.illuin.wombat.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
 
 import java.time.Instant;
 import java.util.UUID;
-
 
 @Entity
 @Table(name = "assets")
@@ -34,9 +31,8 @@ public class AssetEntity extends PanacheEntityBase
     @Column(nullable = false)
     public String name;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    public AssetType type;
+    public String type;
 
     @Convert(converter = AssetConverter.class)
     @Column(name = "properties", nullable = false)
@@ -68,17 +64,22 @@ public class AssetEntity extends PanacheEntityBase
 
     public Asset toProperties()
     {
+        if (this.properties instanceof UnrecognizedAsset unrecognized && unrecognized.rawType() == null)
+            return new UnrecognizedAsset(unrecognized.id(), unrecognized.environmentId(), unrecognized.name(), this.type, unrecognized.rawJson());
         return this.properties;
     }
 
-    public static AssetEntity from(String environmentId, Asset properties)
+    public static AssetEntity from(String environmentId, Asset asset)
     {
         AssetEntity entity = new AssetEntity();
-        entity.id = properties.id();
+        entity.id = asset.id();
         entity.environmentId = environmentId;
-        entity.name = properties.name();
-        entity.type = properties.type();
-        entity.properties = properties;
+        entity.name = asset.name();
+        entity.type = asset instanceof UnrecognizedAsset unrecognized
+            ? unrecognized.rawType()
+            : asset.type().name()
+        ;
+        entity.properties = asset;
         return entity;
     }
 }

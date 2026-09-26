@@ -3,6 +3,7 @@ package tech.illuin.wombat.context;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import tech.illuin.wombat.context.persistence.*;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
@@ -87,6 +88,51 @@ class EnvironmentReconcilerTest
 
         assertNotNull(orphan.deletedAt);
         assertEquals(AssetConfigAction.DELETE, this.capturedAction());
+    }
+
+    @Test
+    void softDeletesUnrecognizedAssetAbsentFromYaml_withDeleteHistory()
+    {
+        String rawJson = "{\"id\":\"unrec-gone\",\"environment-id\":\"e1\",\"name\":\"Gone Asset\",\"type\":\"tech.illuin.unknown\"}";
+        tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
+            "unrec-gone", "e1", "Gone Asset", "tech.illuin.unknown", rawJson
+        );
+        AssetEntity orphan = new AssetEntity();
+        orphan.id = "unrec-gone";
+        orphan.environmentId = "e1";
+        orphan.name = "Gone Asset";
+        orphan.type = "tech.illuin.unknown";
+        orphan.properties = unrecognized;
+
+        when(this.assets.list("deletedAt is null")).thenReturn(List.of(orphan));
+
+        this.reconcile(desired("e1", "Env 1"));
+
+        assertNotNull(orphan.deletedAt);
+        assertEquals(AssetConfigAction.DELETE, this.capturedAction());
+    }
+
+    @Test
+    void updatesUnrecognizedAsset_withValidAssetFromYaml()
+    {
+        String rawJson = "{\"id\":\"a1\",\"environment-id\":\"e1\",\"name\":\"Old Unrecognized\",\"type\":\"tech.illuin.unknown\"}";
+        tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
+            "a1", "e1", "Old Unrecognized", "tech.illuin.unknown", rawJson
+        );
+        AssetEntity existing = new AssetEntity();
+        existing.id = "a1";
+        existing.environmentId = "e1";
+        existing.name = "Old Unrecognized";
+        existing.type = "tech.illuin.unknown";
+        existing.properties = unrecognized;
+
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(existing));
+
+        this.reconcile(desired("e1", "Env 1", k8s("a1", 43800)));
+
+        assertEquals(AssetConfigAction.UPDATE, this.capturedAction());
+        assertEquals(KubernetesAPIModule.TYPE.name(), existing.type);
+        assertEquals(k8s("a1", 43800), existing.properties);
     }
 
     @Test

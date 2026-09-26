@@ -97,7 +97,7 @@ class SimulationControllerTest
             .body("payload[0].footprint.pe", notNullValue())
             .body("payload[0].footprint.adp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
-            .body("payload[0].serviceImpacts[0].assetType", is("LLM_SIMULATED"))
+            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.llm-simulated"))
             .body("payload[0].serviceImpacts[0].profile.model", is("mistral-large-latest"));
     }
 
@@ -115,7 +115,7 @@ class SimulationControllerTest
             .body("payload[0].provider", is("BOAVIZTA"))
             .body("payload[0].footprint.gwp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
-            .body("payload[0].serviceImpacts[0].assetType", is("KUBERNETES_SIMULATED"));
+            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-simulated"));
     }
 
     @Test

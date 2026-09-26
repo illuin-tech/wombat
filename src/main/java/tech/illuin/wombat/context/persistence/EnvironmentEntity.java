@@ -16,9 +16,7 @@ import java.util.UUID;
 @Table(name = "environments")
 public class EnvironmentEntity extends PanacheEntityBase
 {
-
-    @Id
-    @Column(nullable = false)
+    @Id @Column(nullable = false)
     public String id;
 
     @Column(nullable = false, unique = true)

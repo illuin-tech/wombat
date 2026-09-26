@@ -19,12 +19,12 @@ import tech.illuin.wombat.context.persistence.AssetRepository;
 import tech.illuin.wombat.context.persistence.EnvironmentEntity;
 import tech.illuin.wombat.context.persistence.EnvironmentRepository;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.monitor.MonitoredEnvironments;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -52,8 +52,7 @@ public class EnvironmentReconciler
         AssetRepository assetRepository,
         AssetConfigHistoryRepository historyRepository,
         MonitoredEnvironments monitoredEnvironments
-    )
-    {
+    ) {
         this.repository = repository;
         this.assetRepository = assetRepository;
         this.historyRepository = historyRepository;
@@ -135,7 +134,7 @@ public class EnvironmentReconciler
             entity.deletedAt = null;
             entity.environmentId = environmentId;
             entity.name = properties.name();
-            entity.type = properties.type();
+            entity.type = properties.type().name();
             entity.properties = properties;
             this.recordHistory(AssetConfigAction.CREATE, entity);
             logger.debug("Re-created (undeleted) asset {} in environment {}", properties.id(), environmentId);
@@ -144,13 +143,13 @@ public class EnvironmentReconciler
 
         boolean changed = !entity.environmentId.equals(environmentId)
             || !entity.name.equals(properties.name())
-            || entity.type != properties.type()
+            || !Objects.equals(entity.type, properties.type().name())
             || !entity.properties.equals(properties);
         if (changed)
         {
             entity.environmentId = environmentId;
             entity.name = properties.name();
-            entity.type = properties.type();
+            entity.type = properties.type().name();
             entity.properties = properties;
             this.recordHistory(AssetConfigAction.UPDATE, entity);
             logger.debug("Updated asset {} in environment {}", properties.id(), environmentId);
@@ -192,8 +191,7 @@ public class EnvironmentReconciler
 
     private static String snapshot(AssetEntity entity)
     {
-        try
-        {
+        try {
             return MAPPER.writeValueAsString(new AssetSnapshot(entity.id, entity.name, entity.type, entity.properties));
         }
         catch (JsonProcessingException e) {
@@ -204,7 +202,7 @@ public class EnvironmentReconciler
     private record AssetSnapshot(
         @JsonProperty("id") String id,
         @JsonProperty("name") String name,
-        @JsonProperty("type") AssetType type,
+        @JsonProperty("type") String type,
         @JsonProperty("data") Asset data
     ) {}
 }

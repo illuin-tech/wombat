@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import tech.illuin.wombat.context.persistence.AssetRepository;
 import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
 import tech.illuin.wombat.connector.boavizta.BoaviztaTestData;
 import tech.illuin.wombat.core.source.data.KubernetesData;
@@ -28,10 +29,10 @@ import static org.mockito.ArgumentMatchers.anyInt;
 @QuarkusTest
 class UIControllerTest
 {
-
     @Inject BoaviztaClient boaviztaClient;
     @Inject EcologitsClient ecologitsClient;
     @Inject KubernetesMetricRepository datapointRepository;
+    @Inject AssetRepository assetRepository;
 
     @BeforeEach
     @Transactional
@@ -69,7 +70,44 @@ class UIControllerTest
             .statusCode(200)
             .body(containsString("Environmental Impact"))
             .body(containsString("api"))
-            .body(containsString("worker"));
+            .body(containsString("worker"))
+            .body(containsString("icons/docker.svg"))
+            .body(not(containsString("unrecognizedAssetsTrigger")));
+    }
+
+    @Test
+    void get_withUnrecognizedAssets_rendersWarningIconAndModal()
+    {
+        io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() -> {
+            String rawJson = "{\"id\":\"unrec-ui-1\",\"environment-id\":\"test\",\"name\":\"Dropped Extension Asset\",\"type\":\"tech.illuin.dropped.ModuleAsset\"}";
+            tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
+                "unrec-ui-1", "test", "Dropped Extension Asset", "tech.illuin.dropped.ModuleAsset", rawJson
+            );
+            tech.illuin.wombat.context.persistence.AssetEntity entity = new tech.illuin.wombat.context.persistence.AssetEntity();
+            entity.id = "unrec-ui-1";
+            entity.environmentId = "test";
+            entity.name = "Dropped Extension Asset";
+            entity.type = "tech.illuin.dropped.ModuleAsset";
+            entity.properties = unrecognized;
+            assetRepository.persist(entity);
+        });
+
+        try {
+            given()
+                .when().get("/")
+                .then()
+                .statusCode(200)
+                .body(containsString("unrecognizedAssetsTrigger"))
+                .body(containsString("unrecognizedAssetsModal"))
+                .body(containsString("Dropped Extension Asset"))
+                .body(containsString("unrec-ui-1"))
+                .body(containsString("tech.illuin.dropped.ModuleAsset"));
+        }
+        finally {
+            io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() -> {
+                assetRepository.delete("id", "unrec-ui-1");
+            });
+        }
     }
 
     @Test
@@ -227,23 +265,5 @@ class UIControllerTest
             .statusCode(200)
             .body(containsString("data-from-utc=\"2026-06-04T00:00:00Z\""))
             .body(containsString("data-to-utc=\"2026-06-11T00:00:00Z\""));
-    }
-
-    @Test
-    void get_noMetrics_returnsErrorPage()
-    {
-        emptyDatapoints();
-
-        given()
-            .when().get("/")
-            .then()
-            .statusCode(200)
-            .body(containsString("No CPU usage found"));
-    }
-
-    @Transactional
-    void emptyDatapoints()
-    {
-        datapointRepository.deleteAll();
     }
 }

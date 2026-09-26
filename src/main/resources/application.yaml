@@ -42,6 +42,16 @@ quarkus:
       http-client:
         enabled: false
 
+module:
+  kubernetes-api:
+    enabled: true
+  llm-prometheus:
+    enabled: true
+  llm-static:
+    enabled: true
+  extension:
+    path: "extensions"
+
 monitor:
   heartbeat: "*/10 * * * * ?" # every 10s
 

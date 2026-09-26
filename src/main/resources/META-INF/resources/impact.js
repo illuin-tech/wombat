@@ -513,6 +513,31 @@ document.getElementById('filterForm').addEventListener('submit', function(e) {
   });
 })();
 
+/* ── Unrecognized assets modal ── */
+(function() {
+  var trigger = document.getElementById('unrecognizedAssetsTrigger');
+  var overlay = document.getElementById('unrecognizedAssetsModal');
+  if (!trigger || !overlay) return;
+  var closeBtn = document.getElementById('unrecognizedModalClose');
+
+  function open() {
+    overlay.hidden = false;
+    document.body.classList.add('modal-open');
+    if (closeBtn) closeBtn.focus();
+  }
+  function close() {
+    overlay.hidden = true;
+    document.body.classList.remove('modal-open');
+  }
+
+  trigger.addEventListener('click', open);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !overlay.hidden) close();
+  });
+})();
+
 /* ── Per-service collapsible detail charts ── */
 var detailCharts = {};
 

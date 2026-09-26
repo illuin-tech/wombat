@@ -3,6 +3,11 @@ package tech.illuin.wombat.ui;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tech.illuin.wombat.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.context.persistence.AssetEntity;
+import tech.illuin.wombat.context.persistence.AssetRepository;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.context.WombatContextProvider;
@@ -28,22 +33,21 @@ import java.util.Map;
 @Path("/")
 public class UIController
 {
-    private static final int DEFAULT_RANGE_MONTHS = 3;
-
     private final AssetEvaluator assetEvaluator;
     private final WombatContextProvider contextProvider;
     private final UIProperties uiProperties;
+    private final AssetRepository assetRepository;
     private final ImpactTimelineResolver timelineResolver;
 
-    public UIController(
-        AssetEvaluator assetEvaluator,
-        WombatContextProvider contextProvider,
-        UIProperties uiProperties,
-        ImpactTimelineResolver timelineResolver
-    ) {
+    private static final int DEFAULT_RANGE_MONTHS = 3;
+    private static final Logger logger = LoggerFactory.getLogger(UIController.class);
+
+    public UIController(AssetEvaluator assetEvaluator, WombatContextProvider contextProvider, UIProperties uiProperties, AssetRepository assetRepository, ImpactTimelineResolver timelineResolver)
+    {
         this.assetEvaluator = assetEvaluator;
         this.contextProvider = contextProvider;
         this.uiProperties = uiProperties;
+        this.assetRepository = assetRepository;
         this.timelineResolver = timelineResolver;
     }
 
@@ -74,6 +78,12 @@ public class UIController
                 .flatMap(candidate -> candidate.assets().stream())
                 .toList();
 
+            List<UnrecognizedAsset> unrecognizedAssets = this.assetRepository.findByEnvironment(selectedEnvironmentId).stream()
+                .map(AssetEntity::toProperties)
+                .filter(UnrecognizedAsset.class::isInstance)
+                .map(UnrecognizedAsset.class::cast)
+                .toList();
+
             Map<String, List<String>> services = parseServices(servicesParam);
 
             List<String> effectiveAssetIds = services.keySet().stream()
@@ -94,13 +104,14 @@ public class UIController
                 .distinct()
                 .toList();
 
-            EnvironmentImpact environmentImpact = EnvironmentImpact.from(assetImpacts, environmentAssets, requestedServices, timeRange);
+            EnvironmentImpact environmentImpact = EnvironmentImpact.from(assetImpacts, environmentAssets, requestedServices, timeRange, unrecognizedAssets);
             ImpactTimeline timeline = this.timelineResolver.resolve(timeRange, assetImpacts, environmentImpact.includedServices());
             Templates.AssetSelection assetSelection = new Templates.AssetSelection(environmentAssets, effectiveAssetIds);
             Templates.EnvironmentSelection environmentSelection = new Templates.EnvironmentSelection(environmentViews, selectedEnvironmentId);
             return Templates.impact(environmentImpact, assetSelection, environmentSelection, this.maxSpan(), timeline);
         }
         catch (WombatEvaluationException e) {
+            logger.warn("Failed to evaluate environment {}", environment, e);
             return Templates.impactError(this.computeTimeRange(from, to), this.maxSpan());
         }
     }

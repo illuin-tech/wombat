@@ -1,5 +1,8 @@
 package tech.illuin.wombat.context;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tech.illuin.wombat.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.context.persistence.AssetEntity;
 import tech.illuin.wombat.context.persistence.AssetRepository;
 import tech.illuin.wombat.context.persistence.EnvironmentEntity;
@@ -19,6 +22,8 @@ public class RepositoryContextProvider implements WombatContextProvider
     private final EnvironmentRepository repository;
     private final AssetRepository assetRepository;
     private final SecretResolver secrets;
+
+    private static final Logger logger = LoggerFactory.getLogger(RepositoryContextProvider.class);
 
     public RepositoryContextProvider(EnvironmentRepository repository, AssetRepository assetRepository, SecretResolver secrets)
     {
@@ -42,9 +47,21 @@ public class RepositoryContextProvider implements WombatContextProvider
         {
             List<Asset> assets = this.assetRepository.findByEnvironment(entity.id).stream()
                 .map(AssetEntity::toProperties)
+                .filter(this::validateAsset)
                 .toList();
+
             result.add(new Environment(entity.name, assets));
         }
         return result;
+    }
+
+    public boolean validateAsset(Asset asset)
+    {
+        if (asset instanceof UnrecognizedAsset unrecognized)
+        {
+            logger.debug("Discarding unrecognized asset {} (type: {}) from active context for environment {}", unrecognized.id(), unrecognized.rawType(), unrecognized.environmentId());
+            return false;
+        }
+        return true;
     }
 }

@@ -1,7 +1,10 @@
 package tech.illuin.wombat.context.persistence;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.core.asset.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
+import tech.illuin.wombat.core.asset.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -20,9 +23,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class AssetConverterTest
 {
@@ -65,7 +66,30 @@ class AssetConverterTest
 
         String json = this.converter.convertToDatabaseColumn(asset);
 
-        assertTrue(json.contains("\"type\":\"LLM_STATIC\""), json);
+        assertTrue(json.contains("\"type\":\"" + LLMStaticModule.TYPE.name() + "\""), json);
+    }
+
+    @Test
+    void unrecognizedAsset_deserializesSafelyAndPreservesRawJson()
+    {
+        String rawJson = "{\"type\":\"tech.illuin.dropped.Asset\",\"id\":\"unrec-1\",\"environment-id\":\"env-1\",\"name\":\"Dropped Module Asset\",\"extraField\":\"keep-me\"}";
+
+        Asset parsed = this.converter.convertToEntityAttribute(rawJson);
+        assertInstanceOf(UnrecognizedAsset.class, parsed);
+
+        UnrecognizedAsset unrecognized = (UnrecognizedAsset) parsed;
+        assertEquals("unrec-1", unrecognized.id());
+        assertEquals("env-1", unrecognized.environmentId());
+        assertEquals("Dropped Module Asset", unrecognized.name());
+        assertEquals("tech.illuin.dropped.Asset", unrecognized.rawType());
+        assertEquals(rawJson, unrecognized.rawJson());
+        assertEquals("tech.illuin.wombat-core.unknown", unrecognized.type().name());
+        assertEquals(ActivityRegime.UNKNOWN, unrecognized.type().regime());
+        assertEquals(ServiceFamily.UNKNOWN, unrecognized.type().family());
+        assertEquals("unknown", unrecognized.profile().id());
+
+        String serialized = this.converter.convertToDatabaseColumn(unrecognized);
+        assertEquals(rawJson, serialized);
     }
 
     @Test

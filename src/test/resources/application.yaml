@@ -39,6 +39,10 @@ monitor:
   heartbeat: "0 0 0 ? * MON#5 2099"
   environments-file: monitored-environments-test.yaml
 
+module:
+  extension:
+    path: "/target/extensions"
+
 persistence:
   enable-kubernetes-metrics-persister: true
 

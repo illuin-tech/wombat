@@ -3,7 +3,7 @@ environments:
   test:
     id: test
     assets:
-      - type: KUBERNETES_API
+      - type: tech.illuin.wombat-module.kubernetes-api
         id: test-cluster
         environment-id: test
         name: Test Cluster
@@ -14,7 +14,7 @@ environments:
           instance-type: c5.large
           location: FRA
           lifespan: 43800
-      - type: LLM_STATIC
+      - type: tech.illuin.wombat-module.llm-static
         id: test-llm
         environment-id: test
         name: Test LLM

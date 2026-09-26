@@ -1,0 +1,14 @@
+#Maven
+target/
+
+# Local environment
+.env
+src/main/resources/application-local.yaml
+src/main/resources/application-dev.yaml
+src/**/monitored-environments-dev.yaml
+
+pulumi/node_modules
+
+/data/
+/secrets/
+/extensions/

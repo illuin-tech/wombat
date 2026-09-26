@@ -23,7 +23,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 
 public record SimulationRequest(
-    @Valid @JsonProperty("assets") List<@NotNull SimulatedAsset> assets,
+    @JsonProperty("assets") List<@Valid @NotNull SimulatedAsset> assets,
     @JsonProperty("scopes") Set<Scope> scopes
 ) {
     public SimulationRequest {

@@ -2,12 +2,16 @@ package tech.illuin.wombat.impact.timeline;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
+import tech.illuin.wombat.core.asset.ActivityRegime;
 import tech.illuin.wombat.core.asset.AssetType;
+import tech.illuin.wombat.core.asset.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.Profile;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
 import tech.illuin.wombat.core.evaluation.impact.commons.ImpactProvider;
 import tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 
 import java.time.Instant;
 import java.util.List;
@@ -262,7 +266,7 @@ class ImpactTimelineTest
         @Override
         public AssetType assetType()
         {
-            return AssetType.KUBERNETES_API;
+            return KubernetesAPIModule.TYPE;
         }
     }
 }

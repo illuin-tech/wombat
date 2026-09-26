@@ -10,7 +10,7 @@ import java.util.Set;
 
 public record ImpactRequest(
     @JsonProperty("source_time_range") TimeRange sourceTimeRange,
-    @Valid @JsonProperty("environments") List<Environment> environments
+    @JsonProperty("environments") List<@Valid Environment> environments
 ) {
     public ImpactRequest {
         environments = environments != null ? environments : List.of();
@@ -18,7 +18,7 @@ public record ImpactRequest(
 
     public record Environment(
         @NotBlank @JsonProperty("id") String id,
-        @Valid @JsonProperty("assets") List<Asset> assets
+        @JsonProperty("assets") List<@Valid Asset> assets
     ) {
         public Environment {
             assets = assets != null ? assets : List.of();

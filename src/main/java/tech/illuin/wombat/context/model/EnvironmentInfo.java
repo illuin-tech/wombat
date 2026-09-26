@@ -15,8 +15,7 @@ public record EnvironmentInfo(
     @JsonProperty("updated-at") Instant updatedAt,
     @JsonProperty("disabled-at") Instant disabledAt,
     @JsonProperty("assets") List<AssetInfo> assets
-)
-{
+) {
     public static EnvironmentInfo from(EnvironmentEntity entity, List<AssetEntity> assets)
     {
         return new EnvironmentInfo(

@@ -3,6 +3,9 @@ package tech.illuin.wombat.monitor;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Singleton;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.source.AssetMonitor;
 
@@ -10,17 +13,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 
 @ApplicationScoped
 public class MonitorConfig
 {
     @Singleton
-    public MonitoredEnvironments provideMonitoredEnvironments(MonitorProperties properties, YAMLMapper mapper)
+    public MonitoredEnvironments provideMonitoredEnvironments(MonitorProperties properties, YAMLMapper mapper, Validator validator)
     {
         String location = properties.environmentsFile();
         try (InputStream in = open(location))
         {
-            return mapper.readValue(in, MonitoredEnvironments.class);
+            MonitoredEnvironments monitoredEnvironments = mapper.readValue(in, MonitoredEnvironments.class);
+            Set<ConstraintViolation<MonitoredEnvironments>> violations = validator.validate(monitoredEnvironments);
+            if (!violations.isEmpty())
+                throw new ConstraintViolationException(violations);
+            return monitoredEnvironments;
         }
         catch (IOException e) {
             throw new IllegalStateException("Failed to load monitored environments from '" + location + "'", e);

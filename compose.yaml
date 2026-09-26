@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: wombat
+      POSTGRES_PASSWORD: wombat
+      POSTGRES_DB: wombat
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  boavizta:
+    image: ghcr.io/boavizta/boaviztapi:2.4.1
+    ports:
+      - "5001:5000"
+
+  ecologits:
+    image: ghcr.io/mlco2/ecologits-api:0.0.2
+    ports:
+      - "5002:80"
+
+  seaweedfs:
+    image: chrislusf/seaweedfs
+    command: mini -dir=/data
+    ports:
+      - "8333:8333"   # S3 endpoint
+      - "8888:8888"   # Filer UI
+      - "9333:9333"   # Master
+      - "23646:23646" # Admin UI
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: secret
+      S3_BUCKET: wombat-bucket
+    volumes:
+      - seaweedfs-data:/data
+
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./app/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:13.2.2
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./app/compose/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-data:
+  seaweedfs-data:
+  prometheus-data:
+  grafana-data:

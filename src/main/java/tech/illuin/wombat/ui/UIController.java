@@ -11,6 +11,8 @@ import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
+import tech.illuin.wombat.impact.timeline.ImpactTimeline;
+import tech.illuin.wombat.impact.timeline.ImpactTimelineResolver;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,15 +28,23 @@ import java.util.Map;
 @Path("/")
 public class UIController
 {
+    private static final int DEFAULT_RANGE_MONTHS = 3;
+
     private final AssetEvaluator assetEvaluator;
     private final WombatContextProvider contextProvider;
     private final UIProperties uiProperties;
+    private final ImpactTimelineResolver timelineResolver;
 
-    public UIController(AssetEvaluator assetEvaluator, WombatContextProvider contextProvider, UIProperties uiProperties)
-    {
+    public UIController(
+        AssetEvaluator assetEvaluator,
+        WombatContextProvider contextProvider,
+        UIProperties uiProperties,
+        ImpactTimelineResolver timelineResolver
+    ) {
         this.assetEvaluator = assetEvaluator;
         this.contextProvider = contextProvider;
         this.uiProperties = uiProperties;
+        this.timelineResolver = timelineResolver;
     }
 
     @GET @Produces(MediaType.TEXT_HTML)
@@ -85,9 +95,10 @@ public class UIController
                 .toList();
 
             EnvironmentImpact environmentImpact = EnvironmentImpact.from(assetImpacts, environmentAssets, requestedServices, timeRange);
+            ImpactTimeline timeline = this.timelineResolver.resolve(timeRange, assetImpacts, environmentImpact.includedServices());
             Templates.AssetSelection assetSelection = new Templates.AssetSelection(environmentAssets, effectiveAssetIds);
             Templates.EnvironmentSelection environmentSelection = new Templates.EnvironmentSelection(environmentViews, selectedEnvironmentId);
-            return Templates.impact(environmentImpact, assetSelection, environmentSelection, this.maxSpan());
+            return Templates.impact(environmentImpact, assetSelection, environmentSelection, this.maxSpan(), timeline);
         }
         catch (WombatEvaluationException e) {
             return Templates.impactError(this.computeTimeRange(from, to), this.maxSpan());
@@ -107,17 +118,23 @@ public class UIController
         ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
         Duration maxSpan = this.uiProperties.maxDateRange().asDuration();
 
-        Instant end = to != null && !to.isBlank()
+        Instant end = ceilToDay(to != null && !to.isBlank()
             ? fmt.parse(to, Instant::from)
-            : now.toInstant();
+            : now.toInstant());
         Instant start = from != null && !from.isBlank()
-            ? fmt.parse(from, Instant::from)
-            : ZonedDateTime.ofInstant(end, ZoneOffset.UTC).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS).toInstant();
+            ? fmt.parse(from, Instant::from).truncatedTo(ChronoUnit.DAYS)
+            : ZonedDateTime.ofInstant(end, ZoneOffset.UTC).minusMonths(DEFAULT_RANGE_MONTHS).toInstant();
         if (start.isAfter(end))
             start = end;
         if (Duration.between(start, end).compareTo(maxSpan) > 0)
-            start = end.minus(maxSpan);
+            start = ceilToDay(end.minus(maxSpan));
         return new TimeRange(start, end);
+    }
+
+    private static Instant ceilToDay(Instant instant)
+    {
+        Instant day = instant.truncatedTo(ChronoUnit.DAYS);
+        return day.equals(instant) ? instant : day.plus(1, ChronoUnit.DAYS);
     }
 
     private static Map<String, List<String>> parseServices(List<String> entries)

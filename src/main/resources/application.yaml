@@ -45,15 +45,10 @@ quarkus:
 monitor:
   heartbeat: "*/10 * * * * ?" # every 10s
 
-metrics:
-  aggregation-window:
-    duration: 5
-    unit: MINUTES
-
 ui:
   max-date-range:
-    duration: 1
-    unit: MONTHS
+    duration: 366
+    unit: DAYS
 
 connector:
   boavizta:

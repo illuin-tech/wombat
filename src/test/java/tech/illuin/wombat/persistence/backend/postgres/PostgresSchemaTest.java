@@ -63,6 +63,7 @@ class PostgresSchemaTest
         assertEquals("bigint", types.get("id"));
         // Epoch millis overflow the 32-bit INTEGER the SQLite column definition names.
         assertEquals("bigint", types.get("instant_ms"));
+        assertEquals("bigint", types.get("window_ms"));
         assertEquals("text", types.get("data"));
         // SQLite REAL is 64-bit and maps to double fields; Postgres REAL would only be 32-bit.
         assertEquals("double precision", types.get("cpu_nanocores"));

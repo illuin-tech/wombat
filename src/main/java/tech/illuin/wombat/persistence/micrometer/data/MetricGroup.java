@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.Meter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 public class MetricGroup
 {
@@ -19,24 +18,19 @@ public class MetricGroup
         this.values = new HashMap<>();
     }
 
-    public void recordValues(Meter meter, Set<String> keys)
+    public void recordValues(Meter meter, Map<String, Aggregation> keys)
     {
-        for (String key : keys)
-        {
-            if (!meter.getId().getName().equals(key))
-                continue;
-            if (!(meter instanceof DistributionSummary summary))
-                continue;
-
-            long count = summary.count();
-            if (count == 0L)
-                continue;
-
-            double mean = summary.totalAmount() / count;
-
-            this.values.put(key, mean);
+        Aggregation aggregation = keys.get(meter.getId().getName());
+        if (aggregation == null)
             return;
-        }
+        if (!(meter instanceof DistributionSummary summary))
+            return;
+
+        long count = summary.count();
+        if (count == 0L)
+            return;
+
+        this.values.put(meter.getId().getName(), aggregation.of(summary.totalAmount(), count));
     }
 
     public Optional<Double> value(String key)

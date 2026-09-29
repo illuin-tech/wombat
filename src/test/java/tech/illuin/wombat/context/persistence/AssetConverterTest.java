@@ -87,7 +87,7 @@ class AssetConverterTest
         assertEquals("tech.illuin.wombat-core.unknown", unrecognized.type().name());
         assertEquals(ActivityRegime.UNKNOWN, unrecognized.type().regime());
         assertEquals(ServiceFamily.UNKNOWN, unrecognized.type().family());
-        assertEquals("unknown", unrecognized.profile().id());
+        assertNotNull(unrecognized.profile());
 
         String serialized = this.converter.convertToDatabaseColumn(unrecognized);
         assertEquals(rawJson, serialized);

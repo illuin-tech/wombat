@@ -224,7 +224,9 @@ class WombatStepMeterRegistryTest
             Tag.of(TAG_ASSET_NAME, "Asset"),
             Tag.of(TAG_ASSET_TYPE, "tech.illuin.wombat-module.llm-prometheus"),
             Tag.of(TAG_SERVICE, "mistral-large-latest"),
-            Tag.of(TAG_LLM_MODEL, "mistral-large-latest")
+            Tag.of(TAG_LLM_PROVIDER, "mistralai"),
+            Tag.of(TAG_LLM_MODEL, "mistral-large-latest"),
+            Tag.of(TAG_LLM_LOCATION, "FRA")
         );
     }
 

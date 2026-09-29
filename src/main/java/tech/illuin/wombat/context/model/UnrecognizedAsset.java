@@ -28,7 +28,7 @@ public record UnrecognizedAsset(
         ServiceFamily.UNKNOWN
     );
 
-    private static final AssetProfile UNKNOWN_PROFILE = () -> "unknown";
+    private static final AssetProfile UNKNOWN_PROFILE = new AssetProfile() {};
 
     public UnrecognizedAsset
     {

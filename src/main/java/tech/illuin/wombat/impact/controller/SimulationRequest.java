@@ -9,6 +9,7 @@ import tech.illuin.wombat.commons.validation.ValidTimeRange;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMActivityData;
+import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedAsset;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedProfile;
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 
 public record SimulationRequest(
     @JsonProperty("assets") List<@Valid @NotNull SimulatedAsset> assets,
@@ -48,7 +48,7 @@ public record SimulationRequest(
         @Override
         public LLMSimulatedAsset toSimulatedAsset()
         {
-            return new LLMSimulatedAsset(this.activity.toActivityData(), this.profile);
+            return new LLMSimulatedAsset(this.activity.toActivityData(this.profile), this.profile);
         }
 
         public record Activity(
@@ -56,14 +56,21 @@ public record SimulationRequest(
             @JsonProperty("outputTokenCount") long outputTokenCount,
             @JsonProperty("requestCount") int requestCount
         ) {
-            public LLMActivityData toActivityData()
+            public LLMActivityData toActivityData(LLMSimulatedProfile profile)
             {
-                return new LLMActivityData(
-                    ActivityRegime.MODELED,
-                    emptySet(),
-                    this.range,
+                String serviceId = profile.model();
+                LLMServiceActivity serviceActivity = new LLMServiceActivity(
+                    profile.provider(),
+                    profile.model(),
+                    profile.location(),
                     this.outputTokenCount,
                     this.requestCount
+                );
+                return new LLMActivityData(
+                    ActivityRegime.MODELED,
+                    Set.of(serviceId),
+                    this.range,
+                    Map.of(serviceId, serviceActivity)
                 );
             }
         }

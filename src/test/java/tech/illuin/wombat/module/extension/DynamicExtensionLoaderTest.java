@@ -166,7 +166,7 @@ class DynamicExtensionLoaderTest
             assertNotNull(profile);
             assertInstanceOf(LLMProfile.class, profile);
 
-            LLMProfile llmProfile = (LLMProfile) profile;
+            CustomLLMTestProfile llmProfile = (CustomLLMTestProfile) profile;
             assertEquals(LLMProvider.mistralai, llmProfile.provider());
             assertEquals("mistral-large", llmProfile.model());
             assertEquals("FRA", llmProfile.location());

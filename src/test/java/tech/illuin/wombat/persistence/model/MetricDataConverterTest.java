@@ -1,6 +1,7 @@
 package tech.illuin.wombat.persistence.model;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 
@@ -31,7 +32,7 @@ class MetricDataConverterTest
     @Test
     void llmData_survivesARoundTrip()
     {
-        LLMData data = new LLMData("mistral-large-latest", "mistral-large-latest", 1234L);
+        LLMData data = new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", "FRA", 1234L);
 
         assertEquals(data, this.llm.convertToEntityAttribute(this.llm.convertToDatabaseColumn(data)));
     }
@@ -48,9 +49,11 @@ class MetricDataConverterTest
         assertContainsKey(kubernetesJson, "cluster");
         assertContainsKey(kubernetesJson, "namespace");
 
-        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", "model", 1L));
+        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", LLMProvider.mistralai, "model", "FRA", 1L));
         assertContainsKey(llmJson, "serviceId");
+        assertContainsKey(llmJson, "provider");
         assertContainsKey(llmJson, "model");
+        assertContainsKey(llmJson, "location");
     }
 
     /**
@@ -63,7 +66,7 @@ class MetricDataConverterTest
     {
         String kubernetesJson = this.kubernetes.convertToDatabaseColumn(new KubernetesData(
             "svc", "cluster-1", "ns", "pod", 1.0, 2.0));
-        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", "model", 1L));
+        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", LLMProvider.mistralai, "model", "FRA", 1L));
 
         for (String json : new String[] { kubernetesJson, llmJson })
         {

@@ -7,6 +7,7 @@ import io.micrometer.core.instrument.step.StepRegistryConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
@@ -55,7 +56,9 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
         TAG_ASSET_NAME,
         TAG_ASSET_TYPE,
         TAG_SERVICE,
-        TAG_LLM_MODEL
+        TAG_LLM_PROVIDER,
+        TAG_LLM_MODEL,
+        TAG_LLM_LOCATION
     );
 
     private static final Logger logger = LoggerFactory.getLogger(WombatStepMeterRegistry.class);
@@ -172,7 +175,9 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
 
             LLMData data = new LLMData(
                 group.tag(TAG_SERVICE).orElseThrow(),
+                group.tag(TAG_LLM_PROVIDER).map(LLMProvider::valueOf).orElseThrow(),
                 group.tag(TAG_LLM_MODEL).orElseThrow(),
+                group.tag(TAG_LLM_LOCATION).orElseThrow(),
                 outputTokens.map(Double::longValue).get()
             );
 

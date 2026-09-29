@@ -4,6 +4,7 @@ import tech.illuin.wombat.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
+import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProfile;
 import tech.illuin.wombat.core.connector.ecologits.connector.model.EcologitsEstimationResponse;
 import tech.illuin.wombat.core.evaluation.impact.commons.Amount;
@@ -117,7 +118,7 @@ public record EnvironmentImpact(
             if (!llmImpacts.isEmpty())
             {
                 llmFootprints.add(assetFootprint);
-                panels.add(llmPanel(name, llmImpacts.getFirst()));
+                panels.add(llmPanel(name, assetFootprint, llmImpacts));
             }
         }
 
@@ -214,30 +215,61 @@ public record EnvironmentImpact(
         );
     }
 
-    private static AssetPanel llmPanel(String name, LLMImpact impact)
+    private static AssetPanel llmPanel(String name, Footprint footprint, List<LLMImpact> impacts)
     {
-        LLMProfile profile = impact.profile();
-        EcologitsEstimationResponse.Impacts impacts = impact.estimation().impacts();
-        int requestPerYear = profile instanceof LLMStaticProfile staticProfile
-            ? staticProfile.requestProfile().requestPerYear()
-            : 0;
+        LLMImpact first = impacts.getFirst();
+        LLMProfile profile = first.profile();
+
+        int requestPerYear = 0;
+        if (profile instanceof LLMStaticProfile staticProfile)
+        {
+            requestPerYear = staticProfile.models().stream()
+                .filter(mc -> impacts.stream().anyMatch(i -> i.serviceId().equals(mc.model()) || (i.model() != null && i.model().equals(mc.model()))))
+                .mapToInt(mc -> mc.requestProfile().requestPerYear())
+                .sum();
+        }
+
+        long totalOutputTokens = impacts.stream().mapToLong(LLMImpact::outputTokenCount).sum();
+        double totalRequests = impacts.stream().mapToDouble(LLMImpact::requestCount).sum();
+
+        double totalEnergy = 0.0;
+        AmountUnit energyUnit = AmountUnit.kwh;
+        for (LLMImpact impact : impacts)
+        {
+            if (impact.estimation() != null && impact.estimation().impacts() != null && impact.estimation().impacts().energy() != null)
+            {
+                EcologitsEstimationResponse.Metric energyMetric = impact.estimation().impacts().energy();
+                totalEnergy += EcologitsEstimationResponse.Metric.mean(energyMetric) * impact.requestCount();
+                energyUnit = AmountUnit.forSymbol(energyMetric.unit()).orElse(AmountUnit.kwh);
+            }
+        }
+
+        Amount gwpPerRequest = totalRequests > 0
+            ? new Amount(footprint.gwp().totalValue() / totalRequests, AmountUnit.kg_co2eq)
+            : new Amount(0.0, AmountUnit.kg_co2eq);
+
+        LLMProvider provider = impacts.stream().map(LLMImpact::provider).filter(Objects::nonNull).distinct().count() == 1
+            ? first.provider()
+            : null;
+        String model = String.join(", ", impacts.stream().map(LLMImpact::model).filter(Objects::nonNull).distinct().toList());
+        String location = String.join(", ", impacts.stream().map(LLMImpact::location).filter(Objects::nonNull).distinct().toList());
 
         return new LLMAssetPanel(
             name,
-            impact.assetType(),
-            impact.assetType().regime(),
-            List.of(impact.serviceId()),
-            metricAmount(impacts.gwp(), impact.requestCount(), AmountUnit.kg_co2eq),
-            metricAmount(impacts.energy(), impact.requestCount(), AmountUnit.kwh),
-            metricAmount(impacts.pe(), impact.requestCount(), AmountUnit.mj),
-            metricAmount(impacts.adpe(), impact.requestCount(), AmountUnit.kg_sbeq),
-            metricAmount(impacts.gwp(), 1.0, AmountUnit.kg_co2eq),
-            profile.provider(),
-            profile.model(),
-            profile.location(),
-            impact.outputTokenCount(),
+            first.assetType(),
+            first.assetType().regime(),
+            impacts.stream().map(LLMImpact::serviceId).toList(),
+            footprintAmount(footprint.gwp(), AmountUnit.kg_co2eq),
+            new Amount(totalEnergy, energyUnit),
+            footprintAmount(footprint.pe(), AmountUnit.mj),
+            footprintAmount(footprint.adp(), AmountUnit.kg_sbeq),
+            gwpPerRequest,
+            provider,
+            model,
+            location,
+            totalOutputTokens,
             requestPerYear,
-            impact.requestCount()
+            totalRequests
         );
     }
 

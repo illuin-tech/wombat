@@ -69,7 +69,9 @@ class ExtensionContractCheckTest
 
     public record PlainProfile(String id) implements AssetProfile {}
 
-    public record TestLLMProfile(LLMProvider provider, String model, String location) implements LLMProfile {}
+    public record TestLLMProfile(LLMProvider provider, String model, String location) implements LLMProfile
+    {
+    }
 
     public record CompatibleAsset(AssetIdentity identity, AssetType type, TestLLMProfile profile) implements Asset {}
 

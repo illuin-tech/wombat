@@ -1,8 +1,8 @@
 package tech.illuin.wombat.ui.breakdown;
 
 import tech.illuin.wombat.core.evaluation.impact.commons.Amount;
-import tech.illuin.wombat.core.asset.ActivityRegime;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 
 public record ServiceLine(
     String name,

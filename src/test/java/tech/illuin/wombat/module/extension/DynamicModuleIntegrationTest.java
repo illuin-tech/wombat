@@ -1,6 +1,9 @@
 package tech.illuin.wombat.module.extension;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
@@ -8,12 +11,13 @@ import org.junit.jupiter.api.io.TempDir;
 import tech.illuin.wombat.context.persistence.AssetConverter;
 import tech.illuin.wombat.context.persistence.AssetEntity;
 import tech.illuin.wombat.core.WombatCore;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.Environment;
-import tech.illuin.wombat.core.asset.ServiceFamily;
-import tech.illuin.wombat.core.asset.profile.Profile;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.context.ResolvedContext;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.AssetMonitor;
@@ -77,7 +81,7 @@ class DynamicModuleIntegrationTest
             Asset parsedAsset = env.assets().getFirst();
             assertInstanceOf(CustomDynamicAsset.class, parsedAsset);
             CustomDynamicAsset customAsset = (CustomDynamicAsset) parsedAsset;
-            assertEquals("dyn-asset-1", customAsset.id());
+            assertEquals("dyn-asset-1", customAsset.identity().id());
             assertEquals("http://custom-source:8080", customAsset.endpoint());
             assertEquals("tech.custom.extension.custom-source", customAsset.type().name());
 
@@ -97,7 +101,7 @@ class DynamicModuleIntegrationTest
             // 3. WombatCore Registration & Execution
             try (WombatCore core = new WombatCore(
                 () -> new ResolvedContext(List.of(env)),
-                metrics -> {},
+                (asset, type, metrics) -> {},
                 List.of(dynamicModule),
                 defaults -> {}
             ); AssetMonitor monitor = core.createMonitor()) {
@@ -124,7 +128,7 @@ class DynamicModuleIntegrationTest
             ObjectMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
             AssetConverter converter = new AssetConverter((com.fasterxml.jackson.databind.json.JsonMapper) jsonMapper);
 
-            CustomDynamicAsset customAsset = new CustomDynamicAsset("dyn-asset-1", "dynamic-env", "Dynamic Asset One", "http://custom-source:8080", 1);
+            CustomDynamicAsset customAsset = new CustomDynamicAsset(AssetIdentity.of("dyn-asset-1", "dynamic-env", "Dynamic Asset One"), "http://custom-source:8080", 1);
             dbJson = converter.convertToDatabaseColumn(customAsset);
         }
 
@@ -137,8 +141,8 @@ class DynamicModuleIntegrationTest
         assertInstanceOf(tech.illuin.wombat.context.model.UnrecognizedAsset.class, parsedAsset);
 
         tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = (tech.illuin.wombat.context.model.UnrecognizedAsset) parsedAsset;
-        assertEquals("dyn-asset-1", unrecognized.id());
-        assertEquals("Dynamic Asset One", unrecognized.name());
+        assertEquals("dyn-asset-1", unrecognized.identity().id());
+        assertEquals("Dynamic Asset One", unrecognized.identity().name());
         assertEquals("tech.custom.extension.custom-source", unrecognized.rawType());
         assertEquals(dbJson, standardConverter.convertToDatabaseColumn(unrecognized));
 
@@ -160,9 +164,9 @@ class DynamicModuleIntegrationTest
         Asset yamlAsset = monitoredEnvironments.allAssets().getFirst();
         assertInstanceOf(tech.illuin.wombat.context.model.UnrecognizedAsset.class, yamlAsset);
         tech.illuin.wombat.context.model.UnrecognizedAsset unrecognizedYaml = (tech.illuin.wombat.context.model.UnrecognizedAsset) yamlAsset;
-        assertEquals("dyn-asset-1", unrecognizedYaml.id());
-        assertEquals("dynamic-env", unrecognizedYaml.environmentId());
-        assertEquals("Dynamic Asset One", unrecognizedYaml.name());
+        assertEquals("dyn-asset-1", unrecognizedYaml.identity().id());
+        assertEquals("dynamic-env", unrecognizedYaml.identity().environmentId());
+        assertEquals("Dynamic Asset One", unrecognizedYaml.identity().name());
         assertEquals("tech.custom.extension.custom-source", unrecognizedYaml.rawType());
     }
 
@@ -237,13 +241,22 @@ class DynamicModuleIntegrationTest
     }
 
     public record CustomDynamicAsset(
-        @JsonProperty("id") String id,
-        @JsonProperty("environment-id") String environmentId,
-        @JsonProperty("name") String name,
+        @JsonUnwrapped AssetIdentity identity,
         @JsonProperty("endpoint") String endpoint,
         @JsonProperty("heartbeat-skip") int heartbeatSkip
     ) implements Asset, Monitorable
     {
+        @JsonCreator
+        public CustomDynamicAsset(
+            @JsonProperty("id") String id,
+            @JsonProperty("environment-id") @JsonAlias("environmentId") String environmentId,
+            @JsonProperty("name") String name,
+            @JsonProperty("endpoint") String endpoint,
+            @JsonProperty("heartbeat-skip") Integer heartbeatSkip
+        ) {
+            this(AssetIdentity.of(id, environmentId, name), endpoint, heartbeatSkip != null ? heartbeatSkip : 0);
+        }
+
         @Override
         public AssetType type()
         {
@@ -251,7 +264,7 @@ class DynamicModuleIntegrationTest
         }
 
         @Override
-        public Profile profile()
+        public AssetProfile profile()
         {
             return null;
         }

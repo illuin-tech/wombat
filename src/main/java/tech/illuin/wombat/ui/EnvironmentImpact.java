@@ -2,7 +2,7 @@ package tech.illuin.wombat.ui;
 
 import tech.illuin.wombat.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProfile;
 import tech.illuin.wombat.core.connector.ecologits.connector.model.EcologitsEstimationResponse;
@@ -69,7 +69,7 @@ public record EnvironmentImpact(
         List<UnrecognizedAsset> unrecognizedAssets
     ) {
         Map<String, String> assetNames = new LinkedHashMap<>();
-        assets.forEach(asset -> assetNames.putIfAbsent(asset.id(), asset.name()));
+        assets.forEach(asset -> assetNames.putIfAbsent(asset.identity().id(), asset.identity().name()));
 
         List<String> allServices = assetImpacts.stream()
             .flatMap(impact -> impact.serviceImpacts().stream())

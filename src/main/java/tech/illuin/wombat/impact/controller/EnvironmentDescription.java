@@ -2,7 +2,7 @@ package tech.illuin.wombat.impact.controller;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
+import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 
@@ -32,7 +32,7 @@ public record EnvironmentDescription(
     ) {
         public static AssetSummary from(Asset properties)
         {
-            return new AssetSummary(properties.id(), properties.name(), properties.type());
+            return new AssetSummary(properties.identity().id(), properties.identity().name(), properties.type());
         }
     }
 }

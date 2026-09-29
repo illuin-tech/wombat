@@ -6,6 +6,7 @@ import tech.illuin.wombat.context.persistence.*;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.Environment;
@@ -95,7 +96,7 @@ class EnvironmentReconcilerTest
     {
         String rawJson = "{\"id\":\"unrec-gone\",\"environment-id\":\"e1\",\"name\":\"Gone Asset\",\"type\":\"tech.illuin.unknown\"}";
         tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
-            "unrec-gone", "e1", "Gone Asset", "tech.illuin.unknown", rawJson
+            AssetIdentity.of("unrec-gone", "e1", "Gone Asset"), "tech.illuin.unknown", rawJson
         );
         AssetEntity orphan = new AssetEntity();
         orphan.id = "unrec-gone";
@@ -117,7 +118,7 @@ class EnvironmentReconcilerTest
     {
         String rawJson = "{\"id\":\"a1\",\"environment-id\":\"e1\",\"name\":\"Old Unrecognized\",\"type\":\"tech.illuin.unknown\"}";
         tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
-            "a1", "e1", "Old Unrecognized", "tech.illuin.unknown", rawJson
+            AssetIdentity.of("a1", "e1", "Old Unrecognized"), "tech.illuin.unknown", rawJson
         );
         AssetEntity existing = new AssetEntity();
         existing.id = "a1";
@@ -175,7 +176,7 @@ class EnvironmentReconcilerTest
 
     private static KubernetesAPIAsset k8s(String id, int lifespan)
     {
-        return new KubernetesAPIAsset(id, "e1", id, "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
+        return new KubernetesAPIAsset(AssetIdentity.of(id, "e1", id), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", lifespan));
     }
 }

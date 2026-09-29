@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
 import tech.illuin.wombat.connector.boavizta.BoaviztaTestData;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.connector.ecologits.EcologitsTestData;
@@ -58,7 +59,9 @@ class ImpactControllerTest
         row.instantMs = instantMs;
         row.windowMs = 3_600_000L;
         row.compacted = true;
-        row.data = new KubernetesData(container, "test-asset", "test-env", "test-cluster", "test-ns", pod, cpu, 0.0);
+        row.assign(new AssetIdentity("test-cluster", "test", "Test Cluster"));
+        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
+        row.data = new KubernetesData(container, "test-cluster", "test-ns", pod, cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
     }

@@ -1,6 +1,5 @@
 package tech.illuin.wombat.persistence.model;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -12,7 +11,7 @@ import tech.illuin.wombat.core.source.data.LLMData;
 
 @Entity
 @Table(name = "model_metrics")
-public class LLMMetricEntity extends PanacheEntityBase
+public class LLMMetricEntity extends MetricEntity
 {
 
     @Id

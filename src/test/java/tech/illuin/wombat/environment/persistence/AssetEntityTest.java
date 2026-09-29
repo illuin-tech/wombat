@@ -1,6 +1,7 @@
 package tech.illuin.wombat.environment.persistence;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
@@ -25,7 +26,7 @@ class AssetEntityTest
     void kubernetesPropertiesRoundTripThroughTheEntity()
     {
         KubernetesAPIAsset props = new KubernetesAPIAsset(
-            "k", "env", "K", "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
+            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800));
 
         AssetEntity entity = AssetEntity.from("env", props);
@@ -38,7 +39,7 @@ class AssetEntityTest
     @Test
     void llmStaticPropertiesRoundTripThroughTheEntity()
     {
-        LLMStaticAsset props = new LLMStaticAsset("s", "env", "S",
+        LLMStaticAsset props = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
             new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA",
                 new LLMStaticProfile.RequestProfile(500, 1000)));
 
@@ -51,7 +52,7 @@ class AssetEntityTest
     @Test
     void llmPrometheusPropertiesRoundTripThroughTheEntity()
     {
-        LLMPrometheusAsset props = new LLMPrometheusAsset("p", "env", "P",
+        LLMPrometheusAsset props = new LLMPrometheusAsset(AssetIdentity.of("p", "env", "P"),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", 7,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA",
                 new LLMPrometheusProfile.DynamicProfile("q")));

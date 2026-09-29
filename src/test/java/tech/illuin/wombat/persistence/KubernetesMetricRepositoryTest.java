@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
@@ -20,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class KubernetesMetricRepositoryTest
 {
-
     private static final long FIVE_MINUTES_MS = 300_000L;
     private static final long HOUR_MS = 3_600_000L;
 
@@ -41,7 +41,7 @@ class KubernetesMetricRepositoryTest
 
         List<KubernetesMetricEntity> result = repository.findByRange(0L, 5000L);
         assertEquals(1, result.size());
-        assertEquals(new KubernetesData("container-1", "asset", "env", "c1", "ns", "pod", 1.0, 0.0), result.getFirst().data);
+        assertEquals(new KubernetesData("container-1", "c1", "ns", "pod", 1.0, 0.0), result.getFirst().data);
     }
 
     @Test
@@ -60,24 +60,24 @@ class KubernetesMetricRepositoryTest
     }
 
     @Test
-    void findByRangeAndClusters_emptyList_returnsAllInRange()
+    void findByRangeAndAssets_emptyList_returnsAllInRange()
     {
         repository.save(row(100L, "c1", "ns", "a"));
         repository.save(row(200L, "c2", "ns", "b"));
 
-        List<KubernetesMetricEntity> result = repository.findByRangeAndClusters(0L, 5000L, List.of());
+        List<KubernetesMetricEntity> result = repository.findByRangeAndAssets(0L, 5000L, List.of());
 
         assertEquals(2, result.size());
     }
 
     @Test
-    void findByRangeAndClusters_filtersByCluster()
+    void findByRangeAndAssets_filtersByAsset()
     {
         repository.save(row(100L, "c1", "ns", "a"));
         repository.save(row(150L, "c2", "ns", "b"));
         repository.save(row(200L, "c3", "ns", "c"));
 
-        List<KubernetesMetricEntity> result = repository.findByRangeAndClusters(0L, 5000L, List.of("c1", "c3"));
+        List<KubernetesMetricEntity> result = repository.findByRangeAndAssets(0L, 5000L, List.of("c1", "c3"));
 
         assertEquals(2, result.size());
         assertTrue(result.stream().anyMatch(e -> "a".equals(source(e).serviceId())));
@@ -86,13 +86,13 @@ class KubernetesMetricRepositoryTest
     }
 
     @Test
-    void findByRangeAndClusters_combinesRangeAndClusterFilters()
+    void findByRangeAndAssets_combinesRangeAndAssetFilters()
     {
         repository.save(row(100L, "c1", "ns", "in-range-c1"));
         repository.save(row(400L, "c1", "ns", "out-of-range-c1"));
         repository.save(row(200L, "c2", "ns", "in-range-c2"));
 
-        List<KubernetesMetricEntity> result = repository.findByRangeAndClusters(0L, 300L, List.of("c1"));
+        List<KubernetesMetricEntity> result = repository.findByRangeAndAssets(0L, 300L, List.of("c1"));
 
         assertEquals(1, result.size());
         assertEquals("in-range-c1", source(result.getFirst()).serviceId());
@@ -243,15 +243,15 @@ class KubernetesMetricRepositoryTest
         assertEquals(List.of(0L, 2 * HOUR_MS), repository.uncompactedBuckets(HOUR_MS, 4 * HOUR_MS));
     }
 
-    private static KubernetesMetricEntity row(long instantMs, String cluster, String namespace, String container)
+    private static KubernetesMetricEntity row(long instantMs, String assetId, String namespace, String container)
     {
-        return row(instantMs, FIVE_MINUTES_MS, cluster, container, 1.0);
+        return row(instantMs, FIVE_MINUTES_MS, assetId, container, 1.0);
     }
 
     /** A folded row, the kind every serving query reads. */
-    private static KubernetesMetricEntity row(long instantMs, long windowMs, String cluster, String container, double cpu)
+    private static KubernetesMetricEntity row(long instantMs, long windowMs, String assetId, String container, double cpu)
     {
-        KubernetesMetricEntity row = sampled(instantMs, windowMs, cluster, container, cpu);
+        KubernetesMetricEntity row = sampled(instantMs, windowMs, assetId, container, cpu);
         row.compacted = true;
         return row;
     }
@@ -271,20 +271,30 @@ class KubernetesMetricRepositoryTest
         KubernetesData data = source(row);
         row.ramBytes = ramBytes;
         row.data = new KubernetesData(
-            data.serviceId(), data.assetId(), data.environmentId(), data.cluster(), data.namespace(), data.pod(),
-            data.cpuNanocores(), ramBytes);
+            data.serviceId(), data.cluster(), data.namespace(), data.pod(), data.cpuNanocores(), ramBytes);
         return row;
     }
 
     /** A sampling row as collection writes it, waiting to be folded. */
-    private static KubernetesMetricEntity sampled(long instantMs, long windowMs, String cluster, String container, double cpu)
+    private static KubernetesMetricEntity sampled(long instantMs, long windowMs, String assetId, String container, double cpu)
     {
         KubernetesMetricEntity row = new KubernetesMetricEntity();
         row.instantMs = instantMs;
         row.windowMs = windowMs;
-        row.data = new KubernetesData(container, "asset", "env", cluster, "ns", "pod", cpu, 0.0);
+        row.assign(identityOf(assetId));
+        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
+        row.data = new KubernetesData(container, assetId, "ns", "pod", cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
+    }
+
+    /**
+     * The Kubernetes source writes the asset id as the cluster, so every id these tests scope a read to is both.
+     * The filters address the asset_id column, hence the identity rather than the payload.
+     */
+    private static AssetIdentity identityOf(String assetId)
+    {
+        return new AssetIdentity(assetId, "env", assetId + " name");
     }
 
     /**

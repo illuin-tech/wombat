@@ -45,7 +45,7 @@ public class AssetConverter implements AttributeConverter<Asset, String>
                 return null;
             Asset asset = this.mapper.readValue(dbData, Asset.class);
             if (asset instanceof UnrecognizedAsset unrecognized && unrecognized.rawJson() == null)
-                return new UnrecognizedAsset(unrecognized.id(), unrecognized.environmentId(), unrecognized.name(), unrecognized.rawType(), dbData);
+                return new UnrecognizedAsset(unrecognized.identity(), unrecognized.rawType(), dbData);
             return asset;
         }
         catch (JsonProcessingException e) {

@@ -1,6 +1,7 @@
 package tech.illuin.wombat.environment.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -10,18 +11,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.context.model.AssetInfo;
 import tech.illuin.wombat.context.persistence.AssetEntity;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
-import tech.illuin.wombat.core.asset.ServiceFamily;
-import tech.illuin.wombat.core.asset.profile.Profile;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
-import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -59,14 +60,14 @@ class AssetInfoTest
     {
         KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800);
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
-            "k", "env", "K", "/kube/config", "ns", Optional.empty(), Optional.empty(), 0, profile)));
+            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0, profile)));
 
         AssetInfo info = AssetInfo.from(entity);
 
         assertEquals(entity.properties, info.properties());
         assertInstanceOf(KubernetesAPIAsset.class, info.properties());
         KubernetesAPIAsset k8s = (KubernetesAPIAsset) info.properties();
-        assertEquals("k", k8s.id());
+        assertEquals("k", k8s.identity().id());
         assertEquals("ns", k8s.namespace());
         assertEquals(profile, k8s.profile());
         assertEquals("uuid", info.uuid());
@@ -93,7 +94,7 @@ class AssetInfoTest
         LLMPrometheusProfile profile = new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA",
             new LLMPrometheusProfile.DynamicProfile("q"));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMPrometheusAsset(
-            "p", "env", "P", "http://prometheus", null, "user", "PROM_PASSWORD", 5, profile)));
+            AssetIdentity.of("p", "env", "P"), "http://prometheus", null, "user", "PROM_PASSWORD", 5, profile)));
 
         AssetInfo info = AssetInfo.from(entity);
 
@@ -117,7 +118,8 @@ class AssetInfoTest
     {
         LLMStaticProfile profile = new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA",
             new LLMStaticProfile.RequestProfile(500, 1000));
-        AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset("s", "env", "S", profile)));
+        AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset(
+            AssetIdentity.of("s", "env", "S"), profile)));
 
         AssetInfo info = AssetInfo.from(entity);
 
@@ -136,13 +138,11 @@ class AssetInfoTest
     @Test
     void serializesDynamicModuleAssetTransparently() throws Exception
     {
-        record DynamicProfile(String id, String param) implements Profile {}
+        record DynamicProfile(String id, String param) implements AssetProfile {}
 
         @com.fasterxml.jackson.annotation.JsonTypeName("tech.illuin.custom")
         record DynamicAsset(
-            @JsonProperty("id") String id,
-            @JsonProperty("environment-id") String environmentId,
-            @JsonProperty("name") String name,
+            @JsonUnwrapped AssetIdentity identity,
             @JsonProperty("profile") DynamicProfile profile,
             @JsonProperty("custom-field") String customField
         ) implements Asset
@@ -156,7 +156,7 @@ class AssetInfoTest
 
         mapper.registerSubtypes(new NamedType(DynamicAsset.class, "tech.illuin.custom"));
 
-        AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset("dyn1", "env", "Dynamic", new DynamicProfile("prof-1", "test-val"), "custom-value")));
+        AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset(AssetIdentity.of("dyn1", "env", "Dynamic"), new DynamicProfile("prof-1", "test-val"), "custom-value")));
         AssetInfo info = AssetInfo.from(entity);
 
         JsonNode json = mapper.readTree(mapper.writeValueAsString(info));
@@ -173,7 +173,7 @@ class AssetInfoTest
     void serializesUnrecognizedAssetSafely() throws Exception
     {
         String rawJson = "{\"id\":\"unrec-1\",\"environment-id\":\"env\",\"name\":\"Unknown Asset\",\"type\":\"tech.illuin.unknown\",\"custom\":\"value\"}";
-        tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset("unrec-1", "env", "Unknown Asset", "tech.illuin.unknown", rawJson);
+        tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(AssetIdentity.of("unrec-1", "env", "Unknown Asset"), "tech.illuin.unknown", rawJson);
         AssetEntity entity = new AssetEntity();
         entity.id = "unrec-1";
         entity.environmentId = "env";

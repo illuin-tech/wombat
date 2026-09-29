@@ -7,7 +7,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
+import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.secret.SecretAware;
 import tech.illuin.wombat.module.WombatModuleConfig;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
@@ -42,8 +42,8 @@ class MonitoredEnvironmentsTemplateTest
         assertEquals(3, assets.size());
         for (Asset asset : assets)
         {
-            assertNotNull(asset.id(), () -> asset.type() + " parsed with a null id");
-            assertEquals("preprod", asset.environmentId());
+            assertNotNull(asset.identity(), () -> asset.type() + " parsed with a null id");
+            assertEquals("preprod", asset.identity().environmentId());
         }
     }
 
@@ -75,10 +75,10 @@ class MonitoredEnvironmentsTemplateTest
                 id: ""
                 assets:
                   - type: tech.illuin.wombat-module.kubernetes-api
-                    id: ""
-                    environment-id: ""
-                    name: ""
-                    config-path: ""
+                    id: "valid-cluster"
+                    environment-id: "valid-env"
+                    name: "Valid Cluster"
+                    config-path: "/path"
             """;
         YAMLMapper yamlMapper = mapper();
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();

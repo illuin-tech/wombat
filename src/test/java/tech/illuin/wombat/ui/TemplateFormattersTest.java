@@ -1,6 +1,7 @@
 package tech.illuin.wombat.ui;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
@@ -79,7 +80,7 @@ class TemplateFormattersTest
     void namespace_kubernetesAsset_returnsItsNamespace()
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
-            "k", "env", "K", "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
+            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800));
 
         assertEquals("ns", TemplateFormatters.namespace(asset));
@@ -88,7 +89,7 @@ class TemplateFormattersTest
     @Test
     void namespace_nonKubernetesAsset_returnsEmpty()
     {
-        LLMStaticAsset asset = new LLMStaticAsset("s", "env", "S",
+        LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
             new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
 
         assertEquals("", TemplateFormatters.namespace(asset));

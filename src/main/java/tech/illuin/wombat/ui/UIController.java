@@ -87,10 +87,10 @@ public class UIController
             Map<String, List<String>> services = parseServices(servicesParam);
 
             List<String> effectiveAssetIds = services.keySet().stream()
-                .filter(id -> environmentAssets.stream().anyMatch(asset -> asset.id().equals(id)))
+                .filter(id -> environmentAssets.stream().anyMatch(asset -> asset.identity().id().equals(id)))
                 .toList();
             if (effectiveAssetIds.isEmpty())
-                effectiveAssetIds = environmentAssets.stream().map(Asset::id).toList();
+                effectiveAssetIds = environmentAssets.stream().map(asset -> asset.identity().id()).toList();
 
             List<String> selectedIds = effectiveAssetIds;
 

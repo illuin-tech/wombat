@@ -26,7 +26,6 @@ class PostgresQueryTest
     private static final String CLUSTER = POSTGRESQL.text("data", "cluster");
     private static final String CONTAINER = POSTGRESQL.text("data", "container");
     private static final String NAMESPACE = POSTGRESQL.text("data", "namespace");
-    private static final String PROFILE_ID = POSTGRESQL.text("data", "profileId");
     private static final String MODEL = POSTGRESQL.text("data", "model");
 
     private static String jdbcUrl;
@@ -48,33 +47,33 @@ class PostgresQueryTest
             // expectations below stay the plain sums and averages; weighting itself is covered by
             // KubernetesMetricRepositoryTest against the sqlite chain.
             stmt.executeUpdate(
-                "INSERT INTO server_metrics (instant_ms, window_ms, data, cpu_nanocores, ram_bytes, compacted) VALUES"
-                + " (1000, 1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"api\"}', 1.5e9, 2e9, 1),"
-                + " (1000, 1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"web\"}', 0.5e9, 1e9, 1),"
-                + " (2000, 1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c2\",\"namespace\":\"ns2\",\"pod\":\"p2\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
+                "INSERT INTO server_metrics (instant_ms, window_ms, asset_id, environment_id, asset_name, asset_type, data, cpu_nanocores, ram_bytes, compacted) VALUES"
+                + " (1000, 1000, 'c1', 'env', 'Cluster One', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"api\"}', 1.5e9, 2e9, 1),"
+                + " (1000, 1000, 'c1', 'env', 'Cluster One', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"web\"}', 0.5e9, 1e9, 1),"
+                + " (2000, 1000, 'c2', 'env', 'Cluster Two', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c2\",\"namespace\":\"ns2\",\"pod\":\"p2\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
                 // Windows of differing length, past the instant range every other test filters on.
-                + " (4000, 1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
-                + " (5000, 3000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 3.0e9, 1e9, 1),"
-                // Sampling rows, in a cluster of their own so only the tests about them see them.
-                + " (9000, 1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0),"
-                + " (3700000, 1000, '{\"type\":\"KUBERNETES_API\",\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0)");
+                + " (4000, 1000, 'c3', 'env', 'Cluster Three', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
+                + " (5000, 3000, 'c3', 'env', 'Cluster Three', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 3.0e9, 1e9, 1),"
+                // Sampling rows, under an asset of their own so only the tests about them see them.
+                + " (9000, 1000, 'c9', 'env', 'Cluster Nine', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0),"
+                + " (3700000, 1000, 'c9', 'env', 'Cluster Nine', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0)");
             stmt.executeUpdate(
-                "INSERT INTO model_metrics (instant_ms, data, output_tokens, compacted) VALUES"
-                + " (1000, '{\"profileId\":\"a1\",\"model\":\"m\"}', 100, 1),"
-                + " (2000, '{\"profileId\":\"a1\",\"model\":\"m\"}', 200, 1),"
-                + " (1500, '{\"profileId\":\"b2\",\"model\":\"m\"}', 999, 1),"
-                + " (2500, '{\"profileId\":\"a1\",\"model\":\"m\"}', 50, 0),"
-                // One profile serving two models, for the query that narrows to some of them.
-                + " (1000, '{\"profileId\":\"d4\",\"model\":\"mistral\"}', 10, 1),"
-                + " (1000, '{\"profileId\":\"d4\",\"model\":\"gpt\"}', 40, 1)");
+                "INSERT INTO model_metrics (instant_ms, asset_id, environment_id, asset_name, asset_type, data, output_tokens, compacted) VALUES"
+                + " (1000, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 100, 1),"
+                + " (2000, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 200, 1),"
+                + " (1500, 'b2', 'env', 'Asset Two', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 999, 1),"
+                + " (2500, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 50, 0),"
+                // One asset serving two models, for the query that narrows to some of them.
+                + " (1000, 'd4', 'env', 'Asset Four', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"mistral\"}', 10, 1),"
+                + " (1000, 'd4', 'env', 'Asset Four', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"gpt\"}', 40, 1)");
         }
     }
 
     @Test
-    void findByRangeAndClusters_filtersOnTheJsonClusterLabel() throws SQLException
+    void findByRangeAndAssets_filtersOnTheAssetColumn() throws SQLException
     {
         String sql = "SELECT count(*) FROM server_metrics WHERE instant_ms >= 0 AND instant_ms <= 3000"
-            + " AND " + CLUSTER + " IN ('c1')";
+            + " AND asset_id IN ('c1')";
 
         assertEquals(2L, scalar(sql).longValue());
     }
@@ -87,9 +86,9 @@ class PostgresQueryTest
     }
 
     @Test
-    void averageCpuPerInstant_appliesTheClusterFilterBeforeAveraging() throws SQLException
+    void averageCpuPerInstant_appliesTheAssetFilterBeforeAveraging() throws SQLException
     {
-        assertEquals(2.0e9, scalar(averageCpuPerInstant(" AND " + CLUSTER + " IN ('c1')")).doubleValue(), 1.0);
+        assertEquals(2.0e9, scalar(averageCpuPerInstant(" AND asset_id IN ('c1')")).doubleValue(), 1.0);
     }
 
     @Test
@@ -98,7 +97,7 @@ class PostgresQueryTest
         List<String[]> rows = rows(
             "SELECT " + CONTAINER + " AS container,"
             + " SUM(cpu_nanocores * window_ms) * 1.0 / NULLIF(SUM(SUM(cpu_nanocores * window_ms)) OVER (), 0) AS share FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND " + CLUSTER + " IN ('c1')"
+            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id IN ('c1')"
             + " GROUP BY " + CONTAINER, 2);
 
         assertEquals(2, rows.size());
@@ -109,7 +108,7 @@ class PostgresQueryTest
     }
 
     @Test
-    void containerShares_sumToOneAcrossAllClusters() throws SQLException
+    void containerShares_sumToOneAcrossAllAssets() throws SQLException
     {
         List<String[]> rows = rows(
             "SELECT " + CONTAINER + " AS container,"
@@ -167,7 +166,7 @@ class PostgresQueryTest
         String bucket = "instant_ms - (instant_ms % 2000)";
         List<String[]> rows = rows(
             "SELECT " + bucket + " AS bucket, SUM(output_tokens) AS tokens FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND " + PROFILE_ID + " = 'a1'"
+            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id = 'a1'"
             + " GROUP BY " + bucket + " ORDER BY " + bucket, 2);
 
         assertEquals(2, rows.size());
@@ -184,7 +183,7 @@ class PostgresQueryTest
     {
         String bucket = "instant_ms - (instant_ms % 2000)";
         String sql = "SELECT " + bucket + " AS bucket, SUM(output_tokens) AS tokens FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND " + PROFILE_ID + " = 'd4'";
+            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id = 'd4'";
 
         List<String[]> filtered = rows(sql + " AND " + MODEL + " IN ('mistral')"
             + " GROUP BY " + bucket + " ORDER BY " + bucket, 2);
@@ -200,11 +199,11 @@ class PostgresQueryTest
     @Test
     void servingQueries_readFoldedRowsOnly() throws SQLException
     {
-        String uncompacted = "SELECT count(*) FROM server_metrics WHERE " + CLUSTER + " IN ('c9')";
+        String uncompacted = "SELECT count(*) FROM server_metrics WHERE asset_id IN ('c9')";
         assertEquals(2L, scalar(uncompacted).longValue(), "the fixture holds sampling rows");
 
         assertEquals(0L, scalar("SELECT count(*) FROM server_metrics"
-            + " WHERE compacted = 1 AND " + CLUSTER + " IN ('c9')").longValue());
+            + " WHERE compacted = 1 AND asset_id IN ('c9')").longValue());
         assertEquals(300L, scalar(sumOutputTokens("a1", 0, 3000)).longValue(), "the 50-token sampling row is left out");
     }
 
@@ -229,7 +228,7 @@ class PostgresQueryTest
             "SELECT DISTINCT " + CONTAINER + " AS container,"
             + " " + CLUSTER + " AS cluster,"
             + " " + NAMESPACE + " AS namespace FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND " + CLUSTER + " IN ('c1', 'c2')"
+            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id IN ('c1', 'c2')"
             + " ORDER BY container, cluster, namespace", 3);
 
         assertEquals(3, rows.size());
@@ -239,7 +238,7 @@ class PostgresQueryTest
     }
 
     @Test
-    void sumOutputTokens_addsUpOnlyTheRequestedProfile() throws SQLException
+    void sumOutputTokens_addsUpOnlyTheRequestedAsset() throws SQLException
     {
         assertEquals(300L, scalar(sumOutputTokens("a1", 0, 3000)).longValue());
         assertEquals(999L, scalar(sumOutputTokens("b2", 0, 3000)).longValue());
@@ -269,19 +268,19 @@ class PostgresQueryTest
      * The derived table carries an explicit alias: Postgres 15 and earlier reject a subquery in FROM
      * without one, so dropping it would break the query on those versions only.
      */
-    private static String averageCpuPerInstant(String clusterFilter)
+    private static String averageCpuPerInstant(String assetFilter)
     {
         return "SELECT SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) FROM ("
             + " SELECT SUM(cpu_nanocores) AS cpuPerInstant, MAX(window_ms) AS spanMs FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000" + clusterFilter
+            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000" + assetFilter
             + " GROUP BY instant_ms) AS per_instant";
     }
 
-    private static String sumOutputTokens(String profileId, long startMs, long endMs)
+    private static String sumOutputTokens(String assetId, long startMs, long endMs)
     {
         return "SELECT COALESCE(SUM(output_tokens), 0) FROM model_metrics"
             + " WHERE compacted = 1 AND instant_ms >= " + startMs + " AND instant_ms <= " + endMs
-            + " AND " + PROFILE_ID + " = '" + profileId + "'";
+            + " AND asset_id = '" + assetId + "'";
     }
 
     private static Number scalar(String sql) throws SQLException

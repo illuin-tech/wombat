@@ -3,7 +3,7 @@ package tech.illuin.wombat.module;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
 import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;

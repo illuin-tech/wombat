@@ -60,10 +60,10 @@
         <div class="container-list" id="assetList">
           {#for asset in assets.all}
           <label class="container-item">
-            <input type="checkbox" name="assets" value="{asset.id}"
-                   data-label="{asset.name}"
-                   {#if assets.selectedIds.contains(asset.id)}checked{/if}/>
-            <span>{asset.name} &mdash; {asset.id}{#if asset.namespace} / {asset.namespace}{/if}</span>
+            <input type="checkbox" name="assets" value="{asset.identity.id}"
+                   data-label="{asset.identity.name}"
+                   {#if assets.selectedIds.contains(asset.identity.id)}checked{/if}/>
+            <span>{asset.identity.name} &mdash; {asset.identity.id}{#if asset.namespace} / {asset.namespace}{/if}</span>
           </label>
           {/for}
         </div>
@@ -533,9 +533,9 @@
       <div class="unrecognized-assets-list">
         {#for ua in env.unrecognizedAssets}
         <div class="unrecognized-asset-item">
-          <div class="unrecognized-asset-name">{ua.name}</div>
+          <div class="unrecognized-asset-name">{ua.identity.name}</div>
           <div class="unrecognized-asset-meta">
-            <span class="unrecognized-meta-label">ID:</span> <code class="unrecognized-code">{ua.id}</code>
+            <span class="unrecognized-meta-label">ID:</span> <code class="unrecognized-code">{ua.identity.id}</code>
             <span class="unrecognized-meta-label">Module / Type:</span> <code class="unrecognized-code">{ua.rawType}</code>
           </div>
         </div>

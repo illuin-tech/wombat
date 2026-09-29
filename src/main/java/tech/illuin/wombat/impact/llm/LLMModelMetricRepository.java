@@ -4,6 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.compaction.BucketCompactor;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.persistence.dialect.JsonPathDialect;
@@ -41,7 +42,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         StringBuilder sql = new StringBuilder(
             "SELECT " + bucket + " AS bucket, SUM(output_tokens) AS tokens FROM model_metrics"
             + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end"
-            + " AND " + this.dialect.text("data", "assetId") + " = :assetId");
+            + " AND asset_id = :assetId");
         if (!serviceIds.isEmpty())
             sql.append(" AND ").append(this.dialect.text("data", "model")).append(" IN (:services)");
         sql.append(" GROUP BY ").append(bucket).append(" ORDER BY ").append(bucket);
@@ -94,6 +95,8 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
             LLMMetricEntity row = new LLMMetricEntity();
             row.instantMs = bucketStartMs;
             row.outputTokens = tokens;
+            row.assign(key.asset());
+            row.assetType = key.assetType();
             row.data = key.toData(tokens);
             row.compacted = true;
             folded.add(row);
@@ -112,7 +115,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         Query query = getEntityManager().createNativeQuery(
             "SELECT COALESCE(SUM(output_tokens), 0) FROM model_metrics"
             + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end"
-            + " AND " + this.dialect.text("data", "assetId") + " = :assetId");
+            + " AND asset_id = :assetId");
         query.setParameter("start", startMs);
         query.setParameter("end", endMs);
         query.setParameter("assetId", assetId);
@@ -120,20 +123,20 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     }
 
     private record ModelKey(
+        AssetIdentity asset,
+        String assetType,
         String serviceId,
-        String assetId,
-        String environmentId,
         String model
     ) {
         private static ModelKey of(LLMMetricEntity row)
         {
             LLMData data = row.data;
-            return new ModelKey(data.serviceId(), data.assetId(), data.environmentId(), data.model());
+            return new ModelKey(row.identity(), row.assetType, data.serviceId(), data.model());
         }
 
         private LLMData toData(long outputTokens)
         {
-            return new LLMData(this.serviceId, this.assetId, this.environmentId, this.model, outputTokens);
+            return new LLMData(this.serviceId, this.model, outputTokens);
         }
     }
 }

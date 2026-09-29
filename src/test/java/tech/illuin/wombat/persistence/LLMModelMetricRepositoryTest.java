@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.llm.LLMModelMetricRepository;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
@@ -37,7 +38,7 @@ class LLMModelMetricRepositoryTest
         repository.save(row(1000L, "p-llm", "mistral-large-latest", 42L));
 
         LLMMetricEntity persisted = repository.findAll().firstResult();
-        assertEquals(new LLMData("mistral-large-latest", "p-llm", "env", "mistral-large-latest", 42L), persisted.data);
+        assertEquals(new LLMData("mistral-large-latest", "mistral-large-latest", 42L), persisted.data);
         assertEquals(42L, persisted.outputTokens);
     }
 
@@ -157,19 +158,21 @@ class LLMModelMetricRepositoryTest
     }
 
     /** A folded row, the kind every serving query reads. */
-    private static LLMMetricEntity row(long instantMs, String profileId, String model, long outputTokens)
+    private static LLMMetricEntity row(long instantMs, String assetId, String model, long outputTokens)
     {
-        LLMMetricEntity row = sampled(instantMs, profileId, model, outputTokens);
+        LLMMetricEntity row = sampled(instantMs, assetId, model, outputTokens);
         row.compacted = true;
         return row;
     }
 
     /** A sampling row as collection writes it, waiting to be folded. */
-    private static LLMMetricEntity sampled(long instantMs, String profileId, String model, long outputTokens)
+    private static LLMMetricEntity sampled(long instantMs, String assetId, String model, long outputTokens)
     {
         LLMMetricEntity row = new LLMMetricEntity();
         row.instantMs = instantMs;
-        row.data = new LLMData(model, profileId, "env", model, outputTokens);
+        row.assign(new AssetIdentity(assetId, "env", assetId + " name"));
+        row.assetType = "tech.illuin.wombat-module.llm-prometheus";
+        row.data = new LLMData(model, model, outputTokens);
         row.outputTokens = outputTokens;
         return row;
     }

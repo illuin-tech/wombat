@@ -2,9 +2,10 @@ package tech.illuin.wombat.context.persistence;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.context.model.UnrecognizedAsset;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -33,7 +34,7 @@ class AssetConverterTest
     void kubernetesAsset_survivesARoundTrip()
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
-            "k", "env", "K", "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
+            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800));
 
         assertEquals(asset, this.roundTrip(asset));
@@ -42,7 +43,7 @@ class AssetConverterTest
     @Test
     void llmStaticAsset_survivesARoundTrip()
     {
-        LLMStaticAsset asset = new LLMStaticAsset("s", "env", "S",
+        LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
             new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
 
         assertEquals(asset, this.roundTrip(asset));
@@ -51,7 +52,7 @@ class AssetConverterTest
     @Test
     void llmPrometheusAsset_survivesARoundTrip()
     {
-        LLMPrometheusAsset asset = new LLMPrometheusAsset("p", "env", "P",
+        LLMPrometheusAsset asset = new LLMPrometheusAsset(AssetIdentity.of("p", "env", "P"),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", 7,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA", new LLMPrometheusProfile.DynamicProfile("q")));
 
@@ -61,7 +62,7 @@ class AssetConverterTest
     @Test
     void storedJson_carriesTheAssetTypeDiscriminator()
     {
-        LLMStaticAsset asset = new LLMStaticAsset("s", "env", "S",
+        LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
             new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
 
         String json = this.converter.convertToDatabaseColumn(asset);
@@ -78,9 +79,9 @@ class AssetConverterTest
         assertInstanceOf(UnrecognizedAsset.class, parsed);
 
         UnrecognizedAsset unrecognized = (UnrecognizedAsset) parsed;
-        assertEquals("unrec-1", unrecognized.id());
-        assertEquals("env-1", unrecognized.environmentId());
-        assertEquals("Dropped Module Asset", unrecognized.name());
+        assertEquals("unrec-1", unrecognized.identity().id());
+        assertEquals("env-1", unrecognized.identity().environmentId());
+        assertEquals("Dropped Module Asset", unrecognized.identity().name());
         assertEquals("tech.illuin.dropped.Asset", unrecognized.rawType());
         assertEquals(rawJson, unrecognized.rawJson());
         assertEquals("tech.illuin.wombat-core.unknown", unrecognized.type().name());

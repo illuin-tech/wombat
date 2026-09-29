@@ -20,7 +20,7 @@ import tech.illuin.wombat.core.activity.commons.ActivityData;
 import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityResolver;
 import tech.illuin.wombat.core.activity.llm.LLMActivityResolver;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
 import tech.illuin.wombat.core.connector.boavizta.impact.BoaviztaEvaluationResolver;
 import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
@@ -45,7 +45,7 @@ import java.util.List;
 @ApplicationScoped
 public class WombatModuleConfig
 {
-    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData _) -> new AssetCost(asset.environmentId(), asset.id());
+    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData _) -> new AssetCost(asset.identity().environmentId(), asset.identity().id());
     private static final Logger logger = LoggerFactory.getLogger(WombatModuleConfig.class);
 
     @Produces @Singleton

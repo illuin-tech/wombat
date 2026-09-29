@@ -2,13 +2,14 @@ package tech.illuin.wombat.module.extension;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.activity.commons.ActivityData;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
-import tech.illuin.wombat.core.asset.profile.Profile;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
 import tech.illuin.wombat.core.evaluation.cost.commons.AssetCost;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -62,17 +63,17 @@ class ExtensionContractCheckTest
         {
             if (!this.ownResolver)
                 return Optional.empty();
-            return Optional.of((Asset asset, ActivityData _) -> new AssetCost(asset.environmentId(), asset.id()));
+            return Optional.of((Asset asset, ActivityData _) -> new AssetCost(asset.identity().environmentId(), asset.identity().id()));
         }
     }
 
-    public record PlainProfile(String id) implements Profile {}
+    public record PlainProfile(String id) implements AssetProfile {}
 
     public record TestLLMProfile(LLMProvider provider, String model, String location) implements LLMProfile {}
 
-    public record CompatibleAsset(String id, String environmentId, String name, AssetType type, TestLLMProfile profile) implements Asset {}
+    public record CompatibleAsset(AssetIdentity identity, AssetType type, TestLLMProfile profile) implements Asset {}
 
-    public record IncompatibleAsset(String id, String environmentId, String name, AssetType type, PlainProfile profile) implements Asset {}
+    public record IncompatibleAsset(AssetIdentity identity, AssetType type, PlainProfile profile) implements Asset {}
 
-    public record GenericAsset(String id, String environmentId, String name, AssetType type, Profile profile) implements Asset {}
+    public record GenericAsset(AssetIdentity identity, AssetType type, AssetProfile profile) implements Asset {}
 }

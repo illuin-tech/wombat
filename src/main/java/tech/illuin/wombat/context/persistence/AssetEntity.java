@@ -65,16 +65,16 @@ public class AssetEntity extends PanacheEntityBase
     public Asset toProperties()
     {
         if (this.properties instanceof UnrecognizedAsset unrecognized && unrecognized.rawType() == null)
-            return new UnrecognizedAsset(unrecognized.id(), unrecognized.environmentId(), unrecognized.name(), this.type, unrecognized.rawJson());
+            return new UnrecognizedAsset(unrecognized.identity(), this.type, unrecognized.rawJson());
         return this.properties;
     }
 
     public static AssetEntity from(String environmentId, Asset asset)
     {
         AssetEntity entity = new AssetEntity();
-        entity.id = asset.id();
+        entity.id = asset.identity().id();
         entity.environmentId = environmentId;
-        entity.name = asset.name();
+        entity.name = asset.identity().name();
         entity.type = asset instanceof UnrecognizedAsset unrecognized
             ? unrecognized.rawType()
             : asset.type().name()

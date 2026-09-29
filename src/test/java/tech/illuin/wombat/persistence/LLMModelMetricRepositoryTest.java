@@ -5,7 +5,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.llm.LLMModelMetricRepository;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
@@ -38,7 +40,7 @@ class LLMModelMetricRepositoryTest
         repository.save(row(1000L, "p-llm", "mistral-large-latest", 42L));
 
         LLMMetricEntity persisted = repository.findAll().firstResult();
-        assertEquals(new LLMData("mistral-large-latest", "mistral-large-latest", 42L), persisted.data);
+        assertEquals(new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", "FRA", 42L), persisted.data);
         assertEquals(42L, persisted.outputTokens);
     }
 
@@ -60,6 +62,28 @@ class LLMModelMetricRepositoryTest
         repository.save(row(1000L, "other", "m", 99L));
 
         assertEquals(10L, repository.sumOutputTokens(0L, 5000L, "p-llm"));
+    }
+
+    @Test
+    void serviceActivities_groupsByModelAndSumsTokensAndRequests()
+    {
+        repository.save(row(1000L, "p-llm", "mistral-large", 100L));
+        repository.save(row(2000L, "p-llm", "mistral-large", 200L));
+        repository.save(row(2000L, "p-llm", "gpt-4o", 500L));
+        repository.save(row(2000L, "other", "gpt-4o", 999L));
+
+        Map<String, LLMServiceActivity> activities = repository.serviceActivities(0L, 5000L, "p-llm");
+        assertEquals(2, activities.size());
+
+        LLMServiceActivity mistral = activities.get("mistral-large");
+        assertEquals(300L, mistral.outputTokenCount());
+        assertEquals(2.0, mistral.requestCount());
+        assertEquals(LLMProvider.mistralai, mistral.provider());
+        assertEquals("mistral-large", mistral.model());
+
+        LLMServiceActivity gpt = activities.get("gpt-4o");
+        assertEquals(500L, gpt.outputTokenCount());
+        assertEquals(1.0, gpt.requestCount());
     }
 
     /** Tokens are a total, so a bucket is simply the sum of the rows landing in it. */
@@ -172,7 +196,7 @@ class LLMModelMetricRepositoryTest
         row.instantMs = instantMs;
         row.assign(new AssetIdentity(assetId, "env", assetId + " name"));
         row.assetType = "tech.illuin.wombat-module.llm-prometheus";
-        row.data = new LLMData(model, model, outputTokens);
+        row.data = new LLMData(model, LLMProvider.mistralai, model, "FRA", outputTokens);
         row.outputTokens = outputTokens;
         return row;
     }

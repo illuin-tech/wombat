@@ -138,8 +138,8 @@ class UIControllerTest
             .statusCode(200)
             .body(containsString("Test LLM"))
             .body(containsString("mistral-large-latest"))
-            .body(containsString("Output tokens / request"))
-            .body(containsString("Requests / year"))
+            .body(containsString("Output tokens total"))
+            .body(containsString("Estimated requests / year"))
             .body(containsString("GWP / request"));
     }
 

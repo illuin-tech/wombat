@@ -34,6 +34,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -188,7 +189,7 @@ class AssetInfoTest
         assertEquals("tech.illuin.wombat-core.unknown", info.properties().type().name());
         assertEquals(ActivityRegime.UNKNOWN, info.properties().type().regime());
         assertEquals(ServiceFamily.UNKNOWN, info.properties().type().family());
-        assertEquals("unknown", info.properties().profile().id());
+        assertNotNull(info.properties().profile());
 
         JsonNode json = mapper.readTree(mapper.writeValueAsString(info));
         assertEquals("unrec-1", json.get("id").asText());

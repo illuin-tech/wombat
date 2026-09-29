@@ -128,7 +128,7 @@ class ImpactControllerTest
             .body("payload.find { it.assetId == 'test-llm' }.provider", is("ECOLOGITS"))
             .body("payload.find { it.assetId == 'test-llm' }.footprint.gwp", notNullValue())
             .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.llm-static"))
-            .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].profile.model", is("mistral-large-latest"))
+            .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].model", is("mistral-large-latest"))
             .body("payload.find { it.assetId == 'test-cluster' }.provider", is("BOAVIZTA"));
     }
 

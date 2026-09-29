@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
@@ -149,7 +150,7 @@ class MetricCompactorTest
         row.instantMs = instantMs;
         row.assign(new AssetIdentity("p-llm", "env", "Prometheus LLM"));
         row.assetType = "tech.illuin.wombat-module.llm-prometheus";
-        row.data = new LLMData("m", "m", tokens);
+        row.data = new LLMData("m", LLMProvider.mistralai, "m", "FRA", tokens);
         row.outputTokens = tokens;
         return row;
     }

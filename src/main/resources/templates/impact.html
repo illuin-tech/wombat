@@ -329,7 +329,7 @@
         </div>
         {/for}
         {#for llm in env.llmPanels}
-        <div class="asset-block">
+        <div class="asset-block" >
           <div class="asset-head" role="button" tabindex="0">
             <button type="button" class="asset-expand" title="Expand details" aria-label="Expand details">⤢</button>
             <span class="asset-id">{llm.name}</span>
@@ -337,35 +337,37 @@
               <span class="asset-type-tag llm"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
               <span class="asset-type-tag measure">{llm.regime.label()}</span>
             </div>
-            <span class="asset-count">1 service</span>
+            <span class="asset-count">{llm.serviceIds.size()} {llm.serviceIds.size() == 1 ? 'service' : 'services'}</span>
           </div>
           <div class="asset-detail collapsed">
             <div class="card-section">
-              <div class="card-section-label">Model</div>
+              <div class="card-section-label">Services / Models</div>
               <div class="service-tags">
-                <span class="service-tag"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>{llm.model}</span>
+                {#for service in llm.serviceIds}
+                <span class="service-tag"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>{service}</span>
+                {/for}
               </div>
             </div>
             <div class="params-inline">
+              {#if llm.provider}
               <div class="param-item">
                 <span class="param-key">Provider</span>
                 <span class="param-val">{llm.provider}</span>
               </div>
+              {/if}
+              {#if llm.location}
               <div class="param-item">
                 <span class="param-key">Location</span>
                 <span class="param-val">{llm.location}</span>
               </div>
+              {/if}
               <div class="param-item">
-                {#if llm.regime.name == 'MODELED'}
-                <span class="param-key">Output tokens / request</span>
-                {#else}
-                <span class="param-key">Output token total</span>
-                {/if}
+                <span class="param-key">Output tokens total</span>
                 <span class="param-val">{llm.outputTokenCount}</span>
               </div>
-              {#if llm.regime.name == 'MODELED'}
+              {#if llm.regime.name == 'MODELED' && llm.requestPerYear > 0}
               <div class="param-item">
-                <span class="param-key">Requests / year</span>
+                <span class="param-key">Estimated requests / year</span>
                 <span class="param-val">{llm.requestPerYear}</span>
               </div>
               {/if}
@@ -402,7 +404,7 @@
               </div>
               <div class="asset-load-note">
                 {#if llm.regime.name == 'MODELED'}
-                Estimated from the profile's typical request (EcoLogits) prorated over the selected period; not affected by the service filter above.
+                Computed with EcoLogits from modeled behaviour and prorated over the selected period.
                 {#else}
                 Computed with EcoLogits from output tokens measured over the selected period; not affected by the service filter above.
                 {/if}

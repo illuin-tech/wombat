@@ -19,9 +19,10 @@ environments:
         environment-id: test
         name: Test LLM
         profile:
-          provider: mistralai
-          model: mistral-large-latest
-          location: FRA
-          request-profile:
-            output-token-count: 500
-            request-per-year: 1000000
+          models:
+            - provider: mistralai
+              model: mistral-large-latest
+              location: FRA
+              request-profile:
+                output-token-count: 500
+                request-per-year: 1000000

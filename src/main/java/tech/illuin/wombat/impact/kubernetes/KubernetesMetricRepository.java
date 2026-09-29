@@ -156,7 +156,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         return rows.stream().map(row -> ((Number) row).longValue()).toList();
     }
 
-    @Transactional @Override
+    @Override @Transactional
     public int compactBucket(long bucketStartMs, long stepMs)
     {
         long bucketEndMs = bucketStartMs + stepMs;

@@ -1,6 +1,7 @@
 package tech.illuin.wombat.impact.controller;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -25,9 +26,9 @@ class EnvironmentDescriptionTest
     void fromMapsEnvironmentAndAssetSummaries()
     {
         Environment environment = new Environment("Production", List.of(
-            new KubernetesAPIAsset("cluster-1", "Production", "Cluster One", "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
+            new KubernetesAPIAsset(AssetIdentity.of("cluster-1", "Production", "Cluster One"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
                 new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800)),
-            new LLMStaticAsset("llm-1", "Production", "LLM One",
+            new LLMStaticAsset(AssetIdentity.of("llm-1", "Production", "LLM One"),
                 new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)))
         ));
         TimeRange timeRange = new TimeRange(Instant.EPOCH, Instant.EPOCH.plusSeconds(60));

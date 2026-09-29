@@ -1,6 +1,6 @@
 package tech.illuin.wombat.ui;
 
-import tech.illuin.wombat.core.asset.AssetType;
+import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
 
 public record ServiceImpact(

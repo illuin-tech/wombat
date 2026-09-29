@@ -9,7 +9,7 @@ import tech.illuin.wombat.commons.validation.ValidTimeRange;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMActivityData;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedAsset;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedProfile;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedAsset;

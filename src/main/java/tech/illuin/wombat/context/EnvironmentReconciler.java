@@ -75,7 +75,7 @@ public class EnvironmentReconciler
             this.reconcileEnvironment(entry.getKey(), entry.getValue());
             for (Asset asset : entry.getValue().assets())
             {
-                desiredAssetIds.add(asset.id());
+                desiredAssetIds.add(asset.identity().id());
                 AssetConfigAction action = this.reconcileAsset(entry.getKey(), asset);
                 if (action == AssetConfigAction.CREATE)
                     created++;
@@ -117,14 +117,14 @@ public class EnvironmentReconciler
 
     private AssetConfigAction reconcileAsset(String environmentId, Asset properties)
     {
-        Optional<AssetEntity> existing = this.assetRepository.findByIdOptional(properties.id());
+        Optional<AssetEntity> existing = this.assetRepository.findByIdOptional(properties.identity().id());
 
         if (existing.isEmpty())
         {
             AssetEntity entity = AssetEntity.from(environmentId, properties);
             this.assetRepository.persist(entity);
             this.recordHistory(AssetConfigAction.CREATE, entity);
-            logger.debug("Created asset {} in environment {}", properties.id(), environmentId);
+            logger.debug("Created asset {} in environment {}", properties.identity().id(), environmentId);
             return AssetConfigAction.CREATE;
         }
 
@@ -133,26 +133,26 @@ public class EnvironmentReconciler
         {
             entity.deletedAt = null;
             entity.environmentId = environmentId;
-            entity.name = properties.name();
+            entity.name = properties.identity().name();
             entity.type = properties.type().name();
             entity.properties = properties;
             this.recordHistory(AssetConfigAction.CREATE, entity);
-            logger.debug("Re-created (undeleted) asset {} in environment {}", properties.id(), environmentId);
+            logger.debug("Re-created (undeleted) asset {} in environment {}", properties.identity().id(), environmentId);
             return AssetConfigAction.CREATE;
         }
 
         boolean changed = !entity.environmentId.equals(environmentId)
-            || !entity.name.equals(properties.name())
+            || !entity.name.equals(properties.identity().name())
             || !Objects.equals(entity.type, properties.type().name())
             || !entity.properties.equals(properties);
         if (changed)
         {
             entity.environmentId = environmentId;
-            entity.name = properties.name();
+            entity.name = properties.identity().name();
             entity.type = properties.type().name();
             entity.properties = properties;
             this.recordHistory(AssetConfigAction.UPDATE, entity);
-            logger.debug("Updated asset {} in environment {}", properties.id(), environmentId);
+            logger.debug("Updated asset {} in environment {}", properties.identity().id(), environmentId);
             return AssetConfigAction.UPDATE;
         }
         return null;

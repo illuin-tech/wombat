@@ -4,7 +4,6 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.persistence.dialect.JsonPathDialect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,11 +11,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Exercises the postgresql baseline migration against a real server. Beyond "the DDL parses", the
  * points worth guarding are the ones where the SQLite definitions could not be carried over
  * verbatim: integer widths, the REAL/DOUBLE PRECISION difference, timestamp storage, the identity
- * column standing in for a rowid alias, and the json expression indexes replacing json_extract.
+ * column standing in for a rowid alias, and the asset-scoped indexes replacing the json_extract ones.
  */
 class PostgresSchemaTest
 {
@@ -140,8 +141,12 @@ class PostgresSchemaTest
         }
     }
 
+    /**
+     * The asset a sample belongs to is a column on both metric tables, so the index behind every asset-scoped read is
+     * a plain b-tree over (asset_id, instant_ms) — no jsonb cast stands between the planner and the key any more.
+     */
     @Test
-    void jsonExpressionIndexes_areUsableByThePlanner() throws SQLException
+    void assetIndexes_areUsableByThePlanner() throws SQLException
     {
         try (Connection conn = PostgresTestContainer.connect(jdbcUrl);
              Statement stmt = conn.createStatement())
@@ -150,13 +155,31 @@ class PostgresSchemaTest
             // assertion would say nothing about whether the index is usable at all.
             stmt.execute("SET enable_seqscan = off");
 
-            String metricsPlan = explain(stmt, "SELECT id FROM server_metrics WHERE "
-                + JsonPathDialect.POSTGRESQL.text("data", "cluster") + " = 'c1' AND instant_ms >= 0");
-            assertTrue(metricsPlan.contains("idx_server_metrics_cluster_instant"), metricsPlan);
+            String metricsPlan = explain(stmt, "SELECT id FROM server_metrics WHERE asset_id = 'c1' AND instant_ms >= 0");
+            assertTrue(metricsPlan.contains("idx_server_metrics_asset_instant"), metricsPlan);
 
-            String modelPlan = explain(stmt, "SELECT id FROM model_metrics WHERE "
-                + JsonPathDialect.POSTGRESQL.text("data", "assetId") + " = 'a1' AND instant_ms >= 0");
+            String modelPlan = explain(stmt, "SELECT id FROM model_metrics WHERE asset_id = 'a1' AND instant_ms >= 0");
             assertTrue(modelPlan.contains("idx_model_metrics_asset_instant"), modelPlan);
+        }
+    }
+
+    /**
+     * The four identity fields left the JSON payload precisely so the database could constrain them; a nullable
+     * column here would give back the guarantee the move was made for.
+     */
+    @Test
+    void metricTables_carryTheAssetIdentityAsNonNullTextColumns() throws SQLException
+    {
+        for (String table : List.of("server_metrics", "model_metrics"))
+        {
+            Map<String, String> types = postgresColumnTypes(table);
+            Set<String> nullable = postgresNullableColumns(table);
+
+            for (String column : List.of("asset_id", "environment_id", "asset_name", "asset_type"))
+            {
+                assertEquals("text", types.get(column), table + "." + column);
+                assertFalse(nullable.contains(column), table + "." + column + " must be NOT NULL");
+            }
         }
     }
 
@@ -174,8 +197,10 @@ class PostgresSchemaTest
         String values = id == null ? "" : id + ", ";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(
-                 "INSERT INTO server_metrics (" + columns + "instant_ms, data, cpu_nanocores, ram_bytes)"
-                 + " VALUES (" + values + "1000, '{\"cluster\":\"c1\"}', 1, 1) RETURNING id"))
+                 "INSERT INTO server_metrics (" + columns + "instant_ms, asset_id, environment_id, asset_name, asset_type,"
+                 + " data, cpu_nanocores, ram_bytes)"
+                 + " VALUES (" + values + "1000, 'c1', 'env', 'Cluster One', 'tech.illuin.wombat-module.kubernetes-api',"
+                 + " '{\"cluster\":\"c1\"}', 1, 1) RETURNING id"))
         {
             rs.next();
             return rs.getLong(1);
@@ -213,6 +238,24 @@ class PostgresSchemaTest
                 addUnlessFlywayHistory(tables, rs.getString(1));
         }
         return tables;
+    }
+
+    private static Set<String> postgresNullableColumns(String table) throws SQLException
+    {
+        Set<String> nullable = new TreeSet<>();
+        try (Connection conn = PostgresTestContainer.connect(jdbcUrl);
+             PreparedStatement stmt = conn.prepareStatement(
+                 "SELECT column_name FROM information_schema.columns"
+                 + " WHERE table_schema = 'public' AND table_name = ? AND is_nullable = 'YES'"))
+        {
+            stmt.setString(1, table);
+            try (ResultSet rs = stmt.executeQuery())
+            {
+                while (rs.next())
+                    nullable.add(rs.getString(1));
+            }
+        }
+        return nullable;
     }
 
     private static Map<String, String> postgresColumnTypes(String table) throws SQLException

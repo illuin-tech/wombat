@@ -1,8 +1,8 @@
 package tech.illuin.wombat.module.extension;
 
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
-import tech.illuin.wombat.core.asset.profile.Profile;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProfile;
 import tech.illuin.wombat.core.module.WombatModule;
 
@@ -17,7 +17,7 @@ import java.util.Optional;
  */
 final class ExtensionContractCheck
 {
-    private static final Map<ServiceFamily, Class<? extends Profile>> FAMILY_PROFILES = Map.of(
+    private static final Map<ServiceFamily, Class<? extends AssetProfile>> FAMILY_PROFILES = Map.of(
         ServiceFamily.LLM, LLMProfile.class,
         ServiceFamily.KUBERNETES_CONTAINER, ServerProfile.class
     );
@@ -33,7 +33,7 @@ final class ExtensionContractCheck
         if (module.createImpactResolver().isPresent())
             return Optional.empty();
 
-        Class<? extends Profile> required = FAMILY_PROFILES.get(module.type().family());
+        Class<? extends AssetProfile> required = FAMILY_PROFILES.get(module.type().family());
         if (required == null)
             return Optional.empty();
 

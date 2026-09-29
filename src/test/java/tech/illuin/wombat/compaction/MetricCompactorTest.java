@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
@@ -135,7 +136,9 @@ class MetricCompactorTest
         KubernetesMetricEntity row = new KubernetesMetricEntity();
         row.instantMs = instantMs;
         row.windowMs = FIVE_MINUTES_MS;
-        row.data = new KubernetesData(container, "asset", "env", "c1", "ns", "pod", cpu, 0.0);
+        row.assign(new AssetIdentity("c1", "env", "Cluster One"));
+        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
+        row.data = new KubernetesData(container, "c1", "ns", "pod", cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
     }
@@ -144,7 +147,9 @@ class MetricCompactorTest
     {
         LLMMetricEntity row = new LLMMetricEntity();
         row.instantMs = instantMs;
-        row.data = new LLMData("m", "p-llm", "env", "m", tokens);
+        row.assign(new AssetIdentity("p-llm", "env", "Prometheus LLM"));
+        row.assetType = "tech.illuin.wombat-module.llm-prometheus";
+        row.data = new LLMData("m", "m", tokens);
         row.outputTokens = tokens;
         return row;
     }

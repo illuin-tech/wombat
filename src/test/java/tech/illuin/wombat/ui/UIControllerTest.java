@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 import tech.illuin.wombat.context.persistence.AssetRepository;
 import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
 import tech.illuin.wombat.connector.boavizta.BoaviztaTestData;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.connector.ecologits.EcologitsTestData;
@@ -56,7 +57,9 @@ class UIControllerTest
         row.windowMs = 3_600_000L;
         // Only folded rows are served, so the seeded ones stand for hours compaction already ran on.
         row.compacted = true;
-        row.data = new KubernetesData(container, "test-asset", "test-env", "test-cluster", "test-ns", pod, cpu, 0.0);
+        row.assign(new AssetIdentity("test-cluster", "test", "Test Cluster"));
+        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
+        row.data = new KubernetesData(container, "test-cluster", "test-ns", pod, cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
     }
@@ -81,7 +84,7 @@ class UIControllerTest
         io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() -> {
             String rawJson = "{\"id\":\"unrec-ui-1\",\"environment-id\":\"test\",\"name\":\"Dropped Extension Asset\",\"type\":\"tech.illuin.dropped.ModuleAsset\"}";
             tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
-                "unrec-ui-1", "test", "Dropped Extension Asset", "tech.illuin.dropped.ModuleAsset", rawJson
+                AssetIdentity.of("unrec-ui-1", "test", "Dropped Extension Asset"), "tech.illuin.dropped.ModuleAsset", rawJson
             );
             tech.illuin.wombat.context.persistence.AssetEntity entity = new tech.illuin.wombat.context.persistence.AssetEntity();
             entity.id = "unrec-ui-1";

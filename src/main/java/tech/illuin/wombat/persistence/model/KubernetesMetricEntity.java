@@ -1,6 +1,5 @@
 package tech.illuin.wombat.persistence.model;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -12,7 +11,7 @@ import tech.illuin.wombat.core.source.data.KubernetesData;
 
 @Entity
 @Table(name = "server_metrics")
-public class KubernetesMetricEntity extends PanacheEntityBase
+public class KubernetesMetricEntity extends MetricEntity
 {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

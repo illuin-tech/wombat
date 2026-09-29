@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.step.StepMeterRegistry;
 import io.micrometer.core.instrument.step.StepRegistryConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
@@ -36,6 +37,8 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     private static final Set<String> KUBERNETES_TAGS = Set.of(
         TAG_ENVIRONMENT,
         TAG_ASSET,
+        TAG_ASSET_NAME,
+        TAG_ASSET_TYPE,
         TAG_SERVICE,
         TAG_K8S_CLUSTER,
         TAG_K8S_NAMESPACE,
@@ -49,6 +52,8 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     private static final Set<String> LLM_TAGS = Set.of(
         TAG_ENVIRONMENT,
         TAG_ASSET,
+        TAG_ASSET_NAME,
+        TAG_ASSET_TYPE,
         TAG_SERVICE,
         TAG_LLM_MODEL
     );
@@ -118,8 +123,6 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
         {
             Optional<Double> cpu = group.value(METRIC_K8S_CPU);
             Optional<Double> ram = group.value(METRIC_K8S_RAM);
-            // Micrometer never unregisters a meter, so a container that stopped reporting still yields a group —
-            // with tags but no sample in the window that just closed. Skip it instead of failing the whole batch.
             if (cpu.isEmpty() || ram.isEmpty())
             {
                 logger.debug("No sample in the last window for container {}, skipping", group.tag(TAG_K8S_POD).orElse("<unknown>"));
@@ -128,8 +131,6 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
 
             KubernetesData data = new KubernetesData(
                 group.tag(TAG_SERVICE).orElseThrow(),
-                group.tag(TAG_ASSET).orElseThrow(),
-                group.tag(TAG_ENVIRONMENT).orElseThrow(),
                 group.tag(TAG_K8S_CLUSTER).orElseThrow(),
                 group.tag(TAG_K8S_NAMESPACE).orElseThrow(),
                 group.tag(TAG_K8S_POD).orElseThrow(),
@@ -139,6 +140,8 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
             KubernetesMetricEntity row = new KubernetesMetricEntity();
             row.instantMs = ms;
             row.windowMs = this.stepMs;
+            row.assign(identityOf(group));
+            row.assetType = group.tag(TAG_ASSET_TYPE).orElse(null);
             row.data = data;
             row.cpuNanocores = data.cpuNanocores();
             row.ramBytes = data.ramBytes();
@@ -169,14 +172,14 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
 
             LLMData data = new LLMData(
                 group.tag(TAG_SERVICE).orElseThrow(),
-                group.tag(TAG_ASSET).orElseThrow(),
-                group.tag(TAG_ENVIRONMENT).orElseThrow(),
                 group.tag(TAG_LLM_MODEL).orElseThrow(),
                 outputTokens.map(Double::longValue).get()
             );
 
             LLMMetricEntity row = new LLMMetricEntity();
             row.instantMs = ms;
+            row.assign(identityOf(group));
+            row.assetType = group.tag(TAG_ASSET_TYPE).orElse(null);
             row.data = data;
             row.outputTokens = data.outputTokens();
             this.llmRepository.save(row);
@@ -190,6 +193,15 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
             return;
         }
         logger.info("Persisted {} llm-model row(s) at {}", persisted, ms);
+    }
+
+    private static AssetIdentity identityOf(MetricGroup group)
+    {
+        return new AssetIdentity(
+            group.tag(TAG_ASSET).orElseThrow(),
+            group.tag(TAG_ENVIRONMENT).orElseThrow(),
+            group.tag(TAG_ASSET_NAME).orElseThrow()
+        );
     }
 
     public void flush()

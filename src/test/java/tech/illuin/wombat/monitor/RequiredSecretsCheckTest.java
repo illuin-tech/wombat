@@ -3,6 +3,7 @@ package tech.illuin.wombat.monitor;
 import io.quarkus.runtime.StartupEvent;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.Asset;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.secret.CompositeSecretResolver;
@@ -115,13 +116,13 @@ class RequiredSecretsCheckTest
 
     private static LLMPrometheusAsset prometheusAsset(String id, String username, String passwordEnv)
     {
-        return new LLMPrometheusAsset(id, "env", id, "http://prometheus", null, username, passwordEnv, 0,
+        return new LLMPrometheusAsset(AssetIdentity.of(id, "env", id), "http://prometheus", null, username, passwordEnv, 0,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA", new LLMPrometheusProfile.DynamicProfile("q")));
     }
 
     private static LLMStaticAsset staticAsset()
     {
-        return new LLMStaticAsset("s", "env", "S",
+        return new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
             new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
     }
 }

@@ -2,13 +2,14 @@ package tech.illuin.wombat.module.extension;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
-import tech.illuin.wombat.core.asset.profile.Profile;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.module.WombatModule;
 
 import java.io.FileOutputStream;
@@ -161,7 +162,7 @@ class DynamicExtensionLoaderTest
             Constructor<? extends Asset> constructor = assetClass.getConstructor(String.class);
             Asset asset = constructor.newInstance("asset-1");
 
-            Profile profile = asset.profile();
+            AssetProfile profile = asset.profile();
             assertNotNull(profile);
             assertInstanceOf(LLMProfile.class, profile);
 
@@ -280,18 +281,12 @@ class DynamicExtensionLoaderTest
         }
     }
 
-    public record CustomTestAsset(String id) implements Asset
+    public record CustomTestAsset(String assetId) implements Asset
     {
         @Override
-        public String environmentId()
+        public AssetIdentity identity()
         {
-            return "env";
-        }
-
-        @Override
-        public String name()
-        {
-            return this.id;
+            return AssetIdentity.of(this.assetId, "env", this.assetId);
         }
 
         @Override
@@ -301,7 +296,7 @@ class DynamicExtensionLoaderTest
         }
 
         @Override
-        public Profile profile()
+        public AssetProfile profile()
         {
             return null;
         }
@@ -328,18 +323,12 @@ class DynamicExtensionLoaderTest
     {
     }
 
-    public record CustomLLMTestAsset(String id) implements Asset
+    public record CustomLLMTestAsset(String assetId) implements Asset
     {
         @Override
-        public String environmentId()
+        public AssetIdentity identity()
         {
-            return "env";
-        }
-
-        @Override
-        public String name()
-        {
-            return this.id;
+            return AssetIdentity.of(this.assetId, "env", this.assetId);
         }
 
         @Override
@@ -349,7 +338,7 @@ class DynamicExtensionLoaderTest
         }
 
         @Override
-        public Profile profile()
+        public AssetProfile profile()
         {
             return new CustomLLMTestProfile(LLMProvider.mistralai, "mistral-large", "FRA");
         }

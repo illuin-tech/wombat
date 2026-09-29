@@ -1,8 +1,8 @@
 package tech.illuin.wombat.ui.breakdown;
 
-import tech.illuin.wombat.core.asset.ActivityRegime;
-import tech.illuin.wombat.core.asset.AssetType;
-import tech.illuin.wombat.core.asset.ServiceFamily;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.evaluation.impact.commons.Amount;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.ClusterInfo;

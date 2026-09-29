@@ -81,6 +81,33 @@ class WombatStepMeterRegistryTest
         assertEquals(200L, captor.getValue().outputTokens);
     }
 
+    /**
+     * The identity columns are filled from tags, which is the only path it has through the aggregation window: the
+     * samples themselves are gone by publish time, only their grouped tags remain.
+     */
+    @Test
+    void publish_fillsTheIdentityColumnsFromTheGroupedTags()
+    {
+        this.recordCpu(100.0);
+        this.recordRam(1.0);
+        this.recordTokens(10.0);
+
+        this.closeWindow();
+
+        KubernetesMetricEntity kubernetesRow = this.captureKubernetesRow();
+        assertEquals("asset", kubernetesRow.assetId);
+        assertEquals("env", kubernetesRow.environmentId);
+        assertEquals("Asset", kubernetesRow.assetName);
+        assertEquals("tech.illuin.wombat-module.kubernetes-api", kubernetesRow.assetType);
+
+        ArgumentCaptor<LLMMetricEntity> captor = ArgumentCaptor.forClass(LLMMetricEntity.class);
+        verify(this.llmRepository).save(captor.capture());
+        assertEquals("asset", captor.getValue().assetId);
+        assertEquals("env", captor.getValue().environmentId);
+        assertEquals("Asset", captor.getValue().assetName);
+        assertEquals("tech.illuin.wombat-module.llm-prometheus", captor.getValue().assetType);
+    }
+
     @Test
     void publish_stampsTheRowWithTheStartOfTheWindowItSummarises()
     {
@@ -179,6 +206,8 @@ class WombatStepMeterRegistryTest
         return List.of(
             Tag.of(TAG_ENVIRONMENT, "env"),
             Tag.of(TAG_ASSET, "asset"),
+            Tag.of(TAG_ASSET_NAME, "Asset"),
+            Tag.of(TAG_ASSET_TYPE, "tech.illuin.wombat-module.kubernetes-api"),
             Tag.of(TAG_SERVICE, "api"),
             Tag.of(TAG_K8S_CLUSTER, "cluster"),
             Tag.of(TAG_K8S_NAMESPACE, "namespace"),
@@ -192,6 +221,8 @@ class WombatStepMeterRegistryTest
         return List.of(
             Tag.of(TAG_ENVIRONMENT, "env"),
             Tag.of(TAG_ASSET, "asset"),
+            Tag.of(TAG_ASSET_NAME, "Asset"),
+            Tag.of(TAG_ASSET_TYPE, "tech.illuin.wombat-module.llm-prometheus"),
             Tag.of(TAG_SERVICE, "mistral-large-latest"),
             Tag.of(TAG_LLM_MODEL, "mistral-large-latest")
         );

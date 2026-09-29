@@ -59,7 +59,12 @@ public class RepositoryContextProvider implements WombatContextProvider
     {
         if (asset instanceof UnrecognizedAsset unrecognized)
         {
-            logger.debug("Discarding unrecognized asset {} (type: {}) from active context for environment {}", unrecognized.id(), unrecognized.rawType(), unrecognized.environmentId());
+            logger.debug(
+                "Discarding unrecognized asset {} (type: {}) from active context for environment {}",
+                unrecognized.identity().id(),
+                unrecognized.rawType(),
+                unrecognized.identity().environmentId()
+            );
             return false;
         }
         return true;

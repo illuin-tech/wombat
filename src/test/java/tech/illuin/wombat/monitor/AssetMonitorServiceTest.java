@@ -2,6 +2,7 @@ package tech.illuin.wombat.monitor;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.Asset;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.context.ResolvedContext;
@@ -69,7 +70,7 @@ class AssetMonitorServiceTest
     {
         RecordingSource source = new RecordingSource();
         // No source registered at all, so nothing may be sampled however many heartbeats elapse.
-        try (AssetMonitor monitor = new AssetMonitor(contextOf(prometheus("orphan", 0)), metrics -> { }))
+        try (AssetMonitor monitor = new AssetMonitor(contextOf(prometheus("orphan", 0)), (asset, type, metrics) -> { }))
         {
             beat(monitor, 3);
         }
@@ -79,7 +80,7 @@ class AssetMonitorServiceTest
 
     private static AssetMonitor monitorFor(RecordingSource source, LLMPrometheusAsset... assets)
     {
-        AssetMonitor monitor = new AssetMonitor(contextOf(assets), metrics -> { });
+        AssetMonitor monitor = new AssetMonitor(contextOf(assets), (asset, type, metrics) -> { });
         // Sources are registered per asset-type, so any asset of that type wires the whole type.
         monitor.register(assets[0], source);
         return monitor;
@@ -98,7 +99,7 @@ class AssetMonitorServiceTest
 
     private static LLMPrometheusAsset prometheus(String id, int heartbeatSkip)
     {
-        return new LLMPrometheusAsset(id, "env", id, "http://prometheus", null, null, null, heartbeatSkip,
+        return new LLMPrometheusAsset(AssetIdentity.of(id, "env", id), "http://prometheus", null, null, null, heartbeatSkip,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA", new LLMPrometheusProfile.DynamicProfile("q")));
     }
 
@@ -109,7 +110,7 @@ class AssetMonitorServiceTest
 
         @Override
         public List<MetricData> source(Instant heartbeat, Asset asset) throws WombatSourceException {
-            this.calls.merge(asset.id(), 1, Integer::sum);
+            this.calls.merge(asset.identity().id(), 1, Integer::sum);
             return emptyList();
         }
     }

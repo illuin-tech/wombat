@@ -3,20 +3,19 @@ package tech.illuin.wombat.context.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import jakarta.validation.constraints.NotBlank;
-import tech.illuin.wombat.core.asset.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetType;
-import tech.illuin.wombat.core.asset.ServiceFamily;
-import tech.illuin.wombat.core.asset.profile.Profile;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 
 @RegisterForReflection
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record UnrecognizedAsset(
-    @NotBlank @JsonProperty("id") String id,
-    @NotBlank @JsonProperty("environment-id") String environmentId,
-    @NotBlank @JsonProperty("name") String name,
+    @JsonUnwrapped AssetIdentity identity,
     @JsonProperty("type") String rawType,
     @JsonIgnore String rawJson
 ) implements Asset
@@ -29,7 +28,7 @@ public record UnrecognizedAsset(
         ServiceFamily.UNKNOWN
     );
 
-    private static final Profile UNKNOWN_PROFILE = () -> "unknown";
+    private static final AssetProfile UNKNOWN_PROFILE = () -> "unknown";
 
     public UnrecognizedAsset
     {
@@ -44,7 +43,7 @@ public record UnrecognizedAsset(
     }
 
     @Override
-    public Profile profile()
+    public AssetProfile profile()
     {
         return UNKNOWN_PROFILE;
     }

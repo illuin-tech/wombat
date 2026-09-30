@@ -1,21 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>tech.illuin</groupId>
-        <artifactId>wombat-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
-    </parent>
-
-    <artifactId>wombat-app</artifactId>
+    <groupId>tech.illuin</groupId>
+    <artifactId>wombat</artifactId>
+    <version>${revision}</version>
     <packaging>quarkus</packaging>
 
+    <name>Wombat</name>
+    <description>Sustainability monitoring and reporting for digital services</description>
+    <url>https://github.com/illuin-tech/wombat</url>
+
+    <organization>
+        <name>Illuin Technology</name>
+        <url>https://www.illuin.tech</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <name>Pierre Lecerf</name>
+            <email>pierre.lecerf@illuin.tech</email>
+            <organization>Illuin Technology</organization>
+            <organizationUrl>https://www.illuin.tech</organizationUrl>
+        </developer>
+        <developer>
+            <name>Théo Malka</name>
+            <email>theo.malka@illuin.tech</email>
+            <organization>Illuin Technology</organization>
+            <organizationUrl>https://www.illuin.tech</organizationUrl>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>AGPLv3</name>
+            <url>https://github.com/illuin-tech/wombat/blob/main/LICENSE</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/illuin-tech/wombat/issues</url>
+    </issueManagement>
+
+    <scm>
+        <connection>scm:git:git://github.com/illuin-tech/wombat.git</connection>
+        <developerConnection>scm:git:ssh://github.com/illuin-tech/wombat.git</developerConnection>
+        <url>https://github.com/illuin-tech/wombat</url>
+    </scm>
+
     <properties>
+        <revision>1.0.0-SNAPSHOT</revision>
+        <wombat-core.version>1.0.0-SNAPSHOT</wombat-core.version>
         <maven.deploy.skip>true</maven.deploy.skip>
-        <maven.compiler.release>25</maven.compiler.release>
+        <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <java.version>25</java.version>
-        <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <skipITs>true</skipITs>
+        <!-- -->
+        <quarkus.platform.version>3.39.5</quarkus.platform.version>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+        <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+        <jdbc.sqlite.version>3.0.11</jdbc.sqlite.version>
+        <aws.sdk.version>2.55.8</aws.sdk.version>
+        <record-builder.version>53</record-builder.version>
+        <feign.version>13.15</feign.version>
+        <slf4j.version>2.0.20</slf4j.version>
+        <!-- Test deps -->
+        <junit-jupiter.version>6.1.3</junit-jupiter.version>
+        <logback.version>1.6.4</logback.version>
+        <surefire-plugin.version>3.6.0</surefire-plugin.version>
+        <junit4.version>4.13.2</junit4.version>
+        <jacoco.version>0.8.15</jacoco.version>
+        <checkstyle.version>14.3.0</checkstyle.version>
+        <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <!-- Maven deps -->
+        <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
+        <download-maven-plugin.version>1.13.0</download-maven-plugin.version>
+        <!-- UI deps -->
         <chartjs.version>4.4.0</chartjs.version>
         <easepick.version>1.2.1</easepick.version>
     </properties>
@@ -24,13 +89,13 @@
         <dependency>
             <groupId>tech.illuin</groupId>
             <artifactId>wombat-core</artifactId>
-            <version>${project.version}</version>
+            <version>${wombat-core.version}</version>
         </dependency>
 
         <dependency>
             <groupId>tech.illuin</groupId>
-            <artifactId>wombat-module</artifactId>
-            <version>${project.version}</version>
+            <artifactId>wombat-core-module</artifactId>
+            <version>${wombat-core.version}</version>
         </dependency>
 
         <dependency>
@@ -118,7 +183,6 @@
             <version>${feign.version}</version>
         </dependency>
 
-        <!-- Record Builder -->
         <dependency>
             <groupId>io.soabase.record-builder</groupId>
             <artifactId>record-builder-core</artifactId>
@@ -130,7 +194,6 @@
             <version>${record-builder.version}</version>
         </dependency>
 
-        <!-- Test dependencies -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit</artifactId>
@@ -211,31 +274,102 @@
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.platform.version}</version>
                 <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>generate-code</goal>
+                            <goal>generate-code-tests</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <jvmArgs>--enable-native-access=ALL-UNNAMED</jvmArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler-plugin.version}</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <parameters>true</parameters>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.soabase.record-builder</groupId>
+                            <artifactId>record-builder-processor</artifactId>
+                            <version>${record-builder.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
                 <configuration>
+                    <argLine>@{argLine} --enable-native-access=ALL-UNNAMED</argLine>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
                         <quarkus.profile>test</quarkus.profile>
-                        <backup.enabled>false</backup.enabled>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
+                    <argLine>@{argLine} --enable-native-access=ALL-UNNAMED</argLine>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                        <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven-checkstyle.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/jacoco-report</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>

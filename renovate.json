@@ -1,0 +1,37 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "group:monorepos",
+    "group:allNonMajor"
+  ],
+  "rangeStrategy": "update-lockfile",
+  "prConcurrentLimit": 20,
+  "prHourlyLimit": 10,
+  "rebaseWhen": "conflicted",
+  "hostRules": [
+    {
+      "matchHost": "europe-docker.pkg.dev",
+      "authType": "Basic"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "maven"
+      ],
+      "registryUrls": [
+        "https://nexus.illuin-tech.com/repository/maven-public/"
+      ]
+    },
+    {
+      "matchDatasources": [
+        "pypi"
+      ],
+      "registryUrls": [
+        "https://nexus.illuin-tech.com/repository/pypi_hosted/simple",
+        "https://pypi.org/pypi/"
+      ]
+    }
+  ]
+}

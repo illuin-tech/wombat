@@ -11,6 +11,7 @@ import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
+import tech.illuin.wombat.core.evaluation.impact.kubernetes.ClusterInfo;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedAsset;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedProfile;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedAsset;
@@ -19,6 +20,7 @@ import tech.illuin.wombat.module.llm_simulated.LLMSimulatedProfile;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
 
@@ -99,7 +101,10 @@ public record SimulationRequest(
                     this.range,
                     this.cpuUsage,
                     this.containerShares,
-                    emptyMap()
+                    this.containerShares.keySet().stream().collect(Collectors.toMap(
+                        container -> container,
+                        _ -> new ClusterInfo("simulated-cluster", "simulated-namespace")
+                    ))
                 );
             }
         }

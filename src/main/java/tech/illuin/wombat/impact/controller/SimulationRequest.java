@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyMap;
-
 public record SimulationRequest(
     @JsonProperty("assets") List<@Valid @NotNull SimulatedAsset> assets,
     @JsonProperty("scopes") Set<Scope> scopes

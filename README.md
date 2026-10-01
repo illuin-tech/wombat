@@ -12,11 +12,22 @@ To do that, we focused on a few key ideas:
 * a tool that **_doesn't reinvent the wheel_**, there are many people working on other challenging parts of the estimation process, so we built a modular system with integrations for calculation engines like Boavizta, Ecologits (and soon CLEER), we also expect to encounter situations where methodology has to be tweaked in one way or another: we built wombat with that in mind
 * a tool that tries to **_contextualize ecological impact_** with financial and business metrics: these combined metrics can help paint a complete picture of how much your AI stack costs; _most often_ a large LLM that is costly to use also has a large environmental footprint
 
-## How It Works
-
-Wombat is: 
+In short, Wombat is:
 * a Java app (this repository) deployable as [a docker container](https://hub.docker.com/r/illuin/wombat) directly, or on K8S through a [pulumi resource or helm chart](https://github.com/illuin-tech/wombat-k8s)
+  * the app exposes a [dashboard](#dashboard) and [HTTP endpoints](#http-api)
 * a Java SDK, [wombat-core](https://github.com/illuin-tech/wombat-core), for creating custom modules or directly integrating its core features into other systems
+
+## Dashboard
+
+The wombat dashboard is accessible at the root path and once running for some time should look something like this:
+
+![](doc/resources/wombat/screenshot.png)
+
+## HTTP API
+
+_TODO_
+
+## How It Works
 
 Wombat works by doing a few things:
 1. **Configuration**: the user provides a set of configurations that will define the scope of the activity to be measured: either through actual data-source connectors (eg. querying a K8S cluster's metrics API) or through declarative hypothesis
@@ -25,6 +36,52 @@ Wombat works by doing a few things:
 4. **Evaluation**: activity data is then submitted to a modular evaluation engine, which will return a standardized multi-criteria impact estimate
 
 _The big picture:_
+
+```mermaid
+flowchart LR
+    subgraph INFRA[Infra & Services]
+        direction LR
+        K8S[K8S\nNamespace & Pods]
+        LLM_SAAS[LLM SaaS]
+        LLM_GW[LLM Gateway]
+    end
+
+    AGGREGATE[Aggregate\nActivity Data]
+
+    subgraph EVALUATION[Evaluations]
+        direction TB
+        ENV_EVAL[Environmental Impact\nEvaluation]
+        FIN_EVAL[Financial Cost\nEvaluation]
+    end
+
+    DASHBOARD{{Dashboard}}
+    API{{HTTP API}}
+
+    %% Flows
+    K8S --> AGGREGATE
+    LLM_SAAS --> AGGREGATE
+    LLM_GW --> AGGREGATE
+
+    AGGREGATE ==> ENV_EVAL
+    AGGREGATE ==>|optional| FIN_EVAL
+
+    EVALUATION ==> DASHBOARD
+    EVALUATION ==> API
+
+    %% Styling Definitions
+    classDef samplingStyle fill:#e3f2fd88,stroke:#64b5f6,stroke-width:2px,color:#000
+    classDef activityStyle fill:#ffe0b288,stroke:#ff9800,stroke-width:2px,color:#000
+    classDef greenopsStyle fill:#e8f5e988,stroke:#81c784,stroke-width:2px,color:#000
+    classDef finopsStyle fill:#fff9c488,stroke:#fdd835,stroke-width:2px,color:#000
+
+    %% Apply Classes
+    class INFRA samplingStyle
+    class AGGREGATE activityStyle
+    class ENV_EVAL greenopsStyle
+    class FIN_EVAL finopsStyle
+```
+
+_In more details:_
 
 ```mermaid
 flowchart LR

@@ -32,7 +32,7 @@ metrics:
 ui:
   max-date-range:
     duration: 1
-    unit: MONTHS
+    unit: YEARS
 
 monitor:
   heartbeat: "*/10 * * * * ?"

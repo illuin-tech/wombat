@@ -12,3 +12,9 @@ pulumi/node_modules
 /data/
 /secrets/
 /extensions/
+
+.DS_Store
+
+.idea/
+*.iml
+.junie/

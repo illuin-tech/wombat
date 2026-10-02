@@ -1,6 +1,7 @@
 package tech.illuin.wombat.environment.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -139,22 +140,6 @@ class AssetInfoTest
     @Test
     void serializesDynamicModuleAssetTransparently() throws Exception
     {
-        record DynamicProfile(String id, String param) implements AssetProfile {}
-
-        @com.fasterxml.jackson.annotation.JsonTypeName("tech.illuin.custom")
-        record DynamicAsset(
-            @JsonUnwrapped AssetIdentity identity,
-            @JsonProperty("profile") DynamicProfile profile,
-            @JsonProperty("custom-field") String customField
-        ) implements Asset
-        {
-            @Override
-            public AssetType type()
-            {
-                return AssetType.of("tech.illuin", "custom", ActivityRegime.MEASURED, ServiceFamily.LLM);
-            }
-        }
-
         mapper.registerSubtypes(new NamedType(DynamicAsset.class, "tech.illuin.custom"));
 
         AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset(AssetIdentity.of("dyn1", "env", "Dynamic"), new DynamicProfile("prof-1", "test-val"), "custom-value")));
@@ -168,6 +153,22 @@ class AssetInfoTest
         assertEquals("prof-1", json.get("profile").get("id").asText());
         assertEquals("test-val", json.get("profile").get("param").asText());
         assertEquals("uuid", json.get("uuid").asText());
+    }
+
+    private record DynamicProfile(String id, String param) implements AssetProfile {}
+
+    @JsonTypeName("tech.illuin.custom")
+    private record DynamicAsset(
+        @JsonUnwrapped AssetIdentity identity,
+        @JsonProperty("profile") DynamicProfile profile,
+        @JsonProperty("custom-field") String customField
+    ) implements Asset
+    {
+        @Override
+        public AssetType type()
+        {
+            return AssetType.of("tech.illuin", "custom", ActivityRegime.MEASURED, ServiceFamily.LLM);
+        }
     }
 
     @Test

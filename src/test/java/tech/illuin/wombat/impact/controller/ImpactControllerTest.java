@@ -78,7 +78,7 @@ class ImpactControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/impact")
+            .when().post("/api/impact")
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
@@ -101,7 +101,7 @@ class ImpactControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/impact")
+            .when().post("/api/impact")
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
@@ -120,7 +120,7 @@ class ImpactControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/impact")
+            .when().post("/api/impact")
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
@@ -144,7 +144,7 @@ class ImpactControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/impact")
+            .when().post("/api/impact")
             .then()
             .statusCode(400);
     }
@@ -161,7 +161,7 @@ class ImpactControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/impact")
+            .when().post("/api/impact")
             .then()
             .statusCode(400);
     }
@@ -170,7 +170,7 @@ class ImpactControllerTest
     void getEnvironments_listsConfiguredEnvironments()
     {
         given()
-            .when().get("/impact/environments")
+            .when().get("/api/impact/environments")
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
@@ -184,7 +184,7 @@ class ImpactControllerTest
     void getAssets_returnsAssetSummariesOfEnvironment()
     {
         given()
-            .when().get("/impact/environments/test/assets")
+            .when().get("/api/impact/environments/test/assets")
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
@@ -196,7 +196,7 @@ class ImpactControllerTest
     void getAssets_unknownEnvironment_returns404()
     {
         given()
-            .when().get("/impact/environments/unknown-env/assets")
+            .when().get("/api/impact/environments/unknown-env/assets")
             .then()
             .statusCode(404);
     }

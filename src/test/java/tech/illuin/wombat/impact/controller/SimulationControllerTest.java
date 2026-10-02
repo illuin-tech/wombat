@@ -84,7 +84,7 @@ class SimulationControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
@@ -104,7 +104,7 @@ class SimulationControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
@@ -121,7 +121,7 @@ class SimulationControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
@@ -135,7 +135,7 @@ class SimulationControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
@@ -150,7 +150,7 @@ class SimulationControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
@@ -164,14 +164,14 @@ class SimulationControllerTest
     {
         given()
             .contentType("application/json").body("{}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(0));
 
         given()
             .contentType("application/json").body("{\"assets\": []}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(200)
             .body("payload.size()", is(0));
@@ -206,14 +206,14 @@ class SimulationControllerTest
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmNoActivity + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesNoActivity + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
     }
@@ -249,14 +249,14 @@ class SimulationControllerTest
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmNullActivity + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesNullActivity + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
     }
@@ -267,7 +267,7 @@ class SimulationControllerTest
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [null]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
     }
@@ -317,14 +317,14 @@ class SimulationControllerTest
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesNullContainerShares + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesMissingContainerShares + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
     }
@@ -403,28 +403,28 @@ class SimulationControllerTest
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmNullRange + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmMissingRange + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesNullRange + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesMissingRange + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
     }
@@ -514,28 +514,28 @@ class SimulationControllerTest
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmNullStart + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmNullEnd + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + llmStartEqualsEnd + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
 
         given()
             .contentType("application/json")
             .body("{\"scopes\": [\"IMPACT\"], \"assets\": [" + kubernetesStartAfterEnd + "]}")
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(400);
     }
@@ -549,7 +549,7 @@ class SimulationControllerTest
 
         given()
             .contentType("application/json").body(body)
-            .when().post("/simulation")
+            .when().post("/api/simulation")
             .then()
             .statusCode(500);
     }

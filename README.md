@@ -19,18 +19,24 @@ In short, Wombat is:
 
 ## Dashboard
 
-The wombat dashboard is accessible at the root path and once running for some time should look something like this:
+The Wombat dashboard is accessible at the root path and after running for some time should look something like this:
 
 ![](doc/resources/wombat/screenshot.png)
 
 ## HTTP API
 
-_TODO_
+Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI and API so as to enable integration with other tools.
+
+Currently, there are two API hubs:
+* `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
+* `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary
+
+*Documentation is coming soon™*
 
 ## How It Works
 
 Wombat works by doing a few things:
-1. **Configuration**: the user provides a set of configurations that will define the scope of the activity to be measured: either through actual data-source connectors (eg. querying a K8S cluster's metrics API) or through declarative hypothesis
+1. **Configuration**: the user provides a set of configurations that will define the scope of the activity to be measured: either through actual data-source connectors (e.g. querying a K8S cluster's metrics API) or through declarative hypothesis
 2. **Activity sourcing**: for each of these configurations, if needed, wombat will orchestrate the activation of sources and compile activity metrics into a database
 3. **Activity resolving**: when an estimation is requested, it will gather observed and modeled activity metrics for a given time period
 4. **Evaluation**: activity data is then submitted to a modular evaluation engine, which will return a standardized multi-criteria impact estimate
@@ -81,6 +87,12 @@ flowchart LR
     class FIN_EVAL finopsStyle
 ```
 
+Each compartment of the engine is modular so as to be extensible. So you can add new ways to:
+
+* source activity data: either for other OSS projects (for which we'll work on expanding in the [core modules](https://github.com/illuin-tech/wombat-core#core-modules) or your own custom-made platform
+* estimate activity: this can be done for simulation purposes but also if you need to source data without persisting it into wombat (e.g. this can be a custom DB or API call)
+* estimate environmental (or cost) impact: we'll try to have all the main OSS calculators in the core modules, but you can also have your own custom one
+
 _In more details:_
 
 ```mermaid
@@ -99,7 +111,7 @@ flowchart LR
             SOURCE_K8S_API[K8S API]
             SOURCE_LLM_PROMETHEUS[Prometheus\nMetrics]
             SOURCE_K8S_SCAPHANDRE[WIP: Scaphandre]
-            SOURCE_LLM_LITELLM[WIP: LiteLLM]
+            SOURCE_LLM_LITELLM[WIP: OpenRouter]
             SOURCE_OTHERS[Others..]
 
             SOURCE_ORCHESTRATOR-->SOURCE_K8S_API
@@ -171,6 +183,10 @@ flowchart LR
     class FINOPS_RESULT finopsStyle
 ```
 
+## Documentation
+
+*Documentation is coming soon™*
+
 ## How to run
 
 With docker, you can run it as a container like this:
@@ -214,21 +230,24 @@ environments:
   production:
     id: production
     assets:
+      # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container. 
       - type: tech.illuin.wombat-module.kubernetes-api
         id: prod-cluster
         environment-id: production
-        name: Production Kubernetes Cluster
-        namespace: default
+        name: Production Cluster
+        namespace: my-project-namespace
         config-path: /path/to/kubeconfig
         profile:
           provider: aws
           instance-type: c5.xlarge
           location: FRA
           lifespan: 43800
+      # This type works with a request yearly estimate and will prorate it dynamically. 
+      # This is the bare minimum available in some situations.
       - type: tech.illuin.wombat-module.llm-static
         id: prod-llm
         environment-id: production
-        name: Production LLM Service
+        name: LLM Services
         profile:
           models:
             - provider: mistralai
@@ -236,7 +255,13 @@ environments:
               location: FRA
               request-profile:
                 output-token-count: 500
-                request-per-year: 1000000
+                request-per-year: 500000
+            - provider: openai
+              model: mistral-large-latest
+              location: SWE
+              request-profile:
+                output-token-count: 150
+                request-per-year: 8000000
 ```
 
 ### Running in dev mode

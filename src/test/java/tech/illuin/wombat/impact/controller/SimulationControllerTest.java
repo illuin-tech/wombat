@@ -41,11 +41,7 @@ class SimulationControllerTest
           "profile": {
             "provider": "mistralai",
             "model": "mistral-large-latest",
-            "location": "FRA",
-            "request-profile": {
-              "output-token-count": 500,
-              "request-per-year": 1000000
-            }
+            "location": "FRA"
           }
         }
         """;
@@ -190,11 +186,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               }
             }
             """;
@@ -235,11 +227,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               },
               "activity": null
             }
@@ -350,11 +338,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               },
               "activity": {
                 "range": null,
@@ -370,11 +354,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               },
               "activity": {
                 "outputTokenCount": 500,
@@ -458,11 +438,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               },
               "activity": {
                 "range": {
@@ -481,11 +457,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               },
               "activity": {
                 "range": {
@@ -504,11 +476,7 @@ class SimulationControllerTest
               "profile": {
                 "provider": "mistralai",
                 "model": "mistral-large-latest",
-                "location": "FRA",
-                "request-profile": {
-                  "output-token-count": 500,
-                  "request-per-year": 1000000
-                }
+                "location": "FRA"
               },
               "activity": {
                 "range": {

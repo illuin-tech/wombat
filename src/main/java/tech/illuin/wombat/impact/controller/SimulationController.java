@@ -15,7 +15,7 @@ import java.util.List;
 import static tech.illuin.wombat.impact.controller.SimulationRequest.Scope.COST;
 import static tech.illuin.wombat.impact.controller.SimulationRequest.Scope.IMPACT;
 
-@Path("simulation")
+@Path("api/simulation")
 public class SimulationController
 {
     private final AssetEvaluator evaluator;

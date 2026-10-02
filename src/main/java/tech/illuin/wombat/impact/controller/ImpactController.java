@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Path("impact")
+@Path("api/impact")
 public class ImpactController
 {
     private final AssetEvaluator assetEvaluator;

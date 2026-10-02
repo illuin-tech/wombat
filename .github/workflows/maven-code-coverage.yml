@@ -24,9 +24,8 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
-          cache: 'maven'
       - name: Test with Maven
-        run: mvn clean test jacoco:report
+        run: mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install jacoco:report -Dgpg.skip=true
       - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

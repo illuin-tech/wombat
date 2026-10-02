@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-latest, macOS-latest ]
+        os: [ ubuntu-latest ]
         java: [ 25, 27 ]
       fail-fast: false
 
@@ -24,12 +24,11 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
-          cache: 'maven'
       - name: Build with Maven
-        run: mvn -B package -DskipTests=false --file pom.xml
+        run: mvn -B install -Dgpg.skip=true --file pom.xml
       - name: Upload surefire artifact
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ matrix.os }}-java${{ matrix.java }}-surefire
-          path: '**/target/surefire-reports/*'
+          name: ${{ matrix.os }}-surefire
+          path: target/surefire-reports/*

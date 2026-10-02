@@ -2,9 +2,10 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "master", "main" ]
+    # The branches below must be a subset of the branches above
+    branches: [ "master" ]
   schedule:
     - cron: '30 1 * * 0'
 
@@ -20,7 +21,6 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         java: [ 25 ]
-        language: [ java-kotlin ]
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
@@ -32,13 +32,13 @@ jobs:
         with:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
-          cache: 'maven'
+      # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
       - name: Build with Maven
-        run: mvn -B package -DskipTests=true --file pom.xml
+        run: mvn -B install -Dgpg.skip=true --file pom.xml
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:

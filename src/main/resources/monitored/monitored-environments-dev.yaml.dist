@@ -13,7 +13,6 @@ environments:
         heartbeat-skip: 1
         resolvers:
           cost: random
-        # Impact profile (formerly a shared profile referenced by profile-id), now inlined per asset.
         profile:
           provider: aws
           instance-type: c5a.4xlarge
@@ -32,21 +31,21 @@ environments:
               location: FRA
               request-profile:
                 output-token-count: 500
-                request-per-year: 1000000000
-      - type: tech.illuin.wombat-module.llm-prometheus
-        id: my-served-llm
-        environment-id: preprod
-        name: My served LLM (preprod)
-        prometheus-url: http://prometheus.my-namespace:9090/
-        heartbeat-skip: 10
-        # Basic auth is optional. `password-key` names the environment variable holding the password — never the
-        # password itself, which would end up in the assets table and in the config-history snapshots. The app
-        # refuses to start when a declared variable is unset or empty (see RequiredSecretsCheck).
-        username: prometheus
-        password-key: WOMBAT_PROMETHEUS_PASSWORD
-        profile:
-          provider: mistralai
-          model: mistral-large-latest
-          location: FRA
-          dynamic-profile:
-            query: 'sum(increase(generation_tokens_total{model_name="mistral-large-latest"}[10s]))'
+                request-per-year: 1000000
+#      - type: tech.illuin.wombat-module.llm-prometheus
+#        id: my-served-llm
+#        environment-id: preprod
+#        name: My served LLM (preprod)
+#        prometheus-url: http://prometheus.my-namespace:9090/
+#        heartbeat-skip: 10
+#        # Basic auth is optional. `password-key` names the environment variable holding the password — never the
+#        # password itself, which would end up in the assets table and in the config-history snapshots. The app
+#        # refuses to start when a declared variable is unset or empty (see RequiredSecretsCheck).
+#        username: prometheus
+#        password-key: WOMBAT_PROMETHEUS_PASSWORD
+#        profile:
+#          provider: mistralai
+#          model: mistral-large-latest
+#          location: FRA
+#          dynamic-profile:
+#            query: 'sum(increase(generation_tokens_total{model_name="mistral-large-latest"}[10s]))'

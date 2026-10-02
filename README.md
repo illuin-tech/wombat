@@ -1,7 +1,7 @@
 # Wombat Carbon Tracker <img src="doc/resources/wombat/medium-mask.png" align="top" height="40"/>
 
 [![Build](https://github.com/illuin-tech/wombat/actions/workflows/maven-build.yml/badge.svg?branch=master)](https://github.com/illuin-tech/wombat/actions/workflows/maven-build.yml)
-[![Docker Image Version](https://img.shields.io/docker/v/illuin/wombat)](https://hub.docker.com/r/illuin/wombat)
+[![Docker Image Version](https://img.shields.io/docker/v/illuin/wombat?label=docker)](https://hub.docker.com/r/illuin/wombat)
 [![codecov](https://codecov.io/gh/illuin-tech/wombat/graph/badge.svg?token=T141JE2VMY)](https://codecov.io/gh/illuin-tech/wombat-core)
 ![GitHub](https://img.shields.io/github/license/illuin-tech/wombat)
 

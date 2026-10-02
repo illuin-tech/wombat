@@ -24,7 +24,7 @@ quarkus:
   datasource:
     db-kind: sqlite
     jdbc:
-      url: "jdbc:sqlite:./../data/db/local.db"
+      url: "jdbc:sqlite:./data/db/local.db"
       min-size: 0
   hibernate-orm:
     schema-management:
@@ -70,7 +70,7 @@ persistence:
   enable-kubernetes-metrics-persister: true
 
 backup:
-  enabled: true
+  enabled: false
   cron: "0 0 2 * * ?"
   cleanup:
     enabled: true

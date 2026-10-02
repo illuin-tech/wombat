@@ -1,10 +1,5 @@
 # Wombat Carbon Tracker
 
-[![Build](https://github.com/illuin-tech/wombat/actions/workflows/maven-build.yml/badge.svg?branch=master)](https://github.com/illuin-tech/wombat/actions/workflows/maven-build.yml)
-[![Docker Image Version](https://img.shields.io/docker/v/illuin/wombat)](https://hub.docker.com/r/illuin/wombat)
-[![codecov](https://codecov.io/gh/illuin-tech/wombat/graph/badge.svg?token=T141JE2VMY)](https://codecov.io/gh/illuin-tech/wombat-core)
-![GitHub](https://img.shields.io/github/license/illuin-tech/wombat)
-
 Wombat is a multi-criteria environmental impact tracker for digital and AI services.
 
 Its goal is to streamline the use of astounding work being done by others on environmental footprint calculators, methodology and referential data (namely works from [Boavizta](https://boavizta.org/en), [SustainableAIGroup](https://reports.sustainableaigroup.com/CLEER-Tech-Report/), [Ecologits](https://ecologits.ai)..) and use it where it has the biggest impact:

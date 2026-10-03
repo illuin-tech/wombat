@@ -21,54 +21,92 @@ More complete documentation can be found [over at GitHub](https://github.com/ill
 
 ## How to run
 
-With docker, you can run it as a container like this:
+Here is a sample docker-compose local setup for:
 
-```bash
-docker run -p 8080:8080 illuin/wombat
-```
+* Wombat app
+* local boavizta & ecologits APIs
+* temporary sqlite + periodic S3 backup (this is a demo ; on a local setup you would rather swap that out for an sqlite db file written to a docker volume and do away with the backup)
 
-### Running with custom configuration
-
-You can override the default configuration and supply your monitored environments by mounting local YAML files into the container:
-
-```bash
-docker run -p 8080:8080 \
-  -v $(pwd)/application.yaml:/deployments/config/application.yaml:ro \
-  -v $(pwd)/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro \
-  illuin/wombat
-```
-
-#### Sample `application.yaml` override
-
-Here is an example overriding the connectors to point to local service containers (e.g. running Boavizta and EcoLogits locally) and disabling S3 backups:
 
 ```yaml
-connector:
-  boavizta:
-    uri: "http://host.docker.internal:5001/v1/"
-  ecologits:
-    uri: "http://host.docker.internal:5002/"
+services:
+  wombat:
+    image: illuin/wombat:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application.yaml:/deployments/config/application.yaml:ro
+      - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
+      - ./k8s:/deployments/monitored/k8s:ro
 
-backup:
-  enabled: false
+  boavizta:
+    image: ghcr.io/boavizta/boaviztapi:2.4.1
+
+  ecologits:
+    image: ghcr.io/mlco2/ecologits-api:0.0.2
+
+  seaweedfs:
+    image: chrislusf/seaweedfs
+    command: mini -dir=/data
+    ports:
+      - "8333:8333"   # S3 endpoint
+      - "8888:8888"   # Filer UI
+      - "9333:9333"   # Master
+      - "23646:23646" # Admin UI
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: secret
+      S3_BUCKET: wombat-bucket
+    volumes:
+      - seaweedfs-data:/data
+
+volumes:
+  seaweedfs-data:
 ```
 
-#### Sample `monitored-environments.yaml`
+With the following `application.yaml` file:
 
-Here is a minimal environment configuration tracking a Kubernetes cluster and an LLM service:
+```yaml
+quarkus:
+  datasource:
+    jdbc:
+      url: "jdbc:sqlite:/tmp/local.db" # if you disable the backup below, you can use a volume or local file instead, and remove seaweedfs from your compose file
+
+connector:
+  boavizta:
+    uri: "http://boavizta:5000/v1/"
+  ecologits:
+    uri: "http://ecologits:80/"
+
+backup:
+  enabled: true
+  cron: "0 */10 * * * ?"  # every 10 minutes
+  cleanup:
+    cron: "0 */10 * * * ?"  # every 10 minutes
+    retain-last: 10
+  s3:
+    key-prefix: sqlite/local/
+    endpoint: http://seaweedfs:8333
+    region: "eu-west-1"
+    bucket: wombat-bucket
+    access-key: admin
+    secret-key: secret
+```
+
+And the following `monitored-environments.yaml` file:
 
 ```yaml
 environments:
-  production:
-    id: production
+  demo:
+    id: demo
     assets:
       # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container. 
       - type: tech.illuin.wombat-module.kubernetes-api
         id: prod-cluster
-        environment-id: production
-        name: Production Cluster
+        environment-id: demo
+        name: Demo Cluster
         namespace: my-project-namespace
-        config-path: /path/to/kubeconfig
+        config-path: /deployments/monitored/k8s/my-kube.config
         profile:
           provider: aws
           instance-type: c5.xlarge
@@ -77,8 +115,8 @@ environments:
       # This type works with a request yearly estimate and will prorate it dynamically. 
       # This is the bare minimum available in some situations.
       - type: tech.illuin.wombat-module.llm-static
-        id: prod-llm
-        environment-id: production
+        id: demo-llm
+        environment-id: demo
         name: LLM Services
         profile:
           models:
@@ -95,6 +133,8 @@ environments:
                 output-token-count: 150
                 request-per-year: 8000000
 ```
+
+And a valid kubeconfig in `k8s/`, in the configuration above we've named it `my-kube.config`.
 
 ### Custom Extensions
 

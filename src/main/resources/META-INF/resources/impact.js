@@ -487,7 +487,7 @@ document.getElementById('filterForm').addEventListener('submit', function(e) {
 
   function open(block) {
     var detail = block.querySelector('.asset-detail');
-    var name   = block.querySelector('.asset-name');
+    var name   = block.querySelector('.asset-id');
     titleEl.textContent = name ? name.textContent : '';
     body.innerHTML = detail ? detail.innerHTML : '';
     overlay.hidden = false;

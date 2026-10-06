@@ -4,18 +4,30 @@
   <meta charset="UTF-8"/>
   <meta id="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Impact Report</title>
-  <link rel="icon" type="image/png" href="/wombat-medium-mask.png"/>
-  <link rel="stylesheet" href="/vendor/dmsans.css"/>
-  <link rel="stylesheet" href="/impact.css"/>
-  <script src="/impactUtils.js"></script>
+  <link rel="icon" type="image/png" href="/public/icons/wombat-medium-mask.png"/>
+  <link rel="stylesheet" href="/public/dmsans.css"/>
+  <link rel="stylesheet" href="/public/impact.css"/>
+  <script src="/public/impactUtils.js"></script>
   {#insert headScripts /}
 </head>
 <body>
 
 <div class="header">
-  <img src="/wombat-large-mask.png" alt="Wombat" class="header-logo"/>
+  <img src="/public/icons/wombat-large-mask.png" alt="Wombat" class="header-logo"/>
   <h1>Wombat &mdash; <span>Environmental Impact</span></h1>
   {#insert headerExtra /}
+  {#if inject:currentUser.authenticated}
+  <div class="header-user">
+    <span class="header-user-name" title="{inject:currentUser.name}">{inject:currentUser.name}</span>
+    <a class="header-logout" href="/logout" title="Sign out" aria-label="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <path d="M16 17l5-5-5-5"/>
+        <path d="M21 12H9"/>
+      </svg>
+    </a>
+  </div>
+  {/if}
   <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">
     <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="4"/>

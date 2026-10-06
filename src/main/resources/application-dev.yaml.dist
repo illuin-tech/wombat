@@ -17,6 +17,32 @@ connector:
 monitor:
   environments-file: monitored/monitored-environments-dev.yaml
 
+# quarkus:
+#   oidc:
+#     tenant-enabled: true
+#     auth-server-url: https://accounts.google.com
+#     application-type: hybrid
+#     client-id: <client-id>.apps.googleusercontent.com
+#     credentials:
+#       secret: <client-secret>
+#     authentication:
+#       scopes:
+#         - email
+#         - profile
+#       user-info-required: true
+#       redirect-path: /auth/callback
+#       restore-path-after-redirect: true
+#       extra-params:
+#         prompt: select_account
+#   http:
+#     auth:
+#       permission:
+#         dev-ui:
+#           policy: permit
+#           paths:
+#             - /q/dev/*
+#             - /q/dev-ui/*
+
 # Local S3 Backup setup (e.g. SeaweedFS service)
 backup:
   enabled: true

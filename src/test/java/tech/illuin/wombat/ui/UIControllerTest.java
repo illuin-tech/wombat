@@ -80,6 +80,18 @@ class UIControllerTest
             .body(not(containsString("unrecognizedAssetsTrigger")));
     }
 
+    /** With security disabled there is nobody to name, so the header carries no signed-in indicator. */
+    @Test
+    void get_withSecurityDisabled_rendersNoUserIndicator()
+    {
+        given()
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .body(not(containsString("header-user")))
+            .body(not(containsString("href=\"/logout\"")));
+    }
+
     @Test
     void get_withUnrecognizedAssets_rendersWarningIconAndModal()
     {
@@ -270,5 +282,70 @@ class UIControllerTest
             .statusCode(200)
             .body(containsString("data-from-utc=\"2026-06-04T00:00:00Z\""))
             .body(containsString("data-to-utc=\"2026-06-11T00:00:00Z\""));
+    }
+
+    @Test
+    void get_legacyUiPath_redirectsToDashboard()
+    {
+        given()
+            .redirects().follow(false)
+            .when().get("/ui")
+            .then()
+            .statusCode(302)
+            .header("Location", "/");
+    }
+
+    @Test
+    void get_legacyUiPathWithQuery_keepsTheQueryString()
+    {
+        given()
+            .redirects().follow(false)
+            .when().get("/ui?services=test-cluster&environment=test")
+            .then()
+            .statusCode(302)
+            .header("Location", "/?services=test-cluster&environment=test");
+    }
+
+    @Test
+    void get_unknownPage_redirectsToDashboard()
+    {
+        given()
+            .redirects().follow(false)
+            .when().get("/does-not-exist")
+            .then()
+            .statusCode(302)
+            .header("Location", "/");
+    }
+
+    @Test
+    void get_staticAssetsAndApi_areNotRedirected()
+    {
+        given()
+            .redirects().follow(false)
+            .when().get("/public/impact.css")
+            .then()
+            .statusCode(200);
+
+        given()
+            .redirects().follow(false)
+            .when().get("/environments")
+            .then()
+            .statusCode(200);
+
+        given()
+            .redirects().follow(false)
+            .when().get("/q/metrics")
+            .then()
+            .statusCode(200);
+    }
+
+    @Test
+    void post_unknownPath_isNotRedirected()
+    {
+        given()
+            .redirects().follow(false)
+            .when().post("/does-not-exist")
+            .then()
+            .statusCode(404);
     }
 }

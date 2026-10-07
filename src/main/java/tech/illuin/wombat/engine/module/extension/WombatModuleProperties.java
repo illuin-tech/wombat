@@ -18,6 +18,9 @@ public interface WombatModuleProperties
     @WithName("llm-anthropic")
     LlmAnthropicProperties llmAnthropic();
 
+    @WithName("llm-google")
+    LlmGoogleProperties llmGoogle();
+
     @WithName("extension")
     ExtensionProperties extension();
 
@@ -34,6 +37,12 @@ public interface WombatModuleProperties
     }
 
     interface LlmAnthropicProperties
+    {
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface LlmGoogleProperties
     {
         @WithDefault("true")
         boolean enabled();

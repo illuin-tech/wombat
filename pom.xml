@@ -51,7 +51,8 @@
 
     <properties>
         <revision>0.0.0-SNAPSHOT</revision>
-        <wombat-core.version>0.17.0</wombat-core.version>
+        <!-- TODO : Update once google module is integrated in wombat-core-->
+        <wombat-core.version>0.14.0-google-SNAPSHOT</wombat-core.version>
         <maven.deploy.skip>true</maven.deploy.skip>
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <java.version>25</java.version>

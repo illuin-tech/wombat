@@ -5,6 +5,7 @@ import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
 import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
+import tech.illuin.wombat.module.llm_google.LLMGoogleModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -37,6 +38,8 @@ public class CoreExtensionLoader implements ExtensionLoader
             modules.add(new KubernetesAPIModule());
         if (this.properties.llmAnthropic().enabled())
             modules.add(new LLMAnthropicModule());
+        if (this.properties.llmGoogle().enabled())
+            modules.add(new LLMGoogleModule());
 
         return modules;
     }

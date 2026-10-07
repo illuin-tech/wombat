@@ -49,3 +49,25 @@ environments:
 #          location: FRA
 #          dynamic-profile:
 #            query: 'sum(increase(generation_tokens_total{model_name="mistral-large-latest"}[10s]))'
+#      - type: tech.illuin.wombat-module.llm-google
+#        id: my-gemini-llm
+#        environment-id: preprod
+#        name: My Gemini LLM (preprod)
+#        google-url: https://monitoring.googleapis.com
+#        project-id: my-gcp-project-id
+#        heartbeat-skip: 1
+#        # Authentication is optional. Without it, Application Default Credentials are used. `credentials-key` names
+#        # the environment variable holding the service-account key JSON. The service account needs the
+#        # `roles/monitoring.viewer` role.
+#        credentials-key: WOMBAT_GOOGLE_CREDENTIALS
+#        profile:
+#          provider: google_genai
+#          model: gemini-2.5-flash
+#          location: USA
+#          dynamic-profile:
+#            filter: >-
+#              metric.type="aiplatform.googleapis.com/publisher/online_serving/token_count"
+#              AND metric.labels.type="output"
+#              AND resource.labels.model_user_id="gemini-2.5-flash"
+#            # Optional, ISO-8601, defaults to PT1M. Keep it equal to the sampling period.
+#            window: PT1M

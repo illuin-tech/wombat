@@ -324,8 +324,7 @@ This will require you to have a functional Java 25+ JDK installed on your machin
 Wombat allows user to provide custom modules built with `wombat-core` (see [repository](https://github.com/illuin-tech/wombat-core)) to extend its functionality.
 
 Custom modules (e.g. `wombat-simulator`) are loaded **_at startup_** from every JAR found in `module.extension.path`
-(defaults to `extensions`, relative to the working directory, i.e. `app/extensions` when running from `app/`). Override it
-with `-Dmodule.extension.path=...` or `MODULE_EXTENSION_PATH=...`.
+(defaults to `extensions`, relative to the working directory). Override it with `-Dmodule.extension.path=...` or `MODULE_EXTENSION_PATH=...`.
 
 When starting up the app with a custom extension, you should see logs like these:
 

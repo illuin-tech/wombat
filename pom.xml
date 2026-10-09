@@ -66,7 +66,7 @@
         <jdbc.sqlite.version>3.0.11</jdbc.sqlite.version>
         <aws.sdk.version>2.55.8</aws.sdk.version>
         <record-builder.version>53</record-builder.version>
-        <feign.version>13.15</feign.version>
+        <feign.version>13.16</feign.version>
         <slf4j.version>2.0.20</slf4j.version>
         <!-- Test deps -->
         <junit-jupiter.version>6.1.3</junit-jupiter.version>

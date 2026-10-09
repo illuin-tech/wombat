@@ -64,7 +64,7 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <jdbc.sqlite.version>3.0.11</jdbc.sqlite.version>
-        <aws.sdk.version>2.55.8</aws.sdk.version>
+        <aws.sdk.version>2.55.11</aws.sdk.version>
         <record-builder.version>53</record-builder.version>
         <feign.version>13.15</feign.version>
         <slf4j.version>2.0.20</slf4j.version>

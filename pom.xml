@@ -60,7 +60,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <skipITs>true</skipITs>
         <!-- -->
-        <quarkus.platform.version>3.39.5</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1</quarkus.platform.version>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <jdbc.sqlite.version>3.0.11</jdbc.sqlite.version>

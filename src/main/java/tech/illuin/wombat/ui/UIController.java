@@ -1,6 +1,5 @@
 package tech.illuin.wombat.ui;
 
-import io.quarkus.qute.TemplateInstance;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
@@ -39,20 +38,22 @@ public class UIController
     private final WombatContextProvider contextProvider;
     private final UIProperties uiProperties;
     private final AssetRepository assetRepository;
+    private final TemplateRenderer renderer;
 
     private static final int DEFAULT_RANGE_MONTHS = 3;
     private static final Logger logger = LoggerFactory.getLogger(UIController.class);
 
-    public UIController(AssetEvaluator assetEvaluator, WombatContextProvider contextProvider, UIProperties uiProperties, AssetRepository assetRepository)
+    public UIController(AssetEvaluator assetEvaluator, WombatContextProvider contextProvider, UIProperties uiProperties, AssetRepository assetRepository, TemplateRenderer renderer)
     {
         this.assetEvaluator = assetEvaluator;
         this.contextProvider = contextProvider;
         this.uiProperties = uiProperties;
         this.assetRepository = assetRepository;
+        this.renderer = renderer;
     }
 
     @GET @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance get(
+    public String get(
         @QueryParam("from") String from,
         @QueryParam("to") String to,
         @QueryParam("services") List<String> servicesParam,
@@ -120,11 +121,11 @@ public class UIController
 
             Templates.AssetSelection assetSelection = new Templates.AssetSelection(environmentAssets, effectiveAssetIds);
             Templates.EnvironmentSelection environmentSelection = new Templates.EnvironmentSelection(environmentViews, selectedEnvironmentId);
-            return Templates.impact(environmentImpact, assetSelection, environmentSelection, this.maxSpan(), timeline);
+            return this.renderer.impact(environmentImpact, assetSelection, environmentSelection, this.maxSpan(), timeline);
         }
         catch (WombatEvaluationException e) {
             logger.warn("Failed to evaluate environment {}", environment, e);
-            return Templates.impactError(this.computeTimeRange(from, to), this.maxSpan());
+            return this.renderer.impactError(this.computeTimeRange(from, to), this.maxSpan());
         }
     }
 

@@ -1,0 +1,41 @@
+<!-- GWP shares + assets tracked -->
+  <div class="overview-row">
+    <div data-vue-chart="shares" data-title="GWP shares"></div>
+    <div class="kpi-card yellow">
+      {% if env.unrecognizedAssets | length > 0 %}
+      <button type="button" class="recap-warning-btn" id="unrecognizedAssetsTrigger" data-modal-target="unrecognizedAssetsModal" title="Unrecognized assets detected" aria-label="Unrecognized assets detected">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <path d="M8 1L15.5 14H0.5L8 1Z" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-linejoin="round"/>
+          <path d="M8 5.5V9.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="8" cy="11.75" r="0.75" fill="#ffffff"/>
+        </svg>
+      </button>
+      {% endif %}
+      <div class="stat-row">
+        <div class="stat">
+          <div class="kpi-label">Assets</div>
+          <div class="kpi-value green">{{ env.assetCount }}</div>
+        </div>
+        <div class="stat">
+          <div class="kpi-label">Services tracked</div>
+          <div class="kpi-value yellow">{{ env.serviceCount }}</div>
+        </div>
+        <div class="stat">
+          <div class="kpi-label"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>Docker services</div>
+          <div class="kpi-value blue">{{ env.dockerServiceCount }}</div>
+        </div>
+        <div class="stat">
+          <div class="kpi-label"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM services</div>
+          <div class="kpi-value purple">{{ env.llmServiceCount }}</div>
+        </div>
+      </div>
+      <div class="asset-breakdown">
+{% for panel in env.kubernetesPanels %}
+{% include "components/_asset-panel" with {"panel": panel, "family": "kubernetes", "icon": "docker", "modalId": "kubernetes-" ~ loop.index, "detailsTemplate": "pages/impact/partials/_kubernetes-details"} %}
+{% endfor %}
+{% for panel in env.llmPanels %}
+{% include "components/_asset-panel" with {"panel": panel, "family": "llm", "icon": "llm", "modalId": "llm-" ~ loop.index, "detailsTemplate": "pages/impact/partials/_llm-details"} %}
+{% endfor %}
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,1 @@
+<div data-vue-chart="{{ metric }}" data-color="{{ color }}" data-title="{{ title }}"></div>

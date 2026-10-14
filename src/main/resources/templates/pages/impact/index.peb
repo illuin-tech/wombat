@@ -1,0 +1,22 @@
+{% extends "layouts/_layout" %}
+
+{% block headScripts %}
+  <script src="/public/vendor/chart.umd.min.js"></script>
+  <script src="/public/vendor/easepick.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+  {% include "pages/impact/partials/_filters" %}
+  <div class="main">
+    {% include "pages/impact/partials/_timeline" %}
+    {% include "pages/impact/partials/_kpis" %}
+    {% include "pages/impact/partials/_overview" %}
+    {% include "pages/impact/partials/_metrics" %}
+    {% include "pages/impact/partials/_services" %}
+  </div>
+  {% include "pages/impact/partials/_modals" %}
+{% endblock %}
+
+{% block scripts %}
+  <script id="impact-data" type="application/json">{{ pageData | raw }}</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+<div class="kpi-row">
+{% include "components/_kpi-card" with {"color": "green", "title": "Global GWP", "unit": "kgCO2eq", "global": env.globalImpact.gwp, "docker": env.dockerImpact.gwp, "llm": env.llmImpact.gwp} %}
+{% include "components/_kpi-card" with {"color": "blue", "title": "Primary Energy", "unit": "MJ", "global": env.globalImpact.pe, "docker": env.dockerImpact.pe, "llm": env.llmImpact.pe} %}
+{% include "components/_kpi-card" with {"color": "yellow", "title": "Abiotic Resources", "unit": "kgSbeq", "global": env.globalImpact.adp, "docker": env.dockerImpact.adp, "llm": env.llmImpact.adp} %}
+</div>

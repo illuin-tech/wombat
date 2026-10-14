@@ -1,6 +1,5 @@
 package tech.illuin.wombat.ui;
 
-import io.quarkus.qute.TemplateExtension;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 
@@ -9,7 +8,6 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-@TemplateExtension
 public class TemplateFormatters
 {
 

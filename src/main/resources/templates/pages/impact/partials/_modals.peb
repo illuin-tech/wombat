@@ -1,0 +1,20 @@
+{% if env.unrecognizedAssets | length > 0 %}
+<div>
+{% embed "components/_modal" with {"modalId": "unrecognizedAssetsModal", "modalTitle": "Unrecognized Assets (" ~ (env.unrecognizedAssets | length) ~ ")"} %}
+{% block modalBody %}
+      <p class="unrecognized-modal-desc">The following assets are defined in the database with unknown or unregistered module types. They have been omitted from active metrics evaluation.</p>
+      <div class="unrecognized-assets-list">
+        {% for ua in env.unrecognizedAssets %}
+        <div class="unrecognized-asset-item">
+          <div class="unrecognized-asset-name">{{ ua.identity.name | escape }}</div>
+          <div class="unrecognized-asset-meta">
+            <span class="unrecognized-meta-label">ID:</span> <code class="unrecognized-code">{{ ua.identity.id | escape }}</code>
+            <span class="unrecognized-meta-label">Module / Type:</span> <code class="unrecognized-code">{{ ua.rawType | escape }}</code>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+{% endblock %}
+{% endembed %}
+</div>
+{% endif %}

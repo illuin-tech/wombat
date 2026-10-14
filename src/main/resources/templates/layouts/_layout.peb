@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Impact Report{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/public/icons/wombat-medium-mask.png"/>
+  <link rel="stylesheet" href="/public/dmsans.css"/>
+  <link rel="stylesheet" href="/public/impact.css"/>
+  <script src="/public/js/theme-bootstrap.js"></script>
+  {% block headScripts %}{% endblock %}
+</head>
+<body>
+  {% include "layouts/_header" %}
+  <main id="page-root">
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+  <script type="module" src="/public/ui/app.js"></script>
+</body>
+</html>

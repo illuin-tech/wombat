@@ -1,0 +1,4 @@
+<template id="{{ modalId }}" data-vue-modal data-title="{{ modalTitle }}"
+          {% if modalRegime is defined %}data-regime="{{ modalRegime }}"{% endif %}>
+  {% block modalBody %}{% endblock %}
+</template>

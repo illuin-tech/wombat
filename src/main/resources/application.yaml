@@ -1,4 +1,7 @@
 quarkus:
+  native:
+    resources:
+      includes: templates/**
   banner:
     path: wombat-banner.txt
   http:

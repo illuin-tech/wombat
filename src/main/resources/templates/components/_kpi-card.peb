@@ -1,0 +1,27 @@
+<div class="kpi-card {{ color }}">
+  <div class="kpi-label">{{ title }}</div>
+  <div class="kpi-value-row">
+    <div class="kpi-main">
+      <div class="kpi-value">{{ global.totalValue | decimal }}</div>
+      <div class="kpi-unit">{{ unit }}</div>
+    </div>
+    <div class="kpi-split-item">
+      <span class="kpi-side-val">{{ docker.totalValue | decimal }}</span>
+      <span class="kpi-split-key"><img class="svc-icon" src="/icons/docker.svg" alt="container"/>Docker</span>
+    </div>
+    <div class="kpi-split-item">
+      <span class="kpi-side-val">{{ llm.totalValue | decimal }}</span>
+      <span class="kpi-split-key"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
+    </div>
+  </div>
+  <div class="kpi-split">
+    <div class="kpi-split-item">
+      <span class="kpi-split-key">Embedded</span>
+      <span class="kpi-split-val">{{ global.embedded.value | decimal }}</span>
+    </div>
+    <div class="kpi-split-item">
+      <span class="kpi-split-key">Use</span>
+      <span class="kpi-split-val">{{ global.use.value | decimal }}</span>
+    </div>
+  </div>
+</div>

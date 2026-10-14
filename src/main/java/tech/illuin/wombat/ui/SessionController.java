@@ -3,8 +3,8 @@ package tech.illuin.wombat.ui;
 import io.quarkus.oidc.IdTokenCredential;
 import io.quarkus.oidc.OidcConfigurationMetadata;
 import io.quarkus.oidc.OidcSession;
-import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -31,17 +31,20 @@ public class SessionController
     private final SecurityIdentity identity;
     private final AuthProperties properties;
     private final Optional<String> clientId;
+    private final TemplateRenderer renderer;
 
     public SessionController(
         OidcSession oidcSession,
         SecurityIdentity identity,
         AuthProperties properties,
-        @ConfigProperty(name = "quarkus.oidc.client-id") Optional<String> clientId
+        @ConfigProperty(name = "quarkus.oidc.client-id") Optional<String> clientId,
+        TemplateRenderer renderer
     ) {
         this.oidcSession = oidcSession;
         this.identity = identity;
         this.properties = properties;
         this.clientId = clientId;
+        this.renderer = renderer;
     }
 
     /**
@@ -49,17 +52,18 @@ public class SessionController
      * Providers without an {@code end_session_endpoint} (e.g. Google) only get the local session cleared.
      */
     @GET
+    @Blocking
     @Produces(MediaType.TEXT_HTML)
     public Uni<Response> logout(@Context UriInfo uriInfo)
     {
         IdTokenCredential idToken = this.identity.getCredential(IdTokenCredential.class);
         if (idToken == null)
-            return Uni.createFrom().item(Response.ok(Templates.loggedOut(false)).build());
+            return Uni.createFrom().item(Response.ok(this.renderer.loggedOut(false)).build());
 
         Optional<URI> endSession = this.properties.idpLogout() ? this.endSessionUri(idToken, uriInfo) : Optional.empty();
         return this.oidcSession.logout().map(ignored -> endSession
             .map(uri -> Response.seeOther(uri).build())
-            .orElseGet(() -> Response.ok(Templates.loggedOut(false)).build())
+            .orElseGet(() -> Response.ok(this.renderer.loggedOut(false)).build())
         );
     }
 
@@ -67,9 +71,9 @@ public class SessionController
     @GET
     @Path("done")
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance loggedOut()
+    public String loggedOut()
     {
-        return Templates.loggedOut(true);
+        return this.renderer.loggedOut(true);
     }
 
     private Optional<URI> endSessionUri(IdTokenCredential idToken, UriInfo uriInfo)

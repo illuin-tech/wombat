@@ -84,6 +84,7 @@
         <!-- UI deps -->
         <chartjs.version>4.4.0</chartjs.version>
         <easepick.version>1.2.1</easepick.version>
+        <pebble.version>4.1.2</pebble.version>
     </properties>
 
     <dependencyManagement>
@@ -147,12 +148,9 @@
             <artifactId>quarkus-rest-client-jackson</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.quarkiverse.qute.web</groupId>
-            <artifactId>quarkus-qute-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-rest-qute</artifactId>
+            <groupId>io.pebbletemplates</groupId>
+            <artifactId>pebble</artifactId>
+            <version>${pebble.version}</version>
         </dependency>
         <dependency>
             <groupId>io.quarkiverse.jdbc</groupId>
@@ -288,6 +286,41 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>install-frontend</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <arguments><argument>ci</argument></arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>build-frontend</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>npm</executable>
+                            <arguments><argument>run</argument><argument>build</argument></arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>test-frontend</id>
+                        <phase>test</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <skip>${skipTests}</skip>
+                            <executable>npm</executable>
+                            <arguments><argument>test</argument></arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>${quarkus.platform.group-id}</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.platform.version}</version>
@@ -401,7 +434,7 @@
                         </goals>
                         <configuration>
                             <uri>https://cdn.jsdelivr.net/npm/chart.js@${chartjs.version}/dist/chart.umd.min.js</uri>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/vendor</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/public/vendor</outputDirectory>
                             <outputFileName>chart.umd.min.js</outputFileName>
                             <sha512>6784496b7e8a97ce2e9e87afcf7c32674b850cc8fb95f6b102cfa18aa5d779971783fae37584da7c05f13ff84a4aa5bc5b0a37bf07e0d95fdd92e1f97ca3b66f</sha512>
                         </configuration>
@@ -414,7 +447,7 @@
                         </goals>
                         <configuration>
                             <uri>https://cdn.jsdelivr.net/npm/@easepick/bundle@${easepick.version}/dist/index.umd.min.js</uri>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/vendor</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/public/vendor</outputDirectory>
                             <outputFileName>easepick.umd.min.js</outputFileName>
                             <sha512>949895ad6d93d982da2abbb47b077d8a70c23003ac3dd60e07ef46dfec328369b7bf7915d891e532ebae3e1961bf2175c5edf0a2c496798858815f653aebcb66</sha512>
                         </configuration>
@@ -427,7 +460,7 @@
                         </goals>
                         <configuration>
                             <uri>https://cdn.jsdelivr.net/npm/@easepick/bundle@${easepick.version}/dist/index.css</uri>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/vendor</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/public/vendor</outputDirectory>
                             <outputFileName>easepick.css</outputFileName>
                             <sha512>2216d13dea93cd60aed456398b7822cb6d9f1435c459e05598200cee0a6e034fbf1b7491c06c9b5e951c81e3ac80b0c81cf1b0b2fa70be82abdeaef24dd4925b</sha512>
                         </configuration>

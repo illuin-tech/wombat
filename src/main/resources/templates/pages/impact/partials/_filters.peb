@@ -1,0 +1,22 @@
+{% embed "components/_filter-data" with {"filterMode": "report", "timeRange": env.timeRange, "maxSpan": maxSpan} %}
+  {% block filterOptions %}
+  <select multiple name="environment">
+    {% for environment in environments.options %}
+    <option value="{{ environment.id | escape }}"
+            {% if environment.id == environments.selectedId %}selected{% endif %}>{{ environment.name | escape }}</option>
+    {% endfor %}
+  </select>
+  <select multiple name="assets">
+    {% for asset in assets.all %}
+    <option value="{{ asset.identity.id | escape }}"
+            {% if assets.selectedIds contains asset.identity.id %}selected{% endif %}>{{ asset.identity.name | escape }} &mdash; {{ asset.identity.id | escape }}{% if asset.namespace %} / {{ asset.namespace | escape }}{% endif %}</option>
+    {% endfor %}
+  </select>
+  <select multiple name="containers">
+    {% for service in env.allServices %}
+    <option value="{{ service | escape }}"
+            {% if env.includedServices contains service %}selected{% endif %}>{{ service | escape }}</option>
+    {% endfor %}
+  </select>
+  {% endblock %}
+{% endembed %}

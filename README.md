@@ -239,6 +239,19 @@ If you want to run it in dev mode:
 
 This will require you to have a functional Java 25+ JDK installed on your machine.
 
+### Dashboard frontend
+
+The dashboard is server-rendered with Pebble ([templates](src/main/resources/templates)); interactive
+parts are Vue 3 components in [src/main/frontend](src/main/frontend), bundled by Vite.
+
+It requires **Node 24+** and **npm 11+**: Maven runs `npm ci` and the Vite build during `generate-resources`,
+and the frontend tests during `test`.
+
+While `./mvnw quarkus:dev` is running, run `npm run dev` in another terminal to rebuild the bundle on
+frontend changes, then reload the browser.
+
+Keep server values HTML-escaped, and pass JSON to the page through `TemplateRenderer.scriptSafeJson`.
+
 ### Custom Extensions
 
 Wombat allows user to provide custom modules built with `wombat-core` (see [repository](https://github.com/illuin-tech/wombat-core)) to extend its functionality.

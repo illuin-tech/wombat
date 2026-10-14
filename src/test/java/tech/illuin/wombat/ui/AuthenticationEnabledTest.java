@@ -46,6 +46,20 @@ class AuthenticationEnabledTest
     }
 
     @Test
+    void localUiAssets_stayReachableWithoutIdentity()
+    {
+        given().when().get("/public/ui/app.js").then().statusCode(200);
+        given().when().get("/public/impact.css").then().statusCode(200);
+        given().when().get("/public/dmsans.css").then().statusCode(200);
+        given().when().get("/public/easepick-theme.css").then().statusCode(200);
+        given().when().get("/public/icons/wombat-large-mask.png").then().statusCode(200);
+        given().when().get("/public/icons/wombat-medium-mask.png").then().statusCode(200);
+        given().when().get("/public/vendor/chart.umd.min.js").then().statusCode(200);
+        given().when().get("/public/vendor/easepick.umd.min.js").then().statusCode(200);
+        given().when().get("/public/vendor/easepick.css").then().statusCode(200);
+    }
+
+    @Test
     void logout_staysReachableWithoutIdentity()
     {
         given()

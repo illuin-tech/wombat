@@ -1,0 +1,5 @@
+{% if not timeline.empty %}
+  <!-- Impact histogram -->
+  <div data-vue-timeline data-title="Impact over time — {{ timeline.stepLabel }}"
+       data-note="The footprint evaluated over each of the {{ timeline.bucketCount }} {{ timeline.stepPlural }} of the range."></div>
+  {% endif %}

@@ -1,5 +1,6 @@
 #Maven
 target/
+node_modules/
 
 # Local environment
 .env

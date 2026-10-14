@@ -1,0 +1,5 @@
+<div class="metrics-row">
+{% include "components/_chart-card" with {"color": "green", "metric": "gwp", "title": "GWP — Global Warming Potential (kgCO2eq)"} %}
+{% include "components/_chart-card" with {"color": "blue", "metric": "pe", "title": "Primary Energy (MJ)"} %}
+{% include "components/_chart-card" with {"color": "yellow", "metric": "adp", "title": "Abiotic Resource Depletion (kgSbeq)"} %}
+</div>

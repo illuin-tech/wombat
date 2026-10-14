@@ -1,0 +1,16 @@
+<div class="asset-block">
+  <div class="asset-head" role="button" tabindex="0" data-modal-target="{{ modalId }}">
+    <button type="button" class="asset-expand" title="Expand details" aria-label="Expand details">⤢</button>
+    <span class="asset-id">{{ panel.name }}</span>
+    <div class="asset-tags">
+      <span class="asset-type-tag {{ family }}"><img class="svc-icon" src="/icons/{{ icon }}.svg" alt="{{ family }}"/>{{ family | upper }}</span>
+      <span class="asset-type-tag measure">{{ panel.regime.label }}</span>
+    </div>
+    <span class="asset-count">{{ panel.serviceIds | length }} {{ (panel.serviceIds | length) == 1 ? 'service' : 'services' }}</span>
+  </div>
+  {% embed "components/_modal" with {"modalId": modalId, "modalTitle": panel.name, "modalRegime": panel.regime.label} %}
+    {% block modalBody %}
+      {% include detailsTemplate with {"panel": panel} %}
+    {% endblock %}
+  {% endembed %}
+</div>

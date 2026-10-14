@@ -1,0 +1,70 @@
+<div class="card-section">
+              <div class="card-section-label">Services / Models</div>
+              <div class="service-tags">
+                {% for service in panel.serviceIds %}
+                <span class="service-tag"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>{{ service }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="params-inline">
+              {% if panel.provider != null %}
+              <div class="param-item">
+                <span class="param-key">Provider</span>
+                <span class="param-val">{{ panel.provider }}</span>
+              </div>
+              {% endif %}
+              {% if panel.location %}
+              <div class="param-item">
+                <span class="param-key">Location</span>
+                <span class="param-val">{{ panel.location }}</span>
+              </div>
+              {% endif %}
+              <div class="param-item">
+                <span class="param-key">Output tokens total</span>
+                <span class="param-val">{{ panel.outputTokenCount }}</span>
+              </div>
+              {% if panel.regime.name == 'MODELED' and panel.requestPerYear > 0 %}
+              <div class="param-item">
+                <span class="param-key">Estimated requests / year</span>
+                <span class="param-val">{{ panel.requestPerYear }}</span>
+              </div>
+              {% endif %}
+            </div>
+            <div class="card-section asset-load">
+              <div class="card-section-label">Usage over period</div>
+              <div class="asset-load-row">
+                {% if panel.regime.name == 'MODELED' %}
+                <div class="param-item">
+                  <span class="param-key">Requests</span>
+                  <span class="param-val">{{ panel.requestCount | decimal }}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">GWP / request</span>
+                  <span class="param-val">{{ panel.gwpPerRequest.value | decimal }} {{ panel.gwpPerRequest.unit.symbol }}</span>
+                </div>
+                {% endif %}
+                <div class="param-item">
+                  <span class="param-key">GWP total</span>
+                  <span class="param-val">{{ panel.gwpTotal.value | decimal }} {{ panel.gwpTotal.unit.symbol }}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">Energy total</span>
+                  <span class="param-val">{{ panel.energyTotal.value | decimal }} {{ panel.energyTotal.unit.symbol }}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">PE total</span>
+                  <span class="param-val">{{ panel.peTotal.value | decimal }} {{ panel.peTotal.unit.symbol }}</span>
+                </div>
+                <div class="param-item">
+                  <span class="param-key">ADPe total</span>
+                  <span class="param-val">{{ panel.adpeTotal.value | decimal }} {{ panel.adpeTotal.unit.symbol }}</span>
+                </div>
+              </div>
+              <div class="asset-load-note">
+                {% if panel.regime.name == 'MODELED' %}
+                Computed with EcoLogits from modeled behaviour and prorated over the selected period.
+                {% else %}
+                Computed with EcoLogits from output tokens measured over the selected period; not affected by the service filter above.
+                {% endif %}
+              </div>
+            </div>

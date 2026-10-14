@@ -1,0 +1,6 @@
+<template data-vue-filters="{{ filterMode | default('dates') }}"
+          data-from-utc="{{ timeRange.start | isoUtc }}"
+          data-to-utc="{{ timeRange.end | isoUtc }}"
+          data-max-span-ms="{{ maxSpan.millis }}">
+  {% block filterOptions %}{% endblock %}
+</template>

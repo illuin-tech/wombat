@@ -1,0 +1,52 @@
+<!-- Services table -->
+  <div class="table-card">
+    <div class="table-head">Per-service breakdown</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="th-toggle"></th>
+          <th>Service</th>
+          <th>GWP total (kgCO2eq)</th>
+          <th>GWP embedded</th>
+          <th>GWP use</th>
+          <th>PE total (MJ)</th>
+          <th>PE embedded</th>
+          <th>PE use</th>
+          <th>ADP total (kgSbeq)</th>
+          <th>ADP embedded</th>
+          <th>ADP use</th>
+          <th>GWP share</th>
+        </tr>
+      </thead>
+
+        {% for s in env.serviceImpacts %}
+<tbody data-vue-service="{{ loop.index }}">
+        <tr class="service-summary" role="button" tabindex="0" aria-expanded="false" data-idx="{{ (loop.index + 1) }}">
+          <td class="td-toggle"><span class="row-chevron">▶</span></td>
+          <td class="id" title="{{ s.assetName }} / {{ s.service }}">
+            {% if s.assetType.family.name == 'KUBERNETES_CONTAINER' %}<img class="svc-icon" src="/icons/docker.svg" alt="container"/>{% elseif s.assetType.family.name == 'LLM' %}<img class="svc-icon" src="/icons/llm.svg" alt="llm"/>{% endif %}{{ s.service }}
+          </td>
+          <td class="metric gwp bold">{{ s.footprint.gwp.totalValue | decimal }}</td>
+          <td class="metric gwp use">{{ s.footprint.gwp.embedded.value | decimal }}</td>
+          <td class="metric gwp use">{{ s.footprint.gwp.use.value | decimal }}</td>
+          <td class="metric pe bold">{{ s.footprint.pe.totalValue | decimal }}</td>
+          <td class="metric pe use">{{ s.footprint.pe.embedded.value | decimal }}</td>
+          <td class="metric pe use">{{ s.footprint.pe.use.value | decimal }}</td>
+          <td class="metric adp bold">{{ s.footprint.adp.totalValue | decimal }}</td>
+          <td class="metric adp use">{{ s.footprint.adp.embedded.value | decimal }}</td>
+          <td class="metric adp use">{{ s.footprint.adp.use.value | decimal }}</td>
+          <td>
+            <span class="badge">
+              {% if env.impactShares contains s.label %}
+                {{ env.impactShares[s.label] | percent }}
+              {% else %}
+                &mdash;
+              {% endif %}
+            </span>
+          </td>
+        </tr>
+        </tbody>
+{% endfor %}
+
+    </table>
+  </div>

@@ -19,6 +19,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class RepositoryContextProviderTest
 {
@@ -37,7 +38,7 @@ class RepositoryContextProviderTest
 
         LLMStaticAsset validAsset = new LLMStaticAsset(
             AssetIdentity.of("valid-1", "env-1", "Valid Static"),
-            new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", "FRA", new LLMStaticProfile.RequestProfile(100, 200))
+            new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", FRANCE, new LLMStaticProfile.RequestProfile(100, 200))
         );
         AssetEntity validEntity = AssetEntity.from("env-1", validAsset);
 

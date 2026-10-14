@@ -13,10 +13,10 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class TemplateFormattersTest
 {
-
     @Test
     void asLocalDateTime_formatsInstant()
     {
@@ -81,17 +81,18 @@ class TemplateFormattersTest
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800));
-
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
+        );
         assertEquals("ns", TemplateFormatters.namespace(asset));
     }
 
     @Test
     void namespace_nonKubernetesAsset_returnsEmpty()
     {
-        LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
-
+        LLMStaticAsset asset = new LLMStaticAsset(
+            AssetIdentity.of("s", "env", "S"),
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000))
+        );
         assertEquals("", TemplateFormatters.namespace(asset));
     }
 }

@@ -24,6 +24,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 /**
  * Exercised as a plain object rather than through a Quarkus boot: the failure being asserted is the application
@@ -117,12 +118,12 @@ class RequiredSecretsCheckTest
     private static LLMPrometheusAsset prometheusAsset(String id, String username, String passwordEnv)
     {
         return new LLMPrometheusAsset(AssetIdentity.of(id, "env", id), "http://prometheus", null, username, passwordEnv, 0,
-            new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA", new LLMPrometheusProfile.DynamicProfile("q")));
+            new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q")));
     }
 
     private static LLMStaticAsset staticAsset()
     {
         return new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000)));
     }
 }

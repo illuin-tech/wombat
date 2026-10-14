@@ -162,7 +162,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         long bucketEndMs = bucketStartMs + stepMs;
         List<KubernetesMetricEntity> rows = find(
             "instantMs >= ?1 AND instantMs < ?2", bucketStartMs, bucketEndMs).list();
-        if (rows.stream().noneMatch(row -> !row.compacted))
+        if (rows.stream().allMatch(row -> row.compacted))
             return 0;
 
         Map<ContainerKey, List<KubernetesMetricEntity>> byContainer = new LinkedHashMap<>();

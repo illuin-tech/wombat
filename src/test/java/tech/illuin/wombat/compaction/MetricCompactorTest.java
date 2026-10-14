@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 /**
  * Which windows a run folds, and which it leaves alone: the one still being collected, and the one
@@ -105,14 +106,19 @@ class MetricCompactorTest
     @Test
     void compact_foldsModelRowsToo()
     {
-        llmRepository.save(llmRow(0L, 10L));
-        llmRepository.save(llmRow(1000L, 20L));
+        llmRepository.save(llmRow(0L, 10L, 2L));
+        llmRepository.save(llmRow(1000L, 20L, 3L));
 
         MetricCompactor.CompactionReport report = compactor.compact(instant(2 * HOUR_MS));
 
         assertEquals(1, report.modelWindows());
         assertEquals(1, report.modelRows());
         assertEquals(30L, llmRepository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+
+        LLMMetricEntity compacted = llmRepository.findAll().firstResult();
+        assertEquals(30L, compacted.outputTokens);
+        assertEquals(5L, compacted.requestCount);
+        assertEquals(5L, compacted.data.requests());
     }
 
     @Test
@@ -146,12 +152,18 @@ class MetricCompactorTest
 
     private static LLMMetricEntity llmRow(long instantMs, long tokens)
     {
+        return llmRow(instantMs, tokens, 1L);
+    }
+
+    private static LLMMetricEntity llmRow(long instantMs, long tokens, long requests)
+    {
         LLMMetricEntity row = new LLMMetricEntity();
         row.instantMs = instantMs;
         row.assign(new AssetIdentity("p-llm", "env", "Prometheus LLM"));
         row.assetType = "tech.illuin.wombat-module.llm-prometheus";
-        row.data = new LLMData("m", LLMProvider.mistralai, "m", "FRA", tokens);
+        row.data = new LLMData("m", LLMProvider.mistralai, "m", FRANCE, tokens, requests);
         row.outputTokens = tokens;
+        row.requestCount = requests;
         return row;
     }
 

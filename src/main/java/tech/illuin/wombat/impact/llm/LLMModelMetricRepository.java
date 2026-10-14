@@ -4,6 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
+import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
@@ -87,18 +88,19 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         if (rows.stream().allMatch(row -> row.compacted))
             return 0;
 
-        Map<ModelKey, Long> byModel = new LinkedHashMap<>();
+        Map<ModelKey, List<LLMMetricEntity>> byModel = new LinkedHashMap<>();
         for (LLMMetricEntity row : rows)
-            byModel.merge(ModelKey.of(row), row.outputTokens, Long::sum);
+            byModel.computeIfAbsent(ModelKey.of(row), key -> new ArrayList<>()).add(row);
 
         List<LLMMetricEntity> folded = new ArrayList<>(byModel.size());
-        byModel.forEach((key, tokens) -> {
+        byModel.forEach((key, samples) -> {
             LLMMetricEntity row = new LLMMetricEntity();
             row.instantMs = bucketStartMs;
-            row.outputTokens = tokens;
+            row.outputTokens = samples.stream().mapToLong(sample -> sample.outputTokens).sum();
+            row.requestCount = samples.stream().mapToLong(sample -> sample.requestCount).sum();
             row.assign(key.asset());
             row.assetType = key.assetType();
-            row.data = key.toData(tokens);
+            row.data = key.toData(row.outputTokens, row.requestCount);
             row.compacted = true;
             folded.add(row);
         });
@@ -121,7 +123,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         String sql = """
             SELECT %1$s AS serviceId, %2$s AS provider, %3$s AS model, %4$s AS location,
                SUM(output_tokens) AS tokens,
-               COUNT(*) AS requests
+               SUM(request_count) AS requests
             FROM model_metrics
             WHERE compacted = 1
               AND instant_ms >= :start
@@ -146,10 +148,11 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
             LLMProvider provider = (providerStr != null && !providerStr.isBlank()) ? LLMProvider.valueOf(providerStr) : null;
             String model = (String) row[2];
             String location = (String) row[3];
+            Country locationCountry = Country.ofCode(location).orElseThrow(() -> new IllegalArgumentException("Cannot determine country from location: " + location));
             long tokens = row[4] != null ? ((Number) row[4]).longValue() : 0L;
             double requests = row[5] != null ? ((Number) row[5]).doubleValue() : 1.0;
 
-            activities.merge(serviceId, new LLMServiceActivity(provider, model, location, tokens, requests),
+            activities.merge(serviceId, new LLMServiceActivity(provider, model, locationCountry, tokens, requests),
                 (oldVal, newVal) -> new LLMServiceActivity(
                     newVal.provider() != null ? newVal.provider() : oldVal.provider(),
                     newVal.model() != null ? newVal.model() : oldVal.model(),
@@ -181,7 +184,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         String serviceId,
         LLMProvider provider,
         String model,
-        String location
+        Country location
     ) {
         private static ModelKey of(LLMMetricEntity row)
         {
@@ -189,9 +192,9 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
             return new ModelKey(row.identity(), row.assetType, data.serviceId(), data.provider(), data.model(), data.location());
         }
 
-        private LLMData toData(long outputTokens)
+        private LLMData toData(long outputTokens, long requests)
         {
-            return new LLMData(this.serviceId, this.provider, this.model, this.location, outputTokens);
+            return new LLMData(this.serviceId, this.provider, this.model, this.location, outputTokens, requests);
         }
     }
 }

@@ -13,7 +13,6 @@ import tech.illuin.wombat.core.source.data.LLMData;
 @Table(name = "model_metrics")
 public class LLMMetricEntity extends MetricEntity
 {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(columnDefinition = "INTEGER")
@@ -28,6 +27,9 @@ public class LLMMetricEntity extends MetricEntity
 
     @Column(name = "output_tokens", nullable = false, columnDefinition = "INTEGER")
     public long outputTokens;
+
+    @Column(name = "request_count", nullable = false, columnDefinition = "INTEGER")
+    public long requestCount;
 
     @Convert(converter = CompactionFlagConverter.class)
     @Column(name = "compacted", nullable = false, columnDefinition = "INTEGER")

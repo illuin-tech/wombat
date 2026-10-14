@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class AssetEntityTest
 {
@@ -27,7 +28,7 @@ class AssetEntityTest
     {
         KubernetesAPIAsset props = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800));
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800));
 
         AssetEntity entity = AssetEntity.from("env", props);
 
@@ -39,9 +40,11 @@ class AssetEntityTest
     @Test
     void llmStaticPropertiesRoundTripThroughTheEntity()
     {
-        LLMStaticAsset props = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA",
-                new LLMStaticProfile.RequestProfile(500, 1000)));
+        LLMStaticAsset props = new LLMStaticAsset(
+            AssetIdentity.of("s", "env", "S"),
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE,
+            new LLMStaticProfile.RequestProfile(500, 1000))
+        );
 
         AssetEntity entity = AssetEntity.from("env", props);
 
@@ -52,10 +55,11 @@ class AssetEntityTest
     @Test
     void llmPrometheusPropertiesRoundTripThroughTheEntity()
     {
-        LLMPrometheusAsset props = new LLMPrometheusAsset(AssetIdentity.of("p", "env", "P"),
+        LLMPrometheusAsset props = new LLMPrometheusAsset(
+            AssetIdentity.of("p", "env", "P"),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", 7,
-            new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA",
-                new LLMPrometheusProfile.DynamicProfile("q")));
+            new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
+        );
 
         AssetEntity entity = AssetEntity.from("env", props);
 

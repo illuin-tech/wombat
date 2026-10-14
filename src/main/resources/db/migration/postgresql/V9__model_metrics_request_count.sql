@@ -1,0 +1,1 @@
+ALTER TABLE model_metrics ADD COLUMN request_count BIGINT NOT NULL DEFAULT 0;

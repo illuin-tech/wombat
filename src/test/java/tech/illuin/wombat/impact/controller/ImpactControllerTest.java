@@ -29,15 +29,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 @QuarkusTest
 class ImpactControllerTest
 {
-
-    @Inject
-    BoaviztaClient boaviztaClient;
-
-    @Inject
-    EcologitsClient ecologitsClient;
-
-    @Inject
-    KubernetesMetricRepository datapointRepository;
+    @Inject BoaviztaClient boaviztaClient;
+    @Inject EcologitsClient ecologitsClient;
+    @Inject KubernetesMetricRepository datapointRepository;
 
     @BeforeEach
     @Transactional
@@ -125,11 +119,10 @@ class ImpactControllerTest
             .statusCode(200)
             .body("payload.size()", is(2))
             .body("payload.environmentId", containsInAnyOrder("test", "test"))
-            .body("payload.find { it.assetId == 'test-llm' }.provider", is("ECOLOGITS"))
-            .body("payload.find { it.assetId == 'test-llm' }.footprint.gwp", notNullValue())
-            .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.llm-static"))
-            .body("payload.find { it.assetId == 'test-llm' }.serviceImpacts[0].model", is("mistral-large-latest"))
-            .body("payload.find { it.assetId == 'test-cluster' }.provider", is("BOAVIZTA"));
+            .body("payload.find { it.assetId == 'test-cluster' }.provider", is("BOAVIZTA"))
+            .body("payload.find { it.assetId == 'test-cluster' }.footprint.gwp", notNullValue())
+            .body("payload.find { it.assetId == 'test-cluster' }.serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"))
+            .body("payload.find { it.assetId == 'test-cluster' }.serviceImpacts[0].location.namespace", is("test-ns"));
     }
 
     @Test

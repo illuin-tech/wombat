@@ -24,10 +24,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class EnvironmentReconcilerTest
 {
-
     private final EnvironmentRepository environments = mock(EnvironmentRepository.class);
     private final AssetRepository assets = mock(AssetRepository.class);
     private final AssetConfigHistoryRepository history = mock(AssetConfigHistoryRepository.class);
@@ -177,6 +177,6 @@ class EnvironmentReconcilerTest
     private static KubernetesAPIAsset k8s(String id, int lifespan)
     {
         return new KubernetesAPIAsset(AssetIdentity.of(id, "e1", id), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", lifespan));
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, lifespan));
     }
 }

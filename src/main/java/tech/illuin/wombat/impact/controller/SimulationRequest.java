@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import tech.illuin.wombat.commons.validation.ValidTimeRange;
+import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMActivityData;
@@ -62,7 +63,7 @@ public record SimulationRequest(
                 LLMServiceActivity serviceActivity = new LLMServiceActivity(
                     profile.provider(),
                     profile.model(),
-                    profile.location(),
+                    Country.ofCode(profile.location()).orElseThrow(() -> new IllegalArgumentException("Cannot determine country from location: " + profile.location())),
                     this.outputTokenCount,
                     this.requestCount
                 );

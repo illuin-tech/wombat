@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class EnvironmentImpactTest
 {
@@ -41,8 +42,7 @@ class EnvironmentImpactTest
             profile,
             LLMProvider.mistralai,
             "mistral-large-latest",
-            "FRA",
-            0.75,
+            FRANCE,
             fp1,
             createEstimationResponse(1.5, 3.0, 0.1, 0.02),
             1500L,
@@ -55,8 +55,7 @@ class EnvironmentImpactTest
             profile,
             LLMProvider.mistralai,
             "mistral-small-latest",
-            "FRA",
-            0.25,
+            FRANCE,
             fp2,
             createEstimationResponse(0.5, 1.0, 0.05, 0.01),
             500L,

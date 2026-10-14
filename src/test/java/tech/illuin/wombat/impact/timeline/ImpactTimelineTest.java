@@ -249,12 +249,6 @@ class ImpactTimelineTest
     private record TestServiceImpact(String serviceId, Footprint footprint) implements ServiceImpact
     {
         @Override
-        public double share()
-        {
-            return 0.0;
-        }
-
-        @Override
         public AssetProfile profile()
         {
             return null;

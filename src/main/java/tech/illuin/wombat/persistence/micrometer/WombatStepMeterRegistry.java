@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.step.StepMeterRegistry;
 import io.micrometer.core.instrument.step.StepRegistryConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.KubernetesData;
@@ -177,8 +178,9 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
                 group.tag(TAG_SERVICE).orElseThrow(),
                 group.tag(TAG_LLM_PROVIDER).map(LLMProvider::valueOf).orElseThrow(),
                 group.tag(TAG_LLM_MODEL).orElseThrow(),
-                group.tag(TAG_LLM_LOCATION).orElseThrow(),
-                outputTokens.map(Double::longValue).get()
+                group.tag(TAG_LLM_LOCATION).flatMap(Country::ofCode).orElseThrow(),
+                outputTokens.map(Double::longValue).get(),
+                1L
             );
 
             LLMMetricEntity row = new LLMMetricEntity();

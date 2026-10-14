@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class EnvironmentDescriptionTest
 {
@@ -27,9 +28,9 @@ class EnvironmentDescriptionTest
     {
         Environment environment = new Environment("Production", List.of(
             new KubernetesAPIAsset(AssetIdentity.of("cluster-1", "Production", "Cluster One"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
-                new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800)),
+                new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)),
             new LLMStaticAsset(AssetIdentity.of("llm-1", "Production", "LLM One"),
-                new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)))
+                new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000)))
         ));
         TimeRange timeRange = new TimeRange(Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
 

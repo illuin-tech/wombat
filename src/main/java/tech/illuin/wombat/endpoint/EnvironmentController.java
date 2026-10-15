@@ -2,7 +2,6 @@ package tech.illuin.wombat.endpoint;
 
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import tech.illuin.wombat.engine.context.EnvironmentReconciler;
 import tech.illuin.wombat.engine.context.model.AssetHistoryInfo;
 import tech.illuin.wombat.engine.context.model.EnvironmentInfo;
 import tech.illuin.wombat.engine.context.persistence.AssetConfigHistoryRepository;
@@ -14,7 +13,7 @@ import java.util.List;
 
 /**
  * Read-only view of the persisted environment configuration. The monitored-environments YAML is the
- * source of truth and is reconciled into the DB at startup (see {@link EnvironmentReconciler}), so
+ * source of truth and is reconciled into the DB at startup (see {@link tech.illuin.wombat.engine.context.EnvironmentReconciler}), so
  * this controller exposes the current state and the per-asset change history but never mutates config.
  */
 @Path("environments")

@@ -54,7 +54,7 @@ public record SimulationRequest(
 
         public record Activity(
             @NotNull @ValidTimeRange @JsonProperty("range") TimeRange range,
-            @JsonProperty("outputTokenCount") long outputTokenCount,
+            @JsonProperty("outputTokenPerRequest") long outputTokenPerRequest,
             @JsonProperty("requestCount") int requestCount
         ) {
             public LLMActivityData toActivityData(LLMSimulatedProfile profile)
@@ -64,7 +64,7 @@ public record SimulationRequest(
                     profile.provider(),
                     profile.model(),
                     Country.ofCode(profile.location()).orElseThrow(() -> new IllegalArgumentException("Cannot determine country from location: " + profile.location())),
-                    this.outputTokenCount,
+                    this.outputTokenPerRequest * this.requestCount,
                     this.requestCount
                 );
                 return new LLMActivityData(

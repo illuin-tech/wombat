@@ -13,7 +13,6 @@ import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
-import tech.illuin.wombat.engine.module.WombatModuleConfig;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;

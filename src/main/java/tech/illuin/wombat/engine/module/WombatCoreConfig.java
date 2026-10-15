@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.module;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.arc.All;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
@@ -12,7 +11,6 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
-import tech.illuin.wombat.core.source.persistence.micrometer.MicrometerMetricPersister;
 import tech.illuin.wombat.engine.module.WombatModuleConfig.DefaultHandlers;
 
 import java.nio.file.Path;
@@ -51,14 +49,6 @@ public class WombatCoreConfig
         resolvers.add(SecretResolver.environment());
 
         return resolvers.size() == 1 ? resolvers.getFirst() : SecretResolver.composite(resolvers);
-    }
-
-    @Singleton
-    public WombatMetricPersister provideMetricPersister(MeterRegistry registry)
-    {
-        // Routes each metric to the mapper matching its service-family, onto the registry WombatStepMeterRegistry
-        // drains into the metric repositories the impact-resolvers read back from.
-        return new MicrometerMetricPersister(registry);
     }
 
     @Singleton

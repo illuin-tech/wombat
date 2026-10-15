@@ -1,10 +1,10 @@
 package tech.illuin.wombat.persistence;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.quarkus.arc.properties.IfBuildProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.core.source.persistence.micrometer.MicrometerMetricPersister;
 import tech.illuin.wombat.persistence.dialect.JsonPathDialect;
 
@@ -15,8 +15,7 @@ public class PersistenceConfig
     private static final String DBKIND_POSTGRESQL = "postgresql";
 
     @Singleton
-    @IfBuildProperty(name = "persistence.enable-micrometer-metric-persister", stringValue = "true")
-    public MicrometerMetricPersister provideMicrometerMetricPersister(MeterRegistry meterRegistry)
+    public WombatMetricPersister provideMicrometerMetricPersister(MeterRegistry meterRegistry)
     {
         return new MicrometerMetricPersister(meterRegistry);
     }

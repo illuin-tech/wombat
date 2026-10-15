@@ -8,10 +8,6 @@ quarkus:
     logging:
       scope: none
       body-limit: 1024
-    boavizta-api-url:
-      uri: "https://api.boavizta.org/v1/"
-    ecologits-api-url:
-      uri: "https://api.ecologits.ai/"
   log:
     category:
       "persistence":
@@ -21,17 +17,28 @@ quarkus:
         level: "OFF"
       "io.quarkus.datasource.deployment.devservices.DevServicesDatasourceProcessor":
         level: "OFF"
+
   datasource:
     db-kind: sqlite
     jdbc:
       url: "jdbc:sqlite:./data/db/local.db"
       min-size: 0
+  ## PostgreSQL Datasource Configuration
+  #datasource:
+  #  db-kind: postgresql
+  #  username: my-username
+  #  password: my-password
+  #  jdbc:
+  #    url: "jdbc:postgresql://localhost:5432/wombat"
+
   hibernate-orm:
     schema-management:
       strategy: none
   flyway:
     migrate-at-start: false
     locations: classpath:db/migration/${quarkus.datasource.db-kind}
+  scheduler:
+    enabled: true
   kubernetes-client:
     devservices:
       enabled: false
@@ -54,6 +61,7 @@ module:
 
 monitor:
   heartbeat: "*/10 * * * * ?" # every 10s
+  environments-file: "monitored/monitored-environments.yaml"
 
 ui:
   max-date-range:
@@ -66,13 +74,29 @@ connector:
   ecologits:
     uri: "https://api.ecologits.ai/"
 
-persistence:
-  enable-kubernetes-metrics-persister: true
-
 backup:
   enabled: false
   cron: "0 0 2 * * ?"
+  restore-on-startup: true
   cleanup:
     enabled: true
     cron: "0 0 3 * * ?"
     retain-last: 10
+  ## S3 Backup Storage Configuration
+  #s3:
+  #  endpoint: "https://s3.amazonaws.com"
+  #  bucket: "wombat-backups"
+  #  region: "us-east-1"
+  #  key-prefix: "backups/"
+  #  access-key: "your-access-key"
+  #  secret-key: "your-secret-key"
+
+## Secret Resolution Configuration (Directory / Keystore)
+# wombat:
+#   secret:
+#     directory:
+#       path: "/secrets"
+#     keystore:
+#       path: "/secrets/keystore.p12"
+#       password: "secretpassword"
+#       type: "PKCS12"

@@ -54,14 +54,6 @@ public class WombatCoreConfig
     }
 
     @Singleton
-    public WombatMetricPersister provideMetricPersister(MeterRegistry registry)
-    {
-        // Routes each metric to the mapper matching its service-family, onto the registry WombatStepMeterRegistry
-        // drains into the metric repositories the impact-resolvers read back from.
-        return new MicrometerMetricPersister(registry);
-    }
-
-    @Singleton
     public WombatCore provideWombatCore(
         WombatContextProvider contextProvider,
         WombatMetricPersister persister,

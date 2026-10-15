@@ -44,7 +44,7 @@ module:
     path: "/target/extensions"
 
 persistence:
-  enable-kubernetes-metrics-persister: true
+  enable-micrometer-metric-persister: true
 
 backup:
   enabled: false

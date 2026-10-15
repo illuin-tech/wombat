@@ -1,64 +1,35 @@
-quarkus:
-  datasource:
-    jdbc:
-      url: "jdbc:sqlite:data/db/local.db"
-    # To run against the compose `postgres` service instead, replace the two lines above with:
-    #   db-kind: postgresql
-    #   username: wombat
-    #   password: wombat
-    #   jdbc:
-    #     url: "jdbc:postgresql://localhost:5432/wombat"
-    # db-kind also selects the Flyway chain (classpath:db/migration/${quarkus.datasource.db-kind})
-    # and is fixed at build time, so dev mode has to be restarted after switching.
+# Alternative PostgreSQL Datasource for dev:
+# quarkus:
+#   datasource:
+#     db-kind: postgresql
+#     username: wombat
+#     password: wombat
+#     jdbc:
+#       url: "jdbc:postgresql://localhost:5432/wombat"
 
-# Connector endpoints, read through BoaviztaProperties / EcologitsProperties. Both are required with no default.
+# Connector endpoints for local mock / stub services
 connector:
   boavizta:
     uri: "http://localhost:5001/v1/"
   ecologits:
     uri: "http://localhost:5002/"
 
-# Secret resolution directory / keystore (optional)
-#wombat:
-#  secret:
-#    directory:
-#      path: /secrets
-
-metrics:
-  aggregation-window:
-    duration: 5
-    unit: MINUTES
-
-ui:
-  max-date-range:
-    duration: 1
-    unit: YEARS
-
 monitor:
-  heartbeat: "*/10 * * * * ?"
   environments-file: monitored/monitored-environments-dev.yaml
 
-# Which core SDK modules get wired into the app. Each defaults to true, so this block is only needed to switch one off
-# (e.g. no reachable cluster or Prometheus in a local setup). A disabled module is simply absent from the registry,
-# so assets of its type are skipped rather than failing.
-module:
-  kubernetes-api:
-    enabled: true
-  llm-prometheus:
-    enabled: true
-  llm-static:
-    enabled: true
-
+# Local S3 Backup setup (e.g. SeaweedFS service)
 backup:
   enabled: true
   cron: "0 0 * * * ?"  # hourly
-  cleanup:
-    enabled: true
-    cron: "0 0 3 * * ?"
-    retain-last: 10
   s3:
     key-prefix: sqlite/
     endpoint: http://localhost:8333
     bucket: wombat-bucket
     access-key: admin
     secret-key: secret
+
+# Optional Secret resolution directory:
+# wombat:
+#   secret:
+#     directory:
+#       path: /secrets

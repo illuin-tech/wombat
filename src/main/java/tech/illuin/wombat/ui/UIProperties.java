@@ -14,10 +14,10 @@ public interface UIProperties
 
     interface MaxDateRange
     {
-        @WithDefault("31")
+        @WithDefault("1")
         long duration();
 
-        @WithDefault("DAYS")
+        @WithDefault("YEARS")
         ChronoUnit unit();
 
         default Duration asDuration()

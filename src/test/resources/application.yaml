@@ -43,9 +43,6 @@ module:
   extension:
     path: "/target/extensions"
 
-persistence:
-  enable-micrometer-metric-persister: true
-
 backup:
   enabled: false
   s3:

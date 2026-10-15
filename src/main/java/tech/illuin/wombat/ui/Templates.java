@@ -4,7 +4,7 @@ import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
-import tech.illuin.wombat.impact.timeline.ImpactTimeline;
+import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
 
 import java.util.List;
 

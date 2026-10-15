@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import tech.illuin.wombat.persistence.backend.sqlite.action.SQLiteBackupProduce;
 import tech.illuin.wombat.persistence.backend.sqlite.action.SQLiteBackupRestore;
 import tech.illuin.wombat.persistence.backend.api.backup.BackupProperties;
-import tech.illuin.wombat.persistence.backup.BackupTestPropertiesBuilder;
+import tech.illuin.wombat.persistence.backend.api.backup.BackupTestPropertiesBuilder;
 
 import java.net.URI;
 import java.nio.channels.FileChannel;
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static tech.illuin.wombat.persistence.backend.sqlite.SQLiteTestHelper.createS3PropsBuilder;
-import static tech.illuin.wombat.persistence.backup.BackupTestProperties.DEFAULT_BUCKET;
+import static tech.illuin.wombat.persistence.backend.api.backup.BackupTestProperties.DEFAULT_BUCKET;
 
 @QuarkusTest
 class SQLiteBackupRestorerTest

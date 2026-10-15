@@ -9,8 +9,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
-import tech.illuin.wombat.impact.llm.LLMModelMetricRepository;
+import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
+import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 

@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.module;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.arc.All;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
@@ -12,7 +11,6 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
-import tech.illuin.wombat.core.source.persistence.micrometer.MicrometerMetricPersister;
 import tech.illuin.wombat.engine.module.WombatModuleConfig.DefaultHandlers;
 
 import java.nio.file.Path;

@@ -74,9 +74,6 @@ connector:
   ecologits:
     uri: "https://api.ecologits.ai/"
 
-persistence:
-  enable-micrometer-metric-persister: true
-
 backup:
   enabled: false
   cron: "0 0 2 * * ?"

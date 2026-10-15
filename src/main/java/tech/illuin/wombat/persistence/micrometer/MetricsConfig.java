@@ -12,8 +12,8 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
-import tech.illuin.wombat.impact.llm.LLMModelMetricRepository;
+import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
+import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
 
 import java.time.Duration;
 import java.util.concurrent.Executors;

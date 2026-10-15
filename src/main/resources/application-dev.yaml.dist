@@ -38,7 +38,7 @@ monitor:
   heartbeat: "*/10 * * * * ?"
   environments-file: monitored/monitored-environments-dev.yaml
 
-# Which SDK modules get wired into the app. Each defaults to true, so this block is only needed to switch one off
+# Which core SDK modules get wired into the app. Each defaults to true, so this block is only needed to switch one off
 # (e.g. no reachable cluster or Prometheus in a local setup). A disabled module is simply absent from the registry,
 # so assets of its type are skipped rather than failing.
 module:
@@ -62,12 +62,3 @@ backup:
     bucket: wombat-bucket
     access-key: admin
     secret-key: secret
-
-llm-simulator:
-  enabled: false
-  cron: "*/10 * * * * ?"
-  metric-name: generation.tokens
-  models:
-    - name: mistral-large-latest
-      min-tokens: 100
-      max-tokens: 2000

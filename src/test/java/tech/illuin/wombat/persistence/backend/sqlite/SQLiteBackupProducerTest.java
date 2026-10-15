@@ -21,7 +21,7 @@ import software.amazon.awssdk.services.s3.model.S3Object;
 import tech.illuin.wombat.persistence.backend.s3.S3TestPropertiesBuilder;
 import tech.illuin.wombat.persistence.backend.sqlite.action.SQLiteBackupProduce;
 import tech.illuin.wombat.persistence.backend.api.backup.BackupProperties;
-import tech.illuin.wombat.persistence.backup.BackupTestPropertiesBuilder;
+import tech.illuin.wombat.persistence.backend.api.backup.BackupTestPropertiesBuilder;
 
 import java.net.URI;
 import java.util.Optional;
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static tech.illuin.wombat.persistence.backend.sqlite.SQLiteTestHelper.createS3PropsBuilder;
-import static tech.illuin.wombat.persistence.backup.BackupTestProperties.DEFAULT_BUCKET;
+import static tech.illuin.wombat.persistence.backend.api.backup.BackupTestProperties.DEFAULT_BUCKET;
 
 @QuarkusTest
 class SQLiteBackupProducerTest

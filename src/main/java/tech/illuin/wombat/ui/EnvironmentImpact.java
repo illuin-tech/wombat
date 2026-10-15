@@ -1,6 +1,6 @@
 package tech.illuin.wombat.ui;
 
-import tech.illuin.wombat.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;

@@ -5,8 +5,8 @@ import tech.illuin.wombat.persistence.backend.s3.S3Properties;
 import tech.illuin.wombat.persistence.backend.s3.S3TestProperties;
 import tech.illuin.wombat.persistence.backend.s3.S3TestPropertiesBuilder;
 import tech.illuin.wombat.persistence.backend.api.backup.BackupProperties;
-import tech.illuin.wombat.persistence.backup.BackupTestProperties;
-import tech.illuin.wombat.persistence.backup.BackupTestPropertiesBuilder;
+import tech.illuin.wombat.persistence.backend.api.backup.BackupTestProperties;
+import tech.illuin.wombat.persistence.backend.api.backup.BackupTestPropertiesBuilder;
 
 import java.util.Optional;
 import java.util.function.Consumer;

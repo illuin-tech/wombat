@@ -6,14 +6,16 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import tech.illuin.wombat.context.persistence.AssetRepository;
+import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.context.persistence.AssetRepository;
 import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
-import tech.illuin.wombat.connector.boavizta.BoaviztaTestData;
+import tech.illuin.wombat.engine.connector.boavizta.BoaviztaTestData;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
-import tech.illuin.wombat.connector.ecologits.EcologitsTestData;
-import tech.illuin.wombat.impact.kubernetes.KubernetesMetricRepository;
+import tech.illuin.wombat.engine.connector.ecologits.EcologitsTestData;
+import tech.illuin.wombat.engine.context.persistence.AssetEntity;
+import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
 import java.time.LocalDate;
@@ -83,10 +85,10 @@ class UIControllerTest
     {
         io.quarkus.narayana.jta.QuarkusTransaction.requiringNew().run(() -> {
             String rawJson = "{\"id\":\"unrec-ui-1\",\"environment-id\":\"test\",\"name\":\"Dropped Extension Asset\",\"type\":\"tech.illuin.dropped.ModuleAsset\"}";
-            tech.illuin.wombat.context.model.UnrecognizedAsset unrecognized = new tech.illuin.wombat.context.model.UnrecognizedAsset(
+            UnrecognizedAsset unrecognized = new UnrecognizedAsset(
                 AssetIdentity.of("unrec-ui-1", "test", "Dropped Extension Asset"), "tech.illuin.dropped.ModuleAsset", rawJson
             );
-            tech.illuin.wombat.context.persistence.AssetEntity entity = new tech.illuin.wombat.context.persistence.AssetEntity();
+            AssetEntity entity = new AssetEntity();
             entity.id = "unrec-ui-1";
             entity.environmentId = "test";
             entity.name = "Dropped Extension Asset";

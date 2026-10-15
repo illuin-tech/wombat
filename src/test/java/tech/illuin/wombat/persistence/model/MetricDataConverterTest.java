@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 /**
  * Unlike the assets column, each metric table is homogeneous, so its converter binds a concrete type and the stored
@@ -16,24 +17,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class MetricDataConverterTest
 {
-
     private final KubernetesDataConverter kubernetes = new KubernetesDataConverter();
     private final LLMDataConverter llm = new LLMDataConverter();
 
     @Test
     void kubernetesData_survivesARoundTrip()
     {
-        KubernetesData data = new KubernetesData("activemq", "illuin.sandbox", "sandbox-bot",
-            "illuin-bot-activemq-1", 2.65E7, 7.4E8);
-
+        KubernetesData data = new KubernetesData("activemq", "illuin.sandbox", "sandbox-bot", "illuin-bot-activemq-1", 2.65E7, 7.4E8);
         assertEquals(data, this.kubernetes.convertToEntityAttribute(this.kubernetes.convertToDatabaseColumn(data)));
     }
 
     @Test
     void llmData_survivesARoundTrip()
     {
-        LLMData data = new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", "FRA", 1234L);
-
+        LLMData data = new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", FRANCE, 1234L, 2L);
         assertEquals(data, this.llm.convertToEntityAttribute(this.llm.convertToDatabaseColumn(data)));
     }
 
@@ -43,13 +40,12 @@ class MetricDataConverterTest
         // KubernetesMetricRepository groups on `serviceId` and reads back `cluster`/`namespace`;
         // LLMModelMetricRepository narrows to some of an asset's models on `model`.
         // A rename here silently breaks those queries, which have no compiler to catch it.
-        String kubernetesJson = this.kubernetes.convertToDatabaseColumn(new KubernetesData(
-            "svc", "cluster-1", "ns", "pod", 1.0, 2.0));
+        String kubernetesJson = this.kubernetes.convertToDatabaseColumn(new KubernetesData("svc", "cluster-1", "ns", "pod", 1.0, 2.0));
         assertContainsKey(kubernetesJson, "serviceId");
         assertContainsKey(kubernetesJson, "cluster");
         assertContainsKey(kubernetesJson, "namespace");
 
-        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", LLMProvider.mistralai, "model", "FRA", 1L));
+        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", LLMProvider.mistralai, "model", FRANCE, 500L, 1L));
         assertContainsKey(llmJson, "serviceId");
         assertContainsKey(llmJson, "provider");
         assertContainsKey(llmJson, "model");
@@ -64,9 +60,8 @@ class MetricDataConverterTest
     @Test
     void storedJson_carriesNoAssetIdentity()
     {
-        String kubernetesJson = this.kubernetes.convertToDatabaseColumn(new KubernetesData(
-            "svc", "cluster-1", "ns", "pod", 1.0, 2.0));
-        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", LLMProvider.mistralai, "model", "FRA", 1L));
+        String kubernetesJson = this.kubernetes.convertToDatabaseColumn(new KubernetesData("svc", "cluster-1", "ns", "pod", 1.0, 2.0));
+        String llmJson = this.llm.convertToDatabaseColumn(new LLMData("svc", LLMProvider.mistralai, "model", FRANCE, 500L, 1L));
 
         for (String json : new String[] { kubernetesJson, llmJson })
         {
@@ -80,9 +75,7 @@ class MetricDataConverterTest
     @Test
     void storedJson_carriesNoTypeDiscriminator()
     {
-        String json = this.kubernetes.convertToDatabaseColumn(new KubernetesData(
-            "svc", "cluster-1", "ns", "pod", 1.0, 2.0));
-
+        String json = this.kubernetes.convertToDatabaseColumn(new KubernetesData("svc", "cluster-1", "ns", "pod", 1.0, 2.0));
         assertFalse(json.contains("\"type\""), json);
     }
 

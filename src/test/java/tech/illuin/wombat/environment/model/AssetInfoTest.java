@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class AssetInfoTest
 {
@@ -60,7 +61,7 @@ class AssetInfoTest
     @Test
     void exposesKubernetesConnectionProfileAndTimestamps() throws Exception
     {
-        KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800);
+        KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800);
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0, profile)));
 
@@ -93,7 +94,7 @@ class AssetInfoTest
     @Test
     void exposesPrometheusUrlAndUsernameButNeverACredential() throws Exception
     {
-        LLMPrometheusProfile profile = new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA",
+        LLMPrometheusProfile profile = new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE,
             new LLMPrometheusProfile.DynamicProfile("q"));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMPrometheusAsset(
             AssetIdentity.of("p", "env", "P"), "http://prometheus", null, "user", "PROM_PASSWORD", 5, profile)));
@@ -118,7 +119,7 @@ class AssetInfoTest
     @Test
     void exposesStaticProfileWithoutConnectionFields() throws Exception
     {
-        LLMStaticProfile profile = new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA",
+        LLMStaticProfile profile = new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE,
             new LLMStaticProfile.RequestProfile(500, 1000));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset(
             AssetIdentity.of("s", "env", "S"), profile)));

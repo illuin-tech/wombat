@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class AssetMonitorServiceTest
 {
@@ -100,7 +101,7 @@ class AssetMonitorServiceTest
     private static LLMPrometheusAsset prometheus(String id, int heartbeatSkip)
     {
         return new LLMPrometheusAsset(AssetIdentity.of(id, "env", id), "http://prometheus", null, null, null, heartbeatSkip,
-            new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA", new LLMPrometheusProfile.DynamicProfile("q")));
+            new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q")));
     }
 
     private static final class RecordingSource implements WombatSource

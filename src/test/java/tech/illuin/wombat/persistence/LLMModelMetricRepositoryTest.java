@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 @QuarkusTest
 class LLMModelMetricRepositoryTest
@@ -40,8 +42,9 @@ class LLMModelMetricRepositoryTest
         repository.save(row(1000L, "p-llm", "mistral-large-latest", 42L));
 
         LLMMetricEntity persisted = repository.findAll().firstResult();
-        assertEquals(new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", "FRA", 42L), persisted.data);
+        assertEquals(new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", FRANCE, 42L, 1L), persisted.data);
         assertEquals(42L, persisted.outputTokens);
+        assertEquals(1L, persisted.requestCount);
     }
 
     @Test
@@ -145,30 +148,115 @@ class LLMModelMetricRepositoryTest
         assertTrue(repository.outputTokensPerBucket(0L, HOUR_MS, HOUR_MS, "p-llm", List.of()).isEmpty());
     }
 
-    /** Tokens are a total, so folding a window sums them rather than averaging. */
+    /** Tokens and requests are totals, so folding a window sums them rather than averaging. */
     @Test
     void compactBucket_foldsTheWindowIntoOneRowPerModel()
     {
-        repository.save(sampled(0L, "p-llm", "m", 10L));
-        repository.save(sampled(1000L, "p-llm", "m", 20L));
-        repository.save(sampled(2000L, "other", "m", 5L));
+        repository.save(sampled(0L, "p-llm", "m", 10L, 2L));
+        repository.save(sampled(1000L, "p-llm", "m", 20L, 3L));
+        repository.save(sampled(2000L, "other", "m", 5L, 1L));
 
         int rows = repository.compactBucket(0L, HOUR_MS);
 
         assertEquals(2, rows);
         assertEquals(30L, repository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
         assertEquals(5L, repository.sumOutputTokens(0L, HOUR_MS, "other"));
-        assertEquals(2, repository.findAll().list().size(), "the sampling rows should be gone");
+
+        List<LLMMetricEntity> all = repository.findAll().list();
+        assertEquals(2, all.size(), "the sampling rows should be gone");
+        assertTrue(all.stream().allMatch(row -> row.compacted));
+        assertTrue(all.stream().allMatch(row -> row.instantMs == 0L));
+
+        LLMMetricEntity pllm = all.stream().filter(r -> "p-llm".equals(r.assetId)).findFirst().orElseThrow();
+        assertEquals(30L, pllm.outputTokens);
+        assertEquals(5L, pllm.requestCount);
+        assertEquals(30L, pllm.data.outputTokens());
+        assertEquals(5L, pllm.data.requests());
+
+        LLMMetricEntity other = all.stream().filter(r -> "other".equals(r.assetId)).findFirst().orElseThrow();
+        assertEquals(5L, other.outputTokens);
+        assertEquals(1L, other.requestCount);
+        assertEquals(5L, other.data.outputTokens());
+        assertEquals(1L, other.data.requests());
+    }
+
+    @Test
+    void compactBucket_foldsDifferentModelsIntoSeparateRows()
+    {
+        repository.save(sampled(0L, "p-llm", "mistral", 10L, 2L));
+        repository.save(sampled(1000L, "p-llm", "gpt", 20L, 4L));
+        repository.save(sampled(2000L, "p-llm", "mistral", 5L, 1L));
+
+        int rows = repository.compactBucket(0L, HOUR_MS);
+
+        assertEquals(2, rows);
+        List<LLMMetricEntity> all = repository.findAll().list();
+        assertEquals(2, all.size());
+
+        LLMMetricEntity mistral = all.stream().filter(r -> "mistral".equals(r.data.model())).findFirst().orElseThrow();
+        assertEquals(15L, mistral.outputTokens);
+        assertEquals(3L, mistral.requestCount);
+        assertEquals(15L, mistral.data.outputTokens());
+        assertEquals(3L, mistral.data.requests());
+
+        LLMMetricEntity gpt = all.stream().filter(r -> "gpt".equals(r.data.model())).findFirst().orElseThrow();
+        assertEquals(20L, gpt.outputTokens);
+        assertEquals(4L, gpt.requestCount);
+        assertEquals(20L, gpt.data.outputTokens());
+        assertEquals(4L, gpt.data.requests());
+    }
+
+    @Test
+    void compactBucket_mergesASampleThatArrivesAfterTheWindowWasFolded()
+    {
+        repository.save(sampled(0L, "p-llm", "m", 10L, 2L));
+        repository.save(sampled(1000L, "p-llm", "m", 20L, 3L));
+        repository.compactBucket(0L, HOUR_MS);
+
+        repository.save(sampled(2000L, "p-llm", "m", 15L, 1L));
+        assertEquals(1, repository.compactBucket(0L, HOUR_MS));
+
+        List<LLMMetricEntity> folded = repository.findAll().list();
+        assertEquals(1, folded.size(), "one row for the hour, not two");
+        LLMMetricEntity entity = folded.getFirst();
+        assertEquals(45L, entity.outputTokens);
+        assertEquals(6L, entity.requestCount);
+        assertEquals(45L, entity.data.outputTokens());
+        assertEquals(6L, entity.data.requests());
+        assertEquals(45L, repository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+    }
+
+    @Test
+    void compactBucket_leavesTheOtherWindowsAlone()
+    {
+        repository.save(sampled(0L, "p-llm", "m", 10L, 1L));
+        repository.save(sampled(HOUR_MS, "p-llm", "m", 20L, 2L));
+
+        repository.compactBucket(0L, HOUR_MS);
+
+        List<LLMMetricEntity> all = repository.findAll().list();
+        assertEquals(2, all.size());
+
+        LLMMetricEntity firstHour = all.stream().filter(r -> r.instantMs == 0L).findFirst().orElseThrow();
+        assertTrue(firstHour.compacted);
+        assertEquals(10L, firstHour.outputTokens);
+        assertEquals(1L, firstHour.requestCount);
+
+        LLMMetricEntity secondHour = all.stream().filter(r -> r.instantMs == HOUR_MS).findFirst().orElseThrow();
+        assertFalse(secondHour.compacted);
+        assertEquals(20L, secondHour.outputTokens);
+        assertEquals(2L, secondHour.requestCount);
     }
 
     @Test
     void compactBucket_isIdempotent()
     {
-        repository.save(sampled(0L, "p-llm", "m", 10L));
+        repository.save(sampled(0L, "p-llm", "m", 10L, 2L));
         repository.compactBucket(0L, HOUR_MS);
 
         assertEquals(0, repository.compactBucket(0L, HOUR_MS));
         assertEquals(10L, repository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+        assertEquals(1, repository.findAll().list().size());
     }
 
     @Test
@@ -184,7 +272,12 @@ class LLMModelMetricRepositoryTest
     /** A folded row, the kind every serving query reads. */
     private static LLMMetricEntity row(long instantMs, String assetId, String model, long outputTokens)
     {
-        LLMMetricEntity row = sampled(instantMs, assetId, model, outputTokens);
+        return row(instantMs, assetId, model, outputTokens, 1L);
+    }
+
+    private static LLMMetricEntity row(long instantMs, String assetId, String model, long outputTokens, long requestCount)
+    {
+        LLMMetricEntity row = sampled(instantMs, assetId, model, outputTokens, requestCount);
         row.compacted = true;
         return row;
     }
@@ -192,12 +285,18 @@ class LLMModelMetricRepositoryTest
     /** A sampling row as collection writes it, waiting to be folded. */
     private static LLMMetricEntity sampled(long instantMs, String assetId, String model, long outputTokens)
     {
+        return sampled(instantMs, assetId, model, outputTokens, 1L);
+    }
+
+    private static LLMMetricEntity sampled(long instantMs, String assetId, String model, long outputTokens, long requestCount)
+    {
         LLMMetricEntity row = new LLMMetricEntity();
         row.instantMs = instantMs;
         row.assign(new AssetIdentity(assetId, "env", assetId + " name"));
         row.assetType = "tech.illuin.wombat-module.llm-prometheus";
-        row.data = new LLMData(model, LLMProvider.mistralai, model, "FRA", outputTokens);
+        row.data = new LLMData(model, LLMProvider.mistralai, model, FRANCE, outputTokens, requestCount);
         row.outputTokens = outputTokens;
+        row.requestCount = requestCount;
         return row;
     }
 }

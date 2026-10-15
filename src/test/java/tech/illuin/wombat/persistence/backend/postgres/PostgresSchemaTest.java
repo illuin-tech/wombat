@@ -78,6 +78,7 @@ class PostgresSchemaTest
 
         assertEquals("bigint", types.get("instant_ms"));
         assertEquals("bigint", types.get("output_tokens"));
+        assertEquals("bigint", types.get("request_count"));
     }
 
     @Test

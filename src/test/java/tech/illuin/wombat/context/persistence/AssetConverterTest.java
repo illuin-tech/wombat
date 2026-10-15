@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
 class AssetConverterTest
 {
@@ -35,7 +36,8 @@ class AssetConverterTest
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", "FRA", 43800));
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
+        );
 
         assertEquals(asset, this.roundTrip(asset));
     }
@@ -43,19 +45,21 @@ class AssetConverterTest
     @Test
     void llmStaticAsset_survivesARoundTrip()
     {
-        LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
-
+        LLMStaticAsset asset = new LLMStaticAsset(
+            AssetIdentity.of("s", "env", "S"),
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000))
+        );
         assertEquals(asset, this.roundTrip(asset));
     }
 
     @Test
     void llmPrometheusAsset_survivesARoundTrip()
     {
-        LLMPrometheusAsset asset = new LLMPrometheusAsset(AssetIdentity.of("p", "env", "P"),
+        LLMPrometheusAsset asset = new LLMPrometheusAsset(
+            AssetIdentity.of("p", "env", "P"),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", 7,
-            new LLMPrometheusProfile(LLMProvider.mistralai, "m", "FRA", new LLMPrometheusProfile.DynamicProfile("q")));
-
+            new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
+        );
         assertEquals(asset, this.roundTrip(asset));
     }
 
@@ -63,7 +67,7 @@ class AssetConverterTest
     void storedJson_carriesTheAssetTypeDiscriminator()
     {
         LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", "FRA", new LLMStaticProfile.RequestProfile(500, 1000)));
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000)));
 
         String json = this.converter.convertToDatabaseColumn(asset);
 

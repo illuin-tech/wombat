@@ -35,7 +35,7 @@ class SimulationControllerTest
               "start": "2024-01-01T00:00:00Z",
               "end": "2024-01-02T00:00:00Z"
             },
-            "outputTokenCount": 500,
+            "outputTokenPerRequest": 500,
             "requestCount": 100
           },
           "profile": {
@@ -342,7 +342,7 @@ class SimulationControllerTest
               },
               "activity": {
                 "range": null,
-                "outputTokenCount": 500,
+                "outputTokenPerRequest": 500,
                 "requestCount": 100
               }
             }
@@ -357,7 +357,7 @@ class SimulationControllerTest
                 "location": "FRA"
               },
               "activity": {
-                "outputTokenCount": 500,
+                "outputTokenPerRequest": 500,
                 "requestCount": 100
               }
             }
@@ -445,7 +445,7 @@ class SimulationControllerTest
                   "start": null,
                   "end": "2024-01-02T00:00:00Z"
                 },
-                "outputTokenCount": 500,
+                "outputTokenPerRequest": 500,
                 "requestCount": 100
               }
             }
@@ -464,7 +464,7 @@ class SimulationControllerTest
                   "start": "2024-01-01T00:00:00Z",
                   "end": null
                 },
-                "outputTokenCount": 500,
+                "outputTokenPerRequest": 500,
                 "requestCount": 100
               }
             }
@@ -483,7 +483,7 @@ class SimulationControllerTest
                   "start": "2024-01-01T00:00:00Z",
                   "end": "2024-01-01T00:00:00Z"
                 },
-                "outputTokenCount": 500,
+                "outputTokenPerRequest": 500,
                 "requestCount": 100
               }
             }

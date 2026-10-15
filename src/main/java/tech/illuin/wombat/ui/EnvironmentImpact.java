@@ -1,6 +1,7 @@
 package tech.illuin.wombat.ui;
 
 import tech.illuin.wombat.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProfile;
@@ -207,7 +208,7 @@ public record EnvironmentImpact(
             footprintAmount(footprint.adp(), AmountUnit.kg_sbeq),
             profile.provider(),
             profile.instanceType(),
-            profile.location(),
+            profile.location() != null ? profile.location().alpha3() : null,
             profile.lifespan(),
             clusters,
             specification,
@@ -252,7 +253,7 @@ public record EnvironmentImpact(
             ? first.provider()
             : null;
         String model = String.join(", ", impacts.stream().map(LLMImpact::model).filter(Objects::nonNull).distinct().toList());
-        String location = String.join(", ", impacts.stream().map(LLMImpact::location).filter(Objects::nonNull).distinct().toList());
+        String location = String.join(", ", impacts.stream().map(LLMImpact::location).filter(Objects::nonNull).map(Country::alpha3).distinct().toList());
 
         return new LLMAssetPanel(
             name,

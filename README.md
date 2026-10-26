@@ -194,118 +194,17 @@ flowchart LR
 
 ## How to run
 
-Here is a sample docker-compose local setup for:
+You can find a sample docker compose file for a basic local setup [here](compose/compose.yaml).
 
-* Wombat app
-* local BoaviztAPI & Ecologits instances
-* a temporary sqlite + periodic S3 backup *(this is a demo ; on a local setup you would rather swap that out for an sqlite db file written to a docker volume and do away with the backup)*
+It will let you run:
+* a Wombat app with an sqlite storage backend
+* local Boavizta & Ecologits APIs
 
+You will also find [`application.yaml.dist`](compose/application.yaml.dist) and [`monitored-environments.yaml.dist`](compose/monitored-environments.yaml.dist) files that you can use to create the required `application.yaml` and `monitored-environments.yaml`.
 
-```yaml
-services:
-  wombat:
-    image: illuin/wombat:latest
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./application.yaml:/deployments/config/application.yaml:ro
-      - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      - ./k8s:/deployments/monitored/k8s:ro
+The `application.yaml` template can be used as is, it's a basic setup that will simply override the connectors to use local Boavizta and Ecologits APIs, and enable the SQLite backend.
 
-  boavizta:
-    image: ghcr.io/boavizta/boaviztapi:2.4.1
-
-  ecologits:
-    image: ghcr.io/mlco2/ecologits-api:0.0.2
-
-  seaweedfs:
-    image: chrislusf/seaweedfs
-    command: mini -dir=/data
-    ports:
-      - "8333:8333"   # S3 endpoint
-      - "8888:8888"   # Filer UI
-      - "9333:9333"   # Master
-      - "23646:23646" # Admin UI
-    environment:
-      AWS_ACCESS_KEY_ID: admin
-      AWS_SECRET_ACCESS_KEY: secret
-      S3_BUCKET: wombat-bucket
-    volumes:
-      - seaweedfs-data:/data
-
-volumes:
-  seaweedfs-data:
-```
-
-With the following `application.yaml` file:
-
-```yaml
-quarkus:
-  datasource:
-    jdbc:
-      url: "jdbc:sqlite:/tmp/local.db" # if you disable the backup below, you can use a volume or local file instead, and remove seaweedfs from your compose file
-
-connector:
-  boavizta:
-    uri: "http://boavizta:5000/v1/"
-  ecologits:
-    uri: "http://ecologits:80/"
-
-backup:
-  enabled: true
-  cron: "0 */10 * * * ?"  # every 10 minutes
-  cleanup:
-    cron: "0 */10 * * * ?"  # every 10 minutes
-    retain-last: 10
-  s3:
-    key-prefix: sqlite/local/
-    endpoint: http://seaweedfs:8333
-    region: "eu-west-1"
-    bucket: wombat-bucket
-    access-key: admin
-    secret-key: secret
-```
-
-And the following `monitored-environments.yaml` file:
-
-```yaml
-environments:
-  production:
-    id: production
-    assets:
-      # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container. 
-      - type: tech.illuin.wombat-module.kubernetes-api
-        id: prod-cluster
-        environment-id: production
-        name: Production Cluster
-        namespace: my-project-namespace
-        config-path: /deployments/monitored/k8s/my-kube.config
-        profile:
-          provider: aws
-          instance-type: c5.xlarge
-          location: FRA
-          lifespan: 43800
-      # This type works with a request yearly estimate and will prorate it dynamically. 
-      # This is the bare minimum available in some situations.
-      - type: tech.illuin.wombat-module.llm-static
-        id: prod-llm
-        environment-id: production
-        name: LLM Services
-        profile:
-          models:
-            - provider: mistralai
-              model: mistral-large-latest
-              location: FRA
-              request-profile:
-                output-token-count: 500
-                request-per-year: 500000
-            - provider: openai
-              model: mistral-large-latest
-              location: SWE
-              request-profile:
-                output-token-count: 150
-                request-per-year: 8000000
-```
+The `monitored-environments.yaml` template however needs to be tweaked, you will find comments on the parts requiring your input.
 
 And a valid kubeconfig in `k8s/`, in the configuration above we've named it `my-kube.config`.
 

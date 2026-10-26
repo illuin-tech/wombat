@@ -1,0 +1,36 @@
+quarkus:
+  datasource:
+    jdbc:
+      url: "jdbc:sqlite:/var/data/local.db"
+
+# Alternative PostgreSQL Datasource for dev:
+# quarkus:
+#   datasource:
+#     db-kind: postgresql
+#     username: wombat
+#     password: wombat
+#     jdbc:
+#       url: "jdbc:postgresql://localhost:5432/wombat"
+
+connector:
+  boavizta:
+    uri: "http://boavizta:5000/v1/"
+  ecologits:
+    uri: "http://ecologits:80/"
+
+# Local S3 Backup setup (e.g. SeaweedFS service)
+# backup:
+#   enabled: false
+#   cron: "0 0 * * * ?"  # hourly
+#   s3:
+#     key-prefix: sqlite/
+#     endpoint: http://localhost:8333
+#     bucket: wombat-bucket
+#     access-key: admin
+#     secret-key: secret
+
+# Optional Secret resolution directory:
+# wombat:
+#   secret:
+#     directory:
+#       path: /secrets

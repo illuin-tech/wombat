@@ -27,41 +27,26 @@ Here is a sample docker-compose local setup for:
 * local boavizta & ecologits APIs
 * temporary sqlite + periodic S3 backup (this is a demo ; on a local setup you would rather swap that out for an sqlite db file written to a docker volume and do away with the backup)
 
-
 ```yaml
 services:
   wombat:
+    container_name: wombat
     image: illuin/wombat:latest
     ports:
       - "8080:8080"
     volumes:
       - ./application.yaml:/deployments/config/application.yaml:ro
       - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      - ./k8s:/deployments/monitored/k8s:ro
+      - ~/.kube:/deployments/monitored/k8s:ro # you can load them from another local directory
+      - ./data:/var/data:rw
 
   boavizta:
+    container_name: boavizta
     image: ghcr.io/boavizta/boaviztapi:2.4.1
 
   ecologits:
+    container_name: ecologits
     image: ghcr.io/mlco2/ecologits-api:0.0.2
-
-  seaweedfs:
-    image: chrislusf/seaweedfs
-    command: mini -dir=/data
-    ports:
-      - "8333:8333"   # S3 endpoint
-      - "8888:8888"   # Filer UI
-      - "9333:9333"   # Master
-      - "23646:23646" # Admin UI
-    environment:
-      AWS_ACCESS_KEY_ID: admin
-      AWS_SECRET_ACCESS_KEY: secret
-      S3_BUCKET: wombat-bucket
-    volumes:
-      - seaweedfs-data:/data
-
-volumes:
-  seaweedfs-data:
 ```
 
 With the following `application.yaml` file:
@@ -70,27 +55,13 @@ With the following `application.yaml` file:
 quarkus:
   datasource:
     jdbc:
-      url: "jdbc:sqlite:/tmp/local.db" # if you disable the backup below, you can use a volume or local file instead, and remove seaweedfs from your compose file
+      url: "jdbc:sqlite:/var/data/local.db"
 
 connector:
   boavizta:
     uri: "http://boavizta:5000/v1/"
   ecologits:
     uri: "http://ecologits:80/"
-
-backup:
-  enabled: true
-  cron: "0 */10 * * * ?"  # every 10 minutes
-  cleanup:
-    cron: "0 */10 * * * ?"  # every 10 minutes
-    retain-last: 10
-  s3:
-    key-prefix: sqlite/local/
-    endpoint: http://seaweedfs:8333
-    region: "eu-west-1"
-    bucket: wombat-bucket
-    access-key: admin
-    secret-key: secret
 ```
 
 And the following `monitored-environments.yaml` file:
@@ -100,26 +71,26 @@ environments:
   demo:
     id: demo
     assets:
-      # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container. 
+      # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container.
       - type: tech.illuin.wombat-module.kubernetes-api
         id: prod-cluster
         environment-id: demo
         name: Demo Cluster
-        namespace: my-project-namespace
-        config-path: /deployments/monitored/k8s/my-kube.config
-        profile:
+        namespace: my-project-namespace # this should match the namespace you deployed your applications to ; you can create several assets of the same time if multiple namespaces are monitored
+        config-path: /deployments/monitored/k8s/my-kube.config # this should point at your kubeconfig file ; note that the path coincides with the mounting point in the compose.yaml file
+        profile: # this should be tweaked to match the node your workloads is running on
           provider: aws
           instance-type: c5.xlarge
           location: FRA
           lifespan: 43800
-      # This type works with a request yearly estimate and will prorate it dynamically. 
+      # This type works with a request yearly estimate and will prorate it dynamically.
       # This is the bare minimum available in some situations.
       - type: tech.illuin.wombat-module.llm-static
         id: demo-llm
         environment-id: demo
         name: LLM Services
         profile:
-          models:
+          models: # this should be tweaked to match your model & model usage mix
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
@@ -134,7 +105,7 @@ environments:
                 request-per-year: 8000000
 ```
 
-And a valid kubeconfig in `k8s/`, in the configuration above we've named it `my-kube.config`.
+And a valid kubeconfig in `~/.kube`, in the configuration above we've named it `my-kube.config`.
 
 ### Custom Extensions
 

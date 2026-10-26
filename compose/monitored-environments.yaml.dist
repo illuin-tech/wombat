@@ -1,0 +1,36 @@
+environments:
+  demo:
+    id: demo
+    assets:
+      # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container.
+      - type: tech.illuin.wombat-module.kubernetes-api
+        id: prod-cluster
+        environment-id: demo
+        name: Demo Cluster
+        namespace: my-project-namespace # this should match the namespace you deployed your applications to ; you can create several assets of the same time if multiple namespaces are monitored
+        config-path: /deployments/monitored/k8s/my-kube.config # this should point at your kubeconfig file ; note that the path coincides with the mounting point in the compose.yaml file
+        profile: # this should be tweaked to match the node your workloads is running on
+          provider: aws
+          instance-type: c5.xlarge
+          location: FRA
+          lifespan: 43800
+      # This type works with a request yearly estimate and will prorate it dynamically.
+      # This is the bare minimum available in some situations.
+      - type: tech.illuin.wombat-module.llm-static
+        id: demo-llm
+        environment-id: demo
+        name: LLM Services
+        profile:
+          models: # this should be tweaked to match your model & model usage mix
+            - provider: mistralai
+              model: mistral-large-latest
+              location: FRA
+              request-profile:
+                output-token-count: 500
+                request-per-year: 500000
+            - provider: openai
+              model: mistral-large-latest
+              location: SWE
+              request-profile:
+                output-token-count: 150
+                request-per-year: 8000000

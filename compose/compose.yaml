@@ -1,0 +1,37 @@
+services:
+  wombat:
+    container_name: wombat
+    image: wombat-test:0.0.1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application.yaml:/deployments/config/application.yaml:ro
+      - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
+      - ~/.kube:/deployments/monitored/k8s:ro # you can load them from another local directory
+      - ./data:/var/data:rw
+
+  boavizta:
+    container_name: boavizta
+    image: ghcr.io/boavizta/boaviztapi:2.4.1
+
+  ecologits:
+    container_name: ecologits
+    image: ghcr.io/mlco2/ecologits-api:0.0.2
+
+#  seaweedfs:
+#    image: chrislusf/seaweedfs
+#    command: mini -dir=/data
+#    ports:
+#      - "8333:8333"   # S3 endpoint
+#      - "8888:8888"   # Filer UI
+#      - "9333:9333"   # Master
+#      - "23646:23646" # Admin UI
+#    environment:
+#      AWS_ACCESS_KEY_ID: admin
+#      AWS_SECRET_ACCESS_KEY: secret
+#      S3_BUCKET: wombat-bucket
+#    volumes:
+#      - seaweedfs-data:/data
+#
+#volumes:
+#  seaweedfs-data:

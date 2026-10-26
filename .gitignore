@@ -7,7 +7,9 @@ src/main/resources/application-local.yaml
 src/main/resources/application-dev.yaml
 src/**/monitored-environments-dev.yaml
 
-pulumi/node_modules
+/compose/data
+/compose/application.yaml
+/compose/monitored-environments.yaml
 
 /data/
 /secrets/

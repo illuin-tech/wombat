@@ -1,7 +1,7 @@
 services:
   wombat:
     container_name: wombat
-    image: wombat-test:0.0.1
+    image: illuin/wombat:latest
     ports:
       - "8080:8080"
     volumes:

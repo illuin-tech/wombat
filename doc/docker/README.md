@@ -27,7 +27,6 @@ Here is a sample docker-compose local setup for:
 * local boavizta & ecologits APIs
 * temporary sqlite + periodic S3 backup (this is a demo ; on a local setup you would rather swap that out for an sqlite db file written to a docker volume and do away with the backup)
 
-
 ```yaml
 services:
   wombat:

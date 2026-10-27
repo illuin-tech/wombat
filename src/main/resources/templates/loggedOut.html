@@ -5,7 +5,11 @@
   <div class="notice-card">
     <div class="notice-title">Signed out</div>
     <div class="notice-body">
+      {#if idpSessionEnded}
+      You have been signed out of Wombat and of your identity provider.
+      {#else}
       Your Wombat session has been cleared. Your identity provider session may still be active on this device.
+      {/if}
     </div>
     <a class="btn-apply btn-link" href="/">Back to the report</a>
   </div>

@@ -94,16 +94,19 @@ class AuthenticationEnabledTest
             .body(not(containsString("header-user")));
     }
 
+    /** Applies the permissions of application-oidc.yaml, without the OIDC tenant which would need a reachable provider. */
     public static class AuthenticationEnabledProfile implements QuarkusTestProfile
     {
         @Override
+        public String getConfigProfile()
+        {
+            return "test,oidc";
+        }
+
+        @Override
         public Map<String, String> getConfigOverrides()
         {
-            return Map.of(
-                "quarkus.oidc.tenant-enabled", "false",
-                "quarkus.http.auth.permission.public.enabled", "true",
-                "quarkus.http.auth.permission.authenticated.enabled", "true"
-            );
+            return Map.of("quarkus.oidc.tenant-enabled", "false");
         }
     }
 }

@@ -4,22 +4,6 @@ quarkus:
   http:
     limits:
       max-initial-line-length: 32768
-    auth:
-      permission:
-        public:
-          enabled: ${quarkus.oidc.tenant-enabled}
-          policy: permit
-          paths:
-            - /q/metrics
-            - /q/health
-            - /q/health/*
-            - /logout
-            - /public/*
-        authenticated:
-          enabled: ${quarkus.oidc.tenant-enabled}
-          policy: authenticated
-          paths:
-            - /*
   rest-client:
     logging:
       scope: none
@@ -59,17 +43,7 @@ quarkus:
     devservices:
       enabled: false
   oidc:
-    tenant-enabled: false
-  #oidc:
-  #  tenant-enabled: true
-  #  auth-server-url: https://your-idp.example.com/realms/your-realm
-  #  application-type: hybrid
-  #  client-id: my-client-id
-  #  credentials:
-  #    secret: my-client-secret
-  #  authentication:
-  #    redirect-path: /auth/callback
-  #    restore-path-after-redirect: true
+    tenant-enabled: false # enabled by the "oidc" profile, see application-oidc.yaml
   keycloak:
     devservices:
       enabled: false

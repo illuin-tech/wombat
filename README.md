@@ -190,7 +190,7 @@ flowchart LR
 
 ## Documentation
 
-*Documentation is coming soon™*
+* [Access control (OpenID Connect)](doc/access-control.md)
 
 ## How to run
 
@@ -267,52 +267,3 @@ To package it without running tests, append `-DskipTests`:
 This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) ; see the [LICENSE](LICENSE) file for details.
 
 Copyright (c) 2026 Illuin Technology.
-
-## Access Control
-
-Wombat can optionally restrict access to the UI and REST endpoints using OpenID Connect. Authentication is disabled by default (`quarkus.oidc.tenant-enabled: false`).
-
-To enable it, configure your OIDC provider in `application.yaml` (or via environment variables):
-
-```yaml
-quarkus:
-  oidc:
-    tenant-enabled: true
-    auth-server-url: https://your-idp.example.com/realms/your-realm
-    # Or use a pre-configured Quarkus provider shortcut (e.g. google, github, microsoft) instead of auth-server-url:
-    # provider: google
-    application-type: hybrid
-    client-id: <client-id>
-    credentials:
-      secret: <client-secret>
-    authentication:
-      redirect-path: /auth/callback
-      restore-path-after-redirect: true
-  http:
-    auth:
-      permission:
-        public:
-          enabled: ${quarkus.oidc.tenant-enabled}
-          policy: permit
-          paths:
-            - /q/metrics
-            - /q/health
-            - /q/health/*
-            - /logout
-            - /public/*
-        authenticated:
-          enabled: ${quarkus.oidc.tenant-enabled}
-          policy: authenticated
-          paths:
-            - /*
-```
-
-When running behind a reverse proxy or ingress terminating TLS, enable forwarded headers so the OIDC redirect URI is resolved with `https`:
-
-```yaml
-quarkus:
-  http:
-    proxy:
-      proxy-address-forwarding: true
-      enable-forwarded-host: true
-```

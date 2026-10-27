@@ -1,56 +1,32 @@
 package tech.illuin.wombat.ui;
 
-import io.quarkus.oidc.UserInfo;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.json.JsonString;
-import org.eclipse.microprofile.jwt.JsonWebToken;
+import tech.illuin.wombat.security.IdentityClaims;
 
-/**
- * Represents the currently signed-in user for Qute templates (exposed as {@code currentUser} in {@link UIConfig}).
- */
+import java.util.List;
+import java.util.Optional;
+
 public record CurrentUser(
     boolean authenticated,
     String name
 )
 {
-    /** {@code io.quarkus.oidc.runtime.OidcUtils#USER_INFO_ATTRIBUTE} */
-    private static final String USER_INFO_ATTRIBUTE = "userinfo";
-    private static final String EMAIL_CLAIM = "email";
-
     static final CurrentUser ANONYMOUS = new CurrentUser(false, null);
 
-    static CurrentUser from(SecurityIdentity identity)
+    static CurrentUser from(SecurityIdentity identity, List<String> displayNameClaims)
     {
         if (identity == null || identity.isAnonymous())
             return ANONYMOUS;
 
-        return new CurrentUser(true, name(identity));
+        return new CurrentUser(true, name(identity, displayNameClaims));
     }
 
-    private static String name(SecurityIdentity identity)
+    private static String name(SecurityIdentity identity, List<String> displayNameClaims)
     {
-        if (identity.getPrincipal() instanceof JsonWebToken token)
-        {
-            String claim = asString(token.getClaim(EMAIL_CLAIM));
-            if (claim != null && !claim.isBlank())
-                return claim;
-        }
-
-        UserInfo userInfo = identity.getAttribute(USER_INFO_ATTRIBUTE);
-        if (userInfo != null && userInfo.getEmail() != null && !userInfo.getEmail().isBlank())
-            return userInfo.getEmail();
-
-        return identity.getPrincipal() == null ? null : identity.getPrincipal().getName();
-    }
-
-    private static String asString(Object value)
-    {
-        return switch (value)
-        {
-            case null -> null;
-            case String string -> string;
-            case JsonString json -> json.getString();
-            default -> value.toString();
-        };
+        return displayNameClaims.stream()
+            .map(claim -> IdentityClaims.string(identity, claim))
+            .flatMap(Optional::stream)
+            .findFirst()
+            .orElseGet(() -> identity.getPrincipal() == null ? null : identity.getPrincipal().getName());
     }
 }

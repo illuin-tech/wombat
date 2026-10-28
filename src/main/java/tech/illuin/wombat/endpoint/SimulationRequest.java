@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.eclipse.microprofile.openapi.annotations.media.DiscriminatorMapping;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import tech.illuin.wombat.endpoint.validation.ValidTimeRange;
 import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
@@ -37,6 +39,14 @@ public record SimulationRequest(
         @JsonSubTypes.Type(value = SimulatedLLM.class, name = "LLM"),
         @JsonSubTypes.Type(value = SimulatedKubernetes.class, name = "KUBERNETES")
     })
+    @Schema(
+        discriminatorProperty = "type",
+        discriminatorMapping = {
+            @DiscriminatorMapping(value = "LLM", schema = SimulatedLLM.class),
+            @DiscriminatorMapping(value = "KUBERNETES", schema = SimulatedKubernetes.class)
+        },
+        oneOf = { SimulatedLLM.class, SimulatedKubernetes.class }
+    )
     public sealed interface SimulatedAsset permits SimulatedLLM, SimulatedKubernetes
     {
         tech.illuin.wombat.core.asset.SimulatedAsset toSimulatedAsset();

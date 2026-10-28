@@ -3,6 +3,11 @@ package tech.illuin.wombat.endpoint;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.activity.commons.AssetFilter;
@@ -12,6 +17,7 @@ import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.NoCPUUsageException;
 import tech.illuin.wombat.endpoint.response.Response;
+import tech.illuin.wombat.endpoint.response.Status;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -36,6 +42,18 @@ public class ImpactController
     @GET
     @Path("environments")
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", type = SchemaType.ARRAY, implementation = Environment.class)
+                }
+            )
+        )
+    )
     public Response<List<Environment>> getEnvironments()
     {
         List<Environment> environments = this.contextProvider.provide().environments();
@@ -45,6 +63,18 @@ public class ImpactController
     @GET
     @Path("environments/{environment}/assets")
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", type = SchemaType.ARRAY, implementation = EnvironmentDescription.AssetSummary.class)
+                }
+            )
+        )
+    )
     public Response<List<EnvironmentDescription.AssetSummary>> getAssets(@PathParam("environment") String environment)
     {
         try {
@@ -61,6 +91,18 @@ public class ImpactController
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", type = SchemaType.ARRAY, implementation = AssetImpact.class)
+                }
+            )
+        )
+    )
     public Response<List<AssetImpact>> getImpact(@Valid ImpactRequest request)
     {
         try {

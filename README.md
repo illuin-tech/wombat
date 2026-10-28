@@ -190,7 +190,7 @@ flowchart LR
 
 ## Documentation
 
-*Documentation is coming soon™*
+* [Metric compaction](doc/compaction.md): how sourced metrics are folded before being served, and the effects of tuning the compaction window
 
 ## How to run
 

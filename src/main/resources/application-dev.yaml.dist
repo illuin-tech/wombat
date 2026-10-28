@@ -17,6 +17,13 @@ connector:
 monitor:
   environments-file: monitored/monitored-environments-dev.yaml
 
+# Fold sampling rows every 5 minutes instead of every hour, so fresh activity reaches the UI within minutes
+# Keep the defaults in production, see doc/compaction.md
+compaction:
+  cron: "0 1/5 * * * ?" # a minute past every 5-minute window
+  window: 5m
+  delay: 30s
+
 # Local S3 Backup setup (e.g. SeaweedFS service)
 backup:
   enabled: true

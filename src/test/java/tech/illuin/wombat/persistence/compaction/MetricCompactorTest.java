@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 
@@ -30,7 +31,7 @@ import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 @QuarkusTest
 class MetricCompactorTest
 {
-    private static final long HOUR_MS = MetricsConfig.COMPACTION_MILLIS;
+    private static final long HOUR_MS = Duration.ofHours(1).toMillis();
     private static final long FIVE_MINUTES_MS = MetricsConfig.SAMPLING.toMillis();
 
     @Inject MetricCompactor compactor;
@@ -127,6 +128,30 @@ class MetricCompactorTest
         MetricCompactor.CompactionReport report = compactor.compact(instant(5 * HOUR_MS));
 
         assertEquals(MetricCompactor.CompactionReport.empty(), report);
+    }
+
+    /** A narrower window, as the dev profile configures, serves a closed 5-minute window within the hour. */
+    @Test
+    void compact_withANarrowerWindow_foldsEachClosedWindowOfTheHour()
+    {
+        MetricCompactor narrow = new MetricCompactor(kubernetesRepository, llmRepository, Duration.ofMinutes(5), Duration.ofSeconds(30));
+        llmRepository.save(llmRow(0L, 10L));
+        llmRepository.save(llmRow(FIVE_MINUTES_MS, 20L));
+        llmRepository.save(llmRow(2 * FIVE_MINUTES_MS, 40L));
+
+        // 11 minutes in: the first two windows are closed, the third is still being collected.
+        MetricCompactor.CompactionReport report = narrow.compact(instant(Duration.ofMinutes(11).toMillis()));
+
+        assertEquals(2, report.modelWindows());
+        assertEquals(30L, llmRepository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+    }
+
+    @Test
+    void constructor_rejectsAWindowThatDoesNotLineUpWithSamplingOrTheHour()
+    {
+        assertThrows(IllegalArgumentException.class, () -> new MetricCompactor(kubernetesRepository, llmRepository, Duration.ofMinutes(7), Duration.ZERO));
+        assertThrows(IllegalArgumentException.class, () -> new MetricCompactor(kubernetesRepository, llmRepository, Duration.ofMinutes(25), Duration.ZERO));
+        assertThrows(IllegalArgumentException.class, () -> new MetricCompactor(kubernetesRepository, llmRepository, Duration.ofHours(2), Duration.ZERO));
     }
 
     /** Two containers sampled twice in the hour, so a fold has something to average and to group. */

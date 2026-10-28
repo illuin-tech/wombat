@@ -1,7 +1,6 @@
 package tech.illuin.wombat.engine.impact.timeline;
 
 import tech.illuin.wombat.core.activity.commons.TimeRange;
-import tech.illuin.wombat.persistence.micrometer.MetricsConfig;
 
 import java.time.Duration;
 
@@ -9,7 +8,7 @@ import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 public enum TimelineStep
 {
-    HOUR(MetricsConfig.COMPACTION_MILLIS, "hourly", "hours"),
+    HOUR(Duration.ofHours(1).toMillis(), "hourly", "hours"),
     DAY(Duration.ofDays(1).toMillis(), "daily", "days");
 
     private static final long INTRADAY_MAX_SPAN_MS = Duration.ofDays(7).toMillis();

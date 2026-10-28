@@ -17,6 +17,31 @@ connector:
 monitor:
   environments-file: monitored/monitored-environments-dev.yaml
 
+# Fold sampling rows every 5 minutes instead of every hour, so fresh activity reaches the UI within minutes
+# Keep the defaults in production, see doc/compaction.md
+compaction:
+  cron: "0 1/5 * * * ?" # a minute past every 5-minute window
+  window: 5m
+  delay: 30s
+
+# Local S3 Backup setup (e.g. SeaweedFS service), only used by the SQLite backend: drop it when running on PostgreSQL
+# backup:
+#   enabled: true
+#   cron: "0 0 * * * ?"  # hourly
+#   s3:
+#     key-prefix: sqlite/
+#     endpoint: http://localhost:8333
+#     bucket: wombat-bucket
+#     region: us-east-1
+#     access-key: admin
+#     secret-key: secret
+
+# Optional Secret resolution directory:
+# wombat:
+#   secret:
+#     directory:
+#       path: /secrets
+
 "%oidc":
   quarkus:
     oidc:
@@ -32,20 +57,3 @@ monitor:
             paths:
               - /q/dev/*
               - /q/dev-ui/*
-
-# Local S3 Backup setup (e.g. SeaweedFS service)
-backup:
-  enabled: true
-  cron: "0 0 * * * ?"  # hourly
-  s3:
-    key-prefix: sqlite/
-    endpoint: http://localhost:8333
-    bucket: wombat-bucket
-    access-key: admin
-    secret-key: secret
-
-# Optional Secret resolution directory:
-# wombat:
-#   secret:
-#     directory:
-#       path: /secrets

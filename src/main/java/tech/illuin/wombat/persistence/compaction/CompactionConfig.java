@@ -21,9 +21,10 @@ public class CompactionConfig
     @Singleton
     public MetricCompactor provideMetricCompactor(
         KubernetesMetricRepository kubernetesRepository,
-        LLMModelMetricRepository llmRepository
+        LLMModelMetricRepository llmRepository,
+        CompactionProperties properties
     ) {
-        return new MetricCompactor(kubernetesRepository, llmRepository);
+        return new MetricCompactor(kubernetesRepository, llmRepository, properties.window(), properties.delay());
     }
 
     @Singleton

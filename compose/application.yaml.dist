@@ -26,6 +26,7 @@ connector:
 #     key-prefix: sqlite/
 #     endpoint: http://localhost:8333
 #     bucket: wombat-bucket
+#     region: us-east-1
 #     access-key: admin
 #     secret-key: secret
 

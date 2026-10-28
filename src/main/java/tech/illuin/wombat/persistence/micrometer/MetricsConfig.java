@@ -22,13 +22,6 @@ import java.util.concurrent.Executors;
 public class MetricsConfig
 {
     public static final Duration SAMPLING = Duration.ofMinutes(5);
-
-    public static final Duration COMPACTION = Duration.ofHours(1);
-
-    public static final long COMPACTION_MILLIS = COMPACTION.toMillis();
-
-    public static final Duration COMPACTION_DELAY = Duration.ofMinutes(1);
-
     private static final Logger logger = LoggerFactory.getLogger(MetricsConfig.class);
 
     @Singleton

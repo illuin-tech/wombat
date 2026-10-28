@@ -13,7 +13,7 @@ public class CompactionService
         this.compactor = compactor;
     }
 
-    @Scheduled(cron = "0 1 * * * ?")
+    @Scheduled(cron = "${compaction.cron}")
     public void compact()
     {
         this.compactor.compact(Instant.now());

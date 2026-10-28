@@ -64,6 +64,11 @@ module:
   extension:
     path: "extensions"
 
+compaction:
+  cron: "0 1 * * * ?" # a minute past every hour
+  window: 1h
+  delay: 1m
+
 monitor:
   heartbeat: "*/10 * * * * ?" # every 10s
   environments-file: "monitored/monitored-environments.yaml"

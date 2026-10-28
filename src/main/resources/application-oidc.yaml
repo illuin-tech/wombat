@@ -1,0 +1,38 @@
+quarkus:
+  oidc:
+    tenant-enabled: true
+    application-type: hybrid
+    authentication:
+      scopes:
+        - email
+        - profile
+      redirect-path: /auth/callback
+      restore-path-after-redirect: true
+  http:
+    proxy:
+      proxy-address-forwarding: true
+      enable-forwarded-host: true
+    auth:
+      permission:
+        public:
+          policy: permit
+          paths:
+            - /q/metrics
+            - /q/health
+            - /q/health/*
+            - /logout
+            - /logout/*
+            - /public/*
+        authenticated:
+          policy: wombat-access # authenticated + optional auth.* rules
+          paths:
+            - /*
+
+## Access rules (all optional)
+#auth:
+#  roles-allowed: [wombat-users]
+#  allowed-email-domains: [example.com]
+#  email-claim: email
+#  require-verified-email: true
+#  display-name-claims: [email, name, preferred_username]
+#  idp-logout: true

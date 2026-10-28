@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: wombat
       POSTGRES_DB: wombat
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
 
   boavizta:
     image: ghcr.io/boavizta/boaviztapi:2.4.1
@@ -45,7 +45,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./app/compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./compose/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
 
   grafana:

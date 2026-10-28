@@ -17,6 +17,22 @@ connector:
 monitor:
   environments-file: monitored/monitored-environments-dev.yaml
 
+"%oidc":
+  quarkus:
+    oidc:
+      auth-server-url: https://your-idp.example.com
+      client-id: <client-id>
+      credentials:
+        secret: <client-secret>
+    http:
+      auth:
+        permission:
+          dev-ui:
+            policy: permit
+            paths:
+              - /q/dev/*
+              - /q/dev-ui/*
+
 # Local S3 Backup setup (e.g. SeaweedFS service)
 backup:
   enabled: true

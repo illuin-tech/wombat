@@ -190,7 +190,7 @@ flowchart LR
 
 ## Documentation
 
-*Documentation is coming soon™*
+* [Access control (OpenID Connect)](doc/access-control.md)
 
 ## How to run
 

@@ -190,6 +190,7 @@ flowchart LR
 
 ## Documentation
 
+* [Access control (OpenID Connect)](doc/access-control.md)
 * [Metric compaction](doc/compaction.md): how sourced metrics are folded before being served, and the effects of tuning the compaction window
 
 ## How to run

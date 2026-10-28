@@ -85,6 +85,25 @@
         <easepick.version>1.2.1</easepick.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>${quarkus.platform.group-id}</groupId>
+                <artifactId>${quarkus.platform.artifact-id}</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>tech.illuin</groupId>
@@ -168,6 +187,19 @@
             <artifactId>quarkus-smallrye-health</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-oidc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-test-security-oidc</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
             <version>${aws.sdk.version}</version>
@@ -247,25 +279,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>${quarkus.platform.group-id}</groupId>
-                <artifactId>${quarkus.platform.artifact-id}</artifactId>
-                <version>${quarkus.platform.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>${testcontainers.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <plugins>
@@ -422,7 +435,7 @@
                         </goals>
                         <configuration>
                             <uri>https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2</uri>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/vendor/fonts</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/public/fonts</outputDirectory>
                             <outputFileName>dmsans-latin.woff2</outputFileName>
                             <sha512>97e85d9e72e66a605e3defbf6749ba7811e52f584b9447e7ad969b046b045b34ffa6870460552c1f46df78dbf3011889216541bba88019eb727661ebb9d89b6f</sha512>
                         </configuration>
@@ -435,7 +448,7 @@
                         </goals>
                         <configuration>
                             <uri>https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2</uri>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/vendor/fonts</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/public/fonts</outputDirectory>
                             <outputFileName>dmsans-latin-ext.woff2</outputFileName>
                             <sha512>8caa8310822b3328d2e394143ca8dca25a1a2bc5b0ef0ad29f14dfd8160d5a4440ca427fdfbfa58b686de28edf62e2938a09fed6282c5c2da5e07d4f4675e5ef</sha512>
                         </configuration>

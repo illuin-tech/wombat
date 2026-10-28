@@ -42,6 +42,11 @@ quarkus:
   kubernetes-client:
     devservices:
       enabled: false
+  oidc:
+    tenant-enabled: false # enabled by the "oidc" profile, see application-oidc.yaml
+  keycloak:
+    devservices:
+      enabled: false
   micrometer:
     binder:
       netty:

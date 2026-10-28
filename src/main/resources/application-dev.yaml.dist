@@ -25,19 +25,35 @@ compaction:
   delay: 30s
 
 # Local S3 Backup setup (e.g. SeaweedFS service), only used by the SQLite backend: drop it when running on PostgreSQL
-backup:
-  enabled: true
-  cron: "0 0 * * * ?"  # hourly
-  s3:
-    key-prefix: sqlite/
-    endpoint: http://localhost:8333
-    bucket: wombat-bucket
-    region: us-east-1
-    access-key: admin
-    secret-key: secret
+# backup:
+#   enabled: true
+#   cron: "0 0 * * * ?"  # hourly
+#   s3:
+#     key-prefix: sqlite/
+#     endpoint: http://localhost:8333
+#     bucket: wombat-bucket
+#     region: us-east-1
+#     access-key: admin
+#     secret-key: secret
 
 # Optional Secret resolution directory:
 # wombat:
 #   secret:
 #     directory:
 #       path: /secrets
+
+"%oidc":
+  quarkus:
+    oidc:
+      auth-server-url: https://your-idp.example.com
+      client-id: <client-id>
+      credentials:
+        secret: <client-secret>
+    http:
+      auth:
+        permission:
+          dev-ui:
+            policy: permit
+            paths:
+              - /q/dev/*
+              - /q/dev-ui/*

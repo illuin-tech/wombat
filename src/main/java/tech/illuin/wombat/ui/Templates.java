@@ -22,6 +22,8 @@ public class Templates
 
     public static native TemplateInstance impactError(TimeRange timeRange, MaxSpan maxSpan);
 
+    public static native TemplateInstance loggedOut(boolean idpSessionEnded);
+
     public record MaxSpan(long millis, String label) {}
 
     public record AssetSelection(List<Asset> all, List<String> selectedIds) {}

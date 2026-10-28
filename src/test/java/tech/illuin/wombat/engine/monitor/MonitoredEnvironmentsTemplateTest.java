@@ -9,10 +9,8 @@ import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.secret.SecretAware;
+import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
-import tech.illuin.wombat.engine.monitor.MonitorConfig;
-import tech.illuin.wombat.engine.monitor.MonitorProperties;
-import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
@@ -124,9 +122,9 @@ class MonitoredEnvironmentsTemplateTest
     private record TemplateProperties(String environmentsFile) implements MonitorProperties
     {
         @Override
-        public String heartbeat()
+        public Period heartbeat()
         {
-            return "0 0 * * * ?";
+            return Period.parse("1s");
         }
     }
 }

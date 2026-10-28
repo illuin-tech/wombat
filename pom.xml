@@ -51,7 +51,7 @@
 
     <properties>
         <revision>0.0.0-SNAPSHOT</revision>
-        <wombat-core.version>0.12.0</wombat-core.version>
+        <wombat-core.version>0.13.2</wombat-core.version>
         <maven.deploy.skip>true</maven.deploy.skip>
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <java.version>25</java.version>

@@ -2,6 +2,7 @@ package tech.illuin.wombat.engine.context;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.EnvironmentReconciler;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.persistence.*;
@@ -178,7 +179,10 @@ class EnvironmentReconcilerTest
 
     private static KubernetesAPIAsset k8s(String id, int lifespan)
     {
-        return new KubernetesAPIAsset(AssetIdentity.of(id, "e1", id), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, lifespan));
+        return new KubernetesAPIAsset(
+            AssetIdentity.of(id, "e1", id),
+            "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, lifespan)
+        );
     }
 }

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.model.AssetInfo;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.persistence.AssetEntity;
@@ -64,7 +65,9 @@ class AssetInfoTest
     {
         KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800);
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0, profile)));
+            AssetIdentity.of("k", "env", "K"),
+            "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
+        )));
 
         AssetInfo info = AssetInfo.from(entity);
 
@@ -98,7 +101,9 @@ class AssetInfoTest
         LLMPrometheusProfile profile = new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE,
             new LLMPrometheusProfile.DynamicProfile("q"));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P"), "http://prometheus", null, "user", "PROM_PASSWORD", 5, profile)));
+            AssetIdentity.of("p", "env", "P"),
+            "http://prometheus", null, "user", "PROM_PASSWORD", Period.ofSeconds(5), profile
+        )));
 
         AssetInfo info = AssetInfo.from(entity);
 

@@ -2,6 +2,7 @@ package tech.illuin.wombat.engine.context.persistence;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
@@ -9,7 +10,6 @@ import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
-import tech.illuin.wombat.engine.context.persistence.AssetEntity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
@@ -27,8 +27,10 @@ class AssetEntityTest
     void kubernetesPropertiesRoundTripThroughTheEntity()
     {
         KubernetesAPIAsset props = new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), 3,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800));
+            AssetIdentity.of("k", "env", "K"),
+            "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
+        );
 
         AssetEntity entity = AssetEntity.from("env", props);
 
@@ -57,7 +59,7 @@ class AssetEntityTest
     {
         LLMPrometheusAsset props = new LLMPrometheusAsset(
             AssetIdentity.of("p", "env", "P"),
-            "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", 7,
+            "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", Period.ofSeconds(7),
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
 

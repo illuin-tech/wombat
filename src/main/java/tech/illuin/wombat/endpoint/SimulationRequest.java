@@ -73,7 +73,7 @@ public record SimulationRequest(
                 LLMServiceActivity serviceActivity = new LLMServiceActivity(
                     profile.provider(),
                     profile.model(),
-                    Country.ofCode(profile.location()).orElseThrow(() -> new IllegalArgumentException("Cannot determine country from location: " + profile.location())),
+                    profile.location(),
                     this.outputTokenPerRequest * this.requestCount,
                     this.requestCount
                 );

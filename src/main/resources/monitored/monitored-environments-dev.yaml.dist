@@ -10,7 +10,7 @@ environments:
         name: My cluster (preprod)
         namespace: my-namespace
         config-path: /path/to/kubeconfig
-        heartbeat-skip: 1
+        period: 2s
         resolvers:
           cost: random
         profile:
@@ -37,7 +37,7 @@ environments:
 #        environment-id: preprod
 #        name: My served LLM (preprod)
 #        prometheus-url: http://prometheus.my-namespace:9090/
-#        heartbeat-skip: 10
+#        period: 30s
 #        # Basic auth is optional. `password-key` names the environment variable holding the password — never the
 #        # password itself, which would end up in the assets table and in the config-history snapshots. The app
 #        # refuses to start when a declared variable is unset or empty (see RequiredSecretsCheck).

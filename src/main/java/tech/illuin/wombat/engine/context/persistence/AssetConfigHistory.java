@@ -21,7 +21,6 @@ import java.time.Instant;
 @Table(name = "asset_config_history")
 public class AssetConfigHistory extends PanacheEntityBase
 {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(columnDefinition = "INTEGER")

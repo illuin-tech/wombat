@@ -1,11 +1,7 @@
 package tech.illuin.wombat.engine.monitor;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import io.quarkus.runtime.StartupEvent;
-import io.quarkus.scheduler.Scheduler;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;

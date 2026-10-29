@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.persistence.AssetConverter;
 import tech.illuin.wombat.engine.context.persistence.AssetEntity;
@@ -25,13 +26,13 @@ import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.Monitorable;
 import tech.illuin.wombat.core.source.WombatSource;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
-import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -71,7 +72,7 @@ class DynamicModuleIntegrationTest
                         environment-id: dynamic-env
                         name: Dynamic Asset One
                         endpoint: http://custom-source:8080
-                        heartbeat-skip: 1
+                        period: 1s
                 """;
 
             MonitoredEnvironments envs = yamlMapper.readValue(yaml, MonitoredEnvironments.class);
@@ -92,8 +93,8 @@ class DynamicModuleIntegrationTest
             assertEquals("tech.custom.extension.custom-source", entity.type);
             assertEquals(customAsset, entity.toProperties());
 
-            ObjectMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
-            AssetConverter converter = new AssetConverter((com.fasterxml.jackson.databind.json.JsonMapper) jsonMapper);
+            JsonMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
+            AssetConverter converter = new AssetConverter(jsonMapper);
             String dbJson = converter.convertToDatabaseColumn(customAsset);
             assertTrue(dbJson.contains("\"type\":\"tech.custom.extension.custom-source\""));
 
@@ -127,17 +128,20 @@ class DynamicModuleIntegrationTest
         {
             List<WombatModule> modules = loader.load();
             WombatModuleConfig moduleConfig = new WombatModuleConfig();
-            ObjectMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
-            AssetConverter converter = new AssetConverter((com.fasterxml.jackson.databind.json.JsonMapper) jsonMapper);
+            JsonMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
+            AssetConverter converter = new AssetConverter(jsonMapper);
 
-            CustomDynamicAsset customAsset = new CustomDynamicAsset(AssetIdentity.of("dyn-asset-1", "dynamic-env", "Dynamic Asset One"), "http://custom-source:8080", 1);
+            CustomDynamicAsset customAsset = new CustomDynamicAsset(
+                AssetIdentity.of("dyn-asset-1", "dynamic-env", "Dynamic Asset One"),
+                "http://custom-source:8080", Period.ONE_SECOND
+            );
             dbJson = converter.convertToDatabaseColumn(customAsset);
         }
 
         // Now simulate the JAR being removed/dropped: standard modules only
         WombatModuleConfig standardConfig = new WombatModuleConfig();
-        ObjectMapper standardJsonMapper = standardConfig.provideJsonMapper(Collections.emptyList());
-        AssetConverter standardConverter = new AssetConverter((com.fasterxml.jackson.databind.json.JsonMapper) standardJsonMapper);
+        JsonMapper standardJsonMapper = standardConfig.provideJsonMapper(Collections.emptyList());
+        AssetConverter standardConverter = new AssetConverter(standardJsonMapper);
 
         Asset parsedAsset = standardConverter.convertToEntityAttribute(dbJson);
         assertInstanceOf(UnrecognizedAsset.class, parsedAsset);
@@ -235,7 +239,7 @@ class DynamicModuleIntegrationTest
         public final AtomicBoolean sampled = new AtomicBoolean(false);
 
         @Override
-        public List<tech.illuin.wombat.core.source.data.MetricData> source(java.time.Instant heartbeat, Asset asset)
+        public List<tech.illuin.wombat.core.source.data.MetricData> source(Instant heartbeat, Instant lastActivated, Asset asset)
         {
             this.sampled.set(true);
             return Collections.emptyList();
@@ -245,7 +249,7 @@ class DynamicModuleIntegrationTest
     public record CustomDynamicAsset(
         @JsonUnwrapped AssetIdentity identity,
         @JsonProperty("endpoint") String endpoint,
-        @JsonProperty("heartbeat-skip") int heartbeatSkip
+        @JsonProperty("period") Period period
     ) implements Asset, Monitorable
     {
         @JsonCreator
@@ -254,9 +258,9 @@ class DynamicModuleIntegrationTest
             @JsonProperty("environment-id") @JsonAlias("environmentId") String environmentId,
             @JsonProperty("name") String name,
             @JsonProperty("endpoint") String endpoint,
-            @JsonProperty("heartbeat-skip") Integer heartbeatSkip
+            @JsonProperty("period") Period period
         ) {
-            this(AssetIdentity.of(id, environmentId, name), endpoint, heartbeatSkip != null ? heartbeatSkip : 0);
+            this(AssetIdentity.of(id, environmentId, name), endpoint, period != null ? period : Period.ZERO);
         }
 
         @Override

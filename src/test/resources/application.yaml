@@ -36,7 +36,7 @@ quarkus:
     report: false
 
 monitor:
-  heartbeat: "0 0 0 ? * MON#5 2099"
+  heartbeat: "1s"
   environments-file: monitored-environments-test.yaml
 
 module:

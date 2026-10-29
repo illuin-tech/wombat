@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
+import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
@@ -80,7 +81,8 @@ class TemplateFormattersTest
     void namespace_kubernetesAsset_returnsItsNamespace()
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K"), "/kube/config", "ns", Optional.empty(), Optional.empty(), 0,
+            AssetIdentity.of("k", "env", "K"),
+            "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
         );
         assertEquals("ns", TemplateFormatters.namespace(asset));

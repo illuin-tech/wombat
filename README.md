@@ -37,7 +37,10 @@ Currently, there are two API hubs:
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary
 * `api/environments` is for getting information about active environments
 
+Wombat exposes an OpenAPI and Swagger at the following paths:
 
+* `api/openapi`
+* `api/swagger`
 
 ## How It Works
 

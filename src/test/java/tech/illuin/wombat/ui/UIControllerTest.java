@@ -328,7 +328,7 @@ class UIControllerTest
 
         given()
             .redirects().follow(false)
-            .when().get("/environments")
+            .when().get("/api/environments")
             .then()
             .statusCode(200);
 

@@ -35,8 +35,9 @@ Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI a
 Currently, there are two API hubs:
 * `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary
+* `api/environments` is for getting information about active environments
 
-*Documentation is coming soon™*
+
 
 ## How It Works
 

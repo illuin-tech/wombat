@@ -17,6 +17,11 @@ quarkus:
         level: "OFF"
       "io.quarkus.datasource.deployment.devservices.DevServicesDatasourceProcessor":
         level: "OFF"
+  smallrye-openapi:
+    path: /api/openapi
+  swagger-ui:
+    path: /api/swagger
+    always-include: true
 
   datasource:
     db-kind: sqlite

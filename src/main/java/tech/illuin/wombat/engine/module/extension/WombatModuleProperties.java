@@ -18,6 +18,9 @@ public interface WombatModuleProperties
     @WithName("llm-static")
     LlmStaticProperties llmStatic();
 
+    @WithName("llm-anthropic")
+    LlmAnthropicProperties llmAnthropic();
+
     @WithName("extension")
     ExtensionProperties extension();
 
@@ -34,6 +37,12 @@ public interface WombatModuleProperties
     }
 
     interface LlmStaticProperties
+    {
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface LlmAnthropicProperties
     {
         @WithDefault("true")
         boolean enabled();

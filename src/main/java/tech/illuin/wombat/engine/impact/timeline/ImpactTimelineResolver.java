@@ -1,6 +1,10 @@
 package tech.illuin.wombat.engine.impact.timeline;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tech.illuin.wombat.core.activity.WombatActivityException;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
+import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesImpact;
@@ -12,6 +16,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
@@ -19,11 +24,18 @@ public class ImpactTimelineResolver
 {
     private final KubernetesMetricRepository kubernetesRepository;
     private final LLMModelMetricRepository llmRepository;
+    private final AssetEvaluator assetEvaluator;
 
-    public ImpactTimelineResolver(KubernetesMetricRepository kubernetesRepository, LLMModelMetricRepository llmRepository)
-    {
+    private static final Logger logger = LoggerFactory.getLogger(ImpactTimelineResolver.class);
+
+    public ImpactTimelineResolver(
+        KubernetesMetricRepository kubernetesRepository,
+        LLMModelMetricRepository llmRepository,
+        AssetEvaluator assetEvaluator
+    ) {
         this.kubernetesRepository = kubernetesRepository;
         this.llmRepository = llmRepository;
+        this.assetEvaluator = assetEvaluator;
     }
 
     public ImpactTimeline resolve(TimeRange range, List<AssetImpact> impacts, Collection<String> includedServices)
@@ -45,6 +57,16 @@ public class ImpactTimelineResolver
 
     private Map<Long, Double> activityOf(AssetImpact impact, List<String> services, TimeRange range, TimelineStep step)
     {
+        try {
+            Optional<Map<Long, Double>> external = this.assetEvaluator.activityPerBucket(impact, range, step.millis(), services);
+            if (external.isPresent())
+                return external.get();
+        }
+        catch (WombatActivityException | RuntimeException e) {
+            logger.warn("Failed to resolve the per-bucket activity of asset {}, its impact is spread evenly", impact.assetId(), e);
+            return Map.of();
+        }
+
         long start = toEpochMs(range.start());
         long end = toEpochMs(range.end());
 

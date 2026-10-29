@@ -98,6 +98,11 @@ class WombatModuleConfigTest
 
     private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmStatic)
     {
+        return properties(kubernetesApi, llmPrometheus, llmStatic, llmStatic);
+    }
+
+    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmStatic, boolean llmAnthropic)
+    {
         return new WombatModuleProperties()
         {
             @Override
@@ -116,6 +121,12 @@ class WombatModuleConfigTest
             public LlmStaticProperties llmStatic()
             {
                 return () -> llmStatic;
+            }
+
+            @Override
+            public LlmAnthropicProperties llmAnthropic()
+            {
+                return () -> llmAnthropic;
             }
 
             @Override

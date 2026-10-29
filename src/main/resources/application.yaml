@@ -61,6 +61,8 @@ module:
     enabled: true
   llm-static:
     enabled: true
+  llm-anthropic:
+    enabled: true
   extension:
     path: "extensions"
 

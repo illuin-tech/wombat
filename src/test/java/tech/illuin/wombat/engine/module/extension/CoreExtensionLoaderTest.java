@@ -6,6 +6,7 @@ import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
+import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -21,7 +22,7 @@ class CoreExtensionLoaderTest
     @Test
     void alwaysLoadsSimulatedModulesEvenWhenAllCoreModulesDisabled()
     {
-        WombatModuleProperties properties = properties(false, false, false);
+        WombatModuleProperties properties = properties(false, false, false, false);
         try (CoreExtensionLoader loader = new CoreExtensionLoader(properties))
         {
             List<WombatModule> modules = loader.load();
@@ -32,6 +33,7 @@ class CoreExtensionLoaderTest
             assertFalse(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
             assertFalse(modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
             assertFalse(modules.stream().anyMatch(LLMStaticModule.class::isInstance));
+            assertFalse(modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
         }
         catch (IOException e) {
             fail(e);
@@ -41,17 +43,18 @@ class CoreExtensionLoaderTest
     @Test
     void loadsAllModulesWhenAllTogglesEnabled()
     {
-        WombatModuleProperties properties = properties(true, true, true);
+        WombatModuleProperties properties = properties(true, true, true, true);
         try (CoreExtensionLoader loader = new CoreExtensionLoader(properties))
         {
             List<WombatModule> modules = loader.load();
 
-            assertEquals(5, modules.size());
+            assertEquals(6, modules.size());
             assertTrue(modules.stream().anyMatch(KubernetesSimulatedModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(LLMSimulatedModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(LLMStaticModule.class::isInstance));
+            assertTrue(modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
         }
         catch (IOException e) {
             fail(e);
@@ -61,7 +64,7 @@ class CoreExtensionLoaderTest
     @Test
     void loadsOnlySpecificallyEnabledModules()
     {
-        WombatModuleProperties properties = properties(true, false, false);
+        WombatModuleProperties properties = properties(true, false, false, false);
         try (CoreExtensionLoader loader = new CoreExtensionLoader(properties))
         {
             List<WombatModule> modules = loader.load();
@@ -79,6 +82,11 @@ class CoreExtensionLoaderTest
     }
 
     private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmStatic)
+    {
+        return properties(kubernetesApi, llmPrometheus, llmStatic, llmStatic);
+    }
+
+    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmStatic, boolean llmAnthropic)
     {
         return new WombatModuleProperties()
         {
@@ -98,6 +106,12 @@ class CoreExtensionLoaderTest
             public LlmStaticProperties llmStatic()
             {
                 return () -> llmStatic;
+            }
+
+            @Override
+            public LlmAnthropicProperties llmAnthropic()
+            {
+                return () -> llmAnthropic;
             }
 
             @Override

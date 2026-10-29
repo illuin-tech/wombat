@@ -41,7 +41,7 @@ public class ImpactTimelineResolver
     public ImpactTimeline resolve(TimeRange range, List<AssetImpact> impacts, Collection<String> includedServices)
     {
         TimelineStep step = TimelineStep.of(range);
-        Map<String, Map<Long, Double>> weights = new LinkedHashMap<>();
+        Map<String, Map<String, Map<Long, Double>>> weights = new LinkedHashMap<>();
         for (AssetImpact impact : impacts)
         {
             List<String> services = impact.serviceImpacts().stream()
@@ -55,10 +55,10 @@ public class ImpactTimelineResolver
         return ImpactTimeline.of(range, step, impacts, includedServices, weights);
     }
 
-    private Map<Long, Double> activityOf(AssetImpact impact, List<String> services, TimeRange range, TimelineStep step)
+    private Map<String, Map<Long, Double>> activityOf(AssetImpact impact, List<String> services, TimeRange range, TimelineStep step)
     {
         try {
-            Optional<Map<Long, Double>> external = this.assetEvaluator.activityPerBucket(impact, range, step.millis(), services);
+            Optional<Map<String, Map<Long, Double>>> external = this.assetEvaluator.activityPerBucket(impact, range, step.millis(), services);
             if (external.isPresent())
                 return external.get();
         }
@@ -67,6 +67,14 @@ public class ImpactTimelineResolver
             return Map.of();
         }
 
+        Map<Long, Double> assetActivity = this.storedActivityOf(impact, services, range, step);
+        Map<String, Map<Long, Double>> perService = new LinkedHashMap<>();
+        services.forEach(service -> perService.put(service, assetActivity));
+        return perService;
+    }
+
+    private Map<Long, Double> storedActivityOf(AssetImpact impact, List<String> services, TimeRange range, TimelineStep step)
+    {
         long start = toEpochMs(range.start());
         long end = toEpochMs(range.end());
 

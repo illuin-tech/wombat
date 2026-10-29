@@ -29,26 +29,31 @@ public record ImpactTimeline(
         TimelineStep step,
         List<AssetImpact> impacts,
         Collection<String> includedServices,
-        Map<String, Map<Long, Double>> weightsByAsset
+        Map<String, Map<String, Map<Long, Double>>> weightsByAssetAndService
     ) {
         List<Long> starts = bucketStarts(range, step.millis());
         if (starts.isEmpty())
             return new ImpactTimeline(step, List.of(), List.of());
 
+        Map<String, Map<String, double[]>> weights = orderedWeights(starts, weightsByAssetAndService);
         List<Series> series = METRICS.stream()
-            .map(metric -> spread(metric, starts.size(), impacts, includedServices, orderedWeights(starts, weightsByAsset)))
+            .map(metric -> spread(metric, starts.size(), impacts, includedServices, weights))
             .toList();
         return new ImpactTimeline(step, starts, series);
     }
 
-    private static Map<String, double[]> orderedWeights(List<Long> starts, Map<String, Map<Long, Double>> weightsByAsset)
+    private static Map<String, Map<String, double[]>> orderedWeights(List<Long> starts, Map<String, Map<String, Map<Long, Double>>> weightsByAssetAndService)
     {
-        Map<String, double[]> ordered = new java.util.LinkedHashMap<>();
-        weightsByAsset.forEach((assetId, weights) -> {
-            double[] perBucket = new double[starts.size()];
-            for (int i = 0; i < starts.size(); i++)
-                perBucket[i] = Math.max(0.0, weights.getOrDefault(starts.get(i), 0.0));
-            ordered.put(assetId, perBucket);
+        Map<String, Map<String, double[]>> ordered = new java.util.LinkedHashMap<>();
+        weightsByAssetAndService.forEach((assetId, weightsByService) -> {
+            Map<String, double[]> perService = new java.util.LinkedHashMap<>();
+            weightsByService.forEach((serviceId, weights) -> {
+                double[] perBucket = new double[starts.size()];
+                for (int i = 0; i < starts.size(); i++)
+                    perBucket[i] = Math.max(0.0, weights.getOrDefault(starts.get(i), 0.0));
+                perService.put(serviceId, perBucket);
+            });
+            ordered.put(assetId, perService);
         });
         return ordered;
     }
@@ -58,7 +63,7 @@ public record ImpactTimeline(
         int bucketCount,
         List<AssetImpact> impacts,
         Collection<String> includedServices,
-        Map<String, double[]> weightsByAsset
+        Map<String, Map<String, double[]>> weights
     ) {
         double[] embedded = new double[bucketCount];
         double[] use = new double[bucketCount];
@@ -66,21 +71,21 @@ public record ImpactTimeline(
 
         for (AssetImpact impact : impacts)
         {
-            List<Footprint> included = impact.serviceImpacts().stream()
-                .filter(service -> includedServices.contains(service.serviceId()))
-                .map(ServiceImpact::footprint)
-                .toList();
-            if (included.isEmpty())
-                continue;
+            Map<String, double[]> assetWeights = weights.getOrDefault(impact.assetId(), Map.of());
+            for (ServiceImpact service : impact.serviceImpacts())
+            {
+                if (!includedServices.contains(service.serviceId()) || service.footprint() == null)
+                    continue;
 
-            Footprint.FootprintImpact component = metric.component().apply(Footprint.sum(included));
-            if (component == null)
-                continue;
-            if (unit == null)
-                unit = component.unit();
+                Footprint.FootprintImpact component = metric.component().apply(service.footprint());
+                if (component == null)
+                    continue;
+                if (unit == null)
+                    unit = component.unit();
 
-            spreadEvenly(embedded, component.embedded().value());
-            spreadByActivity(use, component.use().value(), weightsByAsset.get(impact.assetId()));
+                spreadEvenly(embedded, component.embedded().value());
+                spreadByActivity(use, component.use().value(), assetWeights.get(service.serviceId()));
+            }
         }
 
         List<Bucket> buckets = new ArrayList<>(bucketCount);

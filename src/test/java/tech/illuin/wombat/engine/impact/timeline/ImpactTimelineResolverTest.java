@@ -67,7 +67,7 @@ class ImpactTimelineResolverTest
     {
         when(this.externalResolver.activityResolverType()).thenReturn(ActivityResolverType.EXTERNAL_API);
         when(this.externalResolver.activityPerBucket(eq(this.externalAsset), eq(RANGE), eq(HOUR_MS), eq(List.of("claude"))))
-            .thenReturn(Map.of(HOUR_MS, 1.0));
+            .thenReturn(Map.of("claude", Map.of(HOUR_MS, 1.0)));
 
         ImpactTimeline timeline = this.resolver.resolve(RANGE, List.of(impact("external", EXTERNAL_TYPE, "claude", 10.0f)), Set.of("claude"));
 

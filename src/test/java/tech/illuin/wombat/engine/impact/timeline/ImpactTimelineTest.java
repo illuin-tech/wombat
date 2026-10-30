@@ -59,7 +59,7 @@ class ImpactTimelineTest
             TimelineStep.HOUR,
             List.of(impact("cluster", service("api", 12.0f, 8.0f))),
             Set.of("api"),
-            Map.of("cluster", Map.of(HOUR_MS, 1.0, 2 * HOUR_MS, 3.0))
+            Map.of("cluster", Map.of("api", Map.of(HOUR_MS, 1.0, 2 * HOUR_MS, 3.0)))
         );
 
         List<ImpactTimeline.Bucket> buckets = series(timeline, "gwp").buckets();
@@ -80,13 +80,29 @@ class ImpactTimelineTest
             TimelineStep.HOUR,
             List.of(impact("cluster", service("api", 12.0f, 8.0f, 30.0f, 10.0f, 0.6f, 0.4f))),
             Set.of("api"),
-            Map.of("cluster", Map.of(HOUR_MS, 1.0))
+            Map.of("cluster", Map.of("api", Map.of(HOUR_MS, 1.0)))
         );
 
         // Every metric puts its whole use in the only bucket with activity, and half its embedded in each.
         assertUseOnlyInSecondBucket(series(timeline, "gwp"), 6.0, 8.0);
         assertUseOnlyInSecondBucket(series(timeline, "pe"), 15.0, 10.0);
         assertUseOnlyInSecondBucket(series(timeline, "adp"), 0.3, 0.4);
+    }
+
+    @Test
+    void of_spreadsEachServiceOverItsOwnActivity()
+    {
+        ImpactTimeline timeline = ImpactTimeline.of(
+            range(0, 2 * HOUR_MS),
+            TimelineStep.HOUR,
+            List.of(impact("claude", service("opus", 0.0f, 90.0f), service("haiku", 0.0f, 10.0f))),
+            Set.of("opus", "haiku"),
+            Map.of("claude", Map.of("opus", Map.of(0L, 100.0), "haiku", Map.of(HOUR_MS, 100.0)))
+        );
+
+        List<ImpactTimeline.Bucket> buckets = series(timeline, "gwp").buckets();
+        assertEquals(90.0, buckets.get(0).use(), 1e-6);
+        assertEquals(10.0, buckets.get(1).use(), 1e-6);
     }
 
     @Test
@@ -134,7 +150,7 @@ class ImpactTimelineTest
                 impact("model", service("mistral", 4.0f, 20.0f))
             ),
             Set.of("api", "worker", "mistral"),
-            Map.of("cluster", Map.of(0L, 2.0, 3 * HOUR_MS, 1.0))
+            Map.of("cluster", Map.of("api", Map.of(0L, 2.0, 3 * HOUR_MS, 1.0), "worker", Map.of(HOUR_MS, 1.0)))
         );
 
         double total = series(timeline, "gwp").buckets().stream().mapToDouble(ImpactTimeline.Bucket::total).sum();
@@ -168,7 +184,7 @@ class ImpactTimelineTest
             TimelineStep.DAY,
             List.of(impact("cluster", service("api", 12.0f, 9.0f))),
             Set.of("api"),
-            Map.of("cluster", Map.of(DAY_MS, 1.0, 2 * DAY_MS, 2.0))
+            Map.of("cluster", Map.of("api", Map.of(DAY_MS, 1.0, 2 * DAY_MS, 2.0)))
         );
 
         assertEquals(DAY_MS, timeline.stepMs());

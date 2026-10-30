@@ -11,8 +11,6 @@ public enum TimelineStep
     HOUR(Duration.ofHours(1).toMillis(), "hourly", "hours"),
     DAY(Duration.ofDays(1).toMillis(), "daily", "days");
 
-    private static final long INTRADAY_MAX_SPAN_MS = Duration.ofDays(7).toMillis();
-
     private final long millis;
     private final String label;
     private final String plural;
@@ -30,7 +28,7 @@ public enum TimelineStep
         long end = toEpochMs(range.end());
         if (start == Long.MIN_VALUE || end == Long.MAX_VALUE || end <= start)
             return DAY;
-        return end - start <= INTRADAY_MAX_SPAN_MS ? HOUR : DAY;
+        return end - start <= TimeRange.HOURLY_MAX_SPAN.toMillis() ? HOUR : DAY;
     }
 
     public long millis()

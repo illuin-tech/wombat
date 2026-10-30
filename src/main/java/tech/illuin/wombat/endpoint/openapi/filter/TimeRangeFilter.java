@@ -10,6 +10,6 @@ public class TimeRangeFilter extends PropertyBasedFilter implements OASFilter
 {
     public TimeRangeFilter()
     {
-        super("TimeRange", Set.of("start", "end"));
+        super("TimeRange", Set.of("start", "end", "resolution"));
     }
 }

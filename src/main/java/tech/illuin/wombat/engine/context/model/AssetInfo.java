@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.context.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
@@ -13,9 +14,9 @@ public record AssetInfo(
     @JsonUnwrapped Asset properties,
     @JsonProperty("type") String type,
     @JsonProperty("uuid") String uuid,
-    @JsonProperty("created-at") Instant createdAt,
-    @JsonProperty("updated-at") Instant updatedAt,
-    @JsonProperty("deleted-at") Instant deletedAt
+    @JsonProperty("createdAt") @JsonAlias("created-at") Instant createdAt,
+    @JsonProperty("updatedAt") @JsonAlias("updated-at") Instant updatedAt,
+    @JsonProperty("deletedAt") @JsonAlias("deleted-at") Instant deletedAt
 ) {
     public AssetInfo(Asset properties, String uuid, Instant createdAt, Instant updatedAt, Instant deletedAt)
     {

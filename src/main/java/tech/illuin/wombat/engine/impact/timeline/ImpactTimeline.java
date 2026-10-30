@@ -80,7 +80,7 @@ public record ImpactTimeline(
                 unit = component.unit();
 
             spreadEvenly(embedded, component.embedded().value());
-            spreadByActivity(use, component.use().value(), weightsByAsset.get(impact.assetId()));
+            spreadByActivity(use, component.use().value(), weightsByAsset.get(impact.assetIdentity().id()));
         }
 
         List<Bucket> buckets = new ArrayList<>(bucketCount);

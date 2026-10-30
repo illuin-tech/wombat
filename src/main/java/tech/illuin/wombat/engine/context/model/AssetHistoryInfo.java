@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.context.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,7 +13,7 @@ import java.time.Instant;
 
 public record AssetHistoryInfo(
     @JsonProperty("action") AssetConfigAction action,
-    @JsonProperty("changed_at") Instant changedAt,
+    @JsonProperty("changedAt") @JsonAlias("changed_at") Instant changedAt,
     @JsonProperty("snapshot") JsonNode snapshot
 )
 {

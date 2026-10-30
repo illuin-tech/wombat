@@ -90,7 +90,7 @@ public record EnvironmentImpact(
 
         for (AssetImpact assetImpact : assetImpacts)
         {
-            String name = assetNames.getOrDefault(assetImpact.assetId(), assetImpact.assetId());
+            String name = assetNames.getOrDefault(assetImpact.assetIdentity().id(), assetImpact.assetIdentity().id());
             List<tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact> includedImpacts = assetImpact.serviceImpacts().stream()
                 .filter(impact -> included.contains(impact.serviceId()))
                 .toList();

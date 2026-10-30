@@ -69,16 +69,11 @@ public class DynamicExtensionLoader implements ExtensionLoader
 
             for (WombatModule module : serviceLoader)
             {
-                if (module.type() == null || module.type().name().isBlank())
-                    throw new IllegalArgumentException("Extension module " + module.getClass().getName() + " has invalid AssetType");
-                if (module.assetClass() == null)
-                    throw new IllegalArgumentException("Extension module " + module.getClass().getName() + " has null assetClass");
+                ExtensionContractCheck.check(module).ifPresent(logger::warn);
 
                 String typeName = module.type().name();
                 if (!seenTypes.add(typeName))
                     throw new IllegalArgumentException("Duplicate extension module registered for asset-type: " + typeName);
-
-                ExtensionContractCheck.check(module).ifPresent(logger::warn);
 
                 modules.add(module);
                 logger.info("Discovered extension module {} for asset-type {}", module.getClass().getName(), typeName);

@@ -1,82 +1,67 @@
 package tech.illuin.wombat.engine.module.extension;
 
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.core.activity.commons.ActivityData;
-import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
-import tech.illuin.wombat.core.asset.profile.LLMProfile;
-import tech.illuin.wombat.core.asset.profile.LLMProvider;
-import tech.illuin.wombat.core.asset.profile.AssetProfile;
-import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
-import tech.illuin.wombat.core.evaluation.cost.commons.AssetCost;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.module.extension.ExtensionContractCheck;
 
-import java.util.Optional;
-
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ExtensionContractCheckTest
 {
-    private static final AssetType LLM_TYPE = AssetType.of("tech.test", "llm", ActivityRegime.MODELED, ServiceFamily.LLM);
-    private static final AssetType K8S_TYPE = AssetType.of("tech.test", "k8s", ActivityRegime.MEASURED, ServiceFamily.KUBERNETES_CONTAINER);
+    private static final AssetType VALID_TYPE = AssetType.of("tech.test", "sample", ActivityRegime.MODELED, ServiceFamily.LLM);
 
     @Test
-    void check_compatibleProfile_passes()
+    void check_validModule_passes()
     {
-        assertTrue(ExtensionContractCheck.check(new TestModule(LLM_TYPE, CompatibleAsset.class, false)).isEmpty());
-    }
-
-    @Test
-    void check_incompatibleFinalProfile_reportsMismatch()
-    {
-        Optional<String> warning = ExtensionContractCheck.check(new TestModule(LLM_TYPE, IncompatibleAsset.class, false));
-        assertTrue(warning.isPresent());
-        assertTrue(warning.get().contains(PlainProfile.class.getName()));
-        assertTrue(warning.get().contains(LLMProfile.class.getName()));
+        assertTrue(ExtensionContractCheck.check(new TestModule(VALID_TYPE, TestAsset.class)).isEmpty());
     }
 
     @Test
-    void check_incompatibleProfileForKubernetesFamily_reportsMismatch()
+    void check_nullType_throwsIllegalArgumentException()
     {
-        assertTrue(ExtensionContractCheck.check(new TestModule(K8S_TYPE, IncompatibleAsset.class, false)).isPresent());
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> ExtensionContractCheck.check(new TestModule(null, TestAsset.class))
+        );
+        assertTrue(exception.getMessage().contains("has invalid AssetType"));
     }
 
     @Test
-    void check_nonFinalDeclaredProfile_passes()
+    void check_blankTypeName_throwsIllegalArgumentException()
     {
-        assertTrue(ExtensionContractCheck.check(new TestModule(LLM_TYPE, GenericAsset.class, false)).isEmpty());
+        AssetType blankType = mock(AssetType.class);
+        when(blankType.name()).thenReturn("   ");
+
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> ExtensionContractCheck.check(new TestModule(blankType, TestAsset.class))
+        );
+        assertTrue(exception.getMessage().contains("has invalid AssetType"));
     }
 
     @Test
-    void check_ownImpactResolver_passes()
+    void check_nullAssetClass_throwsIllegalArgumentException()
     {
-        assertTrue(ExtensionContractCheck.check(new TestModule(LLM_TYPE, IncompatibleAsset.class, true)).isEmpty());
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> ExtensionContractCheck.check(new TestModule(VALID_TYPE, null))
+        );
+        assertTrue(exception.getMessage().contains("has null assetClass"));
     }
 
-    private record TestModule(AssetType type, Class<? extends Asset> assetClass, boolean ownResolver) implements WombatModule
-    {
-        @Override
-        public Optional<WombatEvaluationResolver> createImpactResolver()
-        {
-            if (!this.ownResolver)
-                return Optional.empty();
-            return Optional.of((Asset asset, ActivityData _) -> new AssetCost(asset.identity().environmentId(), asset.identity().id()));
-        }
-    }
-
-    public record PlainProfile(String id) implements AssetProfile {}
-
-    public record TestLLMProfile(LLMProvider provider, String model, String location) implements LLMProfile
+    private record TestModule(AssetType type, Class<? extends Asset> assetClass) implements WombatModule
     {
     }
 
-    public record CompatibleAsset(AssetIdentity identity, AssetType type, TestLLMProfile profile) implements Asset {}
-
-    public record IncompatibleAsset(AssetIdentity identity, AssetType type, PlainProfile profile) implements Asset {}
-
-    public record GenericAsset(AssetIdentity identity, AssetType type, AssetProfile profile) implements Asset {}
+    public record TestAsset(AssetIdentity identity, AssetType type, AssetProfile profile) implements Asset
+    {
+    }
 }

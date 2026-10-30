@@ -139,8 +139,8 @@ class SimulationControllerTest
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
-            .body("payload[0].environmentId", is("simulated-environment"))
-            .body("payload[0].assetId", is("simulated-asset"));
+            .body("payload[0].assetIdentity.environmentId", is("simulated-environment"))
+            .body("payload[0].assetIdentity.id", is("simulated-asset"));
     }
 
     @Test
@@ -155,8 +155,8 @@ class SimulationControllerTest
             .statusCode(200)
             .body("payload.size()", is(2))
             .body("payload[0].provider", is("ECOLOGITS"))
-            .body("payload[1].environmentId", is("simulated-environment"))
-            .body("payload[1].assetId", is("simulated-asset"));
+            .body("payload[1].assetIdentity.environmentId", is("simulated-environment"))
+            .body("payload[1].assetIdentity.id", is("simulated-asset"));
     }
 
     @Test

@@ -63,15 +63,15 @@ class EnvironmentImpactTest
         );
 
         Footprint globalFootprint = Footprint.sum(List.of(fp1, fp2));
+        AssetIdentity identity = AssetIdentity.of("llm-asset-1", "prod", "Test LLM Asset");
         AssetImpact assetImpact = new AssetImpact(
-            "prod",
-            "llm-asset-1",
+            identity,
             globalFootprint,
             List.of(impact1, impact2),
             ImpactProvider.ECOLOGITS
         );
 
-        TestAsset asset = new TestAsset(AssetIdentity.of("llm-asset-1", "prod", "Test LLM Asset"), LLM_TYPE, profile);
+        TestAsset asset = new TestAsset(identity, LLM_TYPE, profile);
         EnvironmentImpact envImpact = EnvironmentImpact.from(List.of(assetImpact), List.of(asset), List.of(), RANGE);
         assertEquals(1, envImpact.llmPanels().size());
 

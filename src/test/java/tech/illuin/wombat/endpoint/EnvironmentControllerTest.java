@@ -22,13 +22,13 @@ class EnvironmentControllerTest
             .body("payload.id", hasItem("test"))
             .body("payload.find { it.id == 'test' }.name", is("test"))
             .body("payload.find { it.id == 'test' }.uuid", notNullValue())
-            .body("payload.find { it.id == 'test' }.'created-at'", notNullValue())
-            .body("payload.find { it.id == 'test' }.'disabled-at'", nullValue())
+            .body("payload.find { it.id == 'test' }.'createdAt'", notNullValue())
+            .body("payload.find { it.id == 'test' }.'disabledAt'", nullValue())
             .body("payload.find { it.id == 'test' }.assets.id", hasItem("test-cluster"))
             .body("payload.find { it.id == 'test' }.assets.id", hasItem("test-llm"))
             .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.namespace", is("test-ns"))
-            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.profile.'instance-type'", is("c5.large"))
-            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.'created-at'", notNullValue());
+            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.profile.'instanceType'", is("c5.large"))
+            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.'createdAt'", notNullValue());
     }
 
     @Test
@@ -40,7 +40,7 @@ class EnvironmentControllerTest
             .statusCode(200)
             .body("payload.action", hasItem("CREATE"))
             .body("payload.find { it.action == 'CREATE' }.snapshot.id", is("test-llm"))
-            .body("payload.find { it.action == 'CREATE' }.changed_at", notNullValue());
+            .body("payload.find { it.action == 'CREATE' }.changedAt", notNullValue());
     }
 
     @Test

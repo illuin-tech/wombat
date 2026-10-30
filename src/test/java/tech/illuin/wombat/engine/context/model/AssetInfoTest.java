@@ -86,13 +86,13 @@ class AssetInfoTest
         assertEquals("k", json.get("id").asText());
         assertEquals("K", json.get("name").asText());
         assertEquals(KubernetesAPIModule.TYPE.name(), json.get("type").asText());
-        assertEquals("/kube/config", json.get("config-path").asText());
+        assertEquals("/kube/config", json.get("configPath").asText());
         assertEquals("ns", json.get("namespace").asText());
-        assertEquals("c5.large", json.get("profile").get("instance-type").asText());
+        assertEquals("c5.large", json.get("profile").get("instanceType").asText());
         assertEquals("uuid", json.get("uuid").asText());
-        assertTrue(json.has("created-at"));
-        assertTrue(json.has("updated-at"));
-        assertFalse(json.has("deleted-at"));
+        assertTrue(json.has("createdAt"));
+        assertTrue(json.has("updatedAt"));
+        assertFalse(json.has("deletedAt"));
     }
 
     @Test
@@ -114,9 +114,9 @@ class AssetInfoTest
         assertEquals(profile, prom.profile());
 
         JsonNode json = mapper.readTree(mapper.writeValueAsString(info));
-        assertEquals("http://prometheus", json.get("prometheus-url").asText());
+        assertEquals("http://prometheus", json.get("prometheusUrl").asText());
         assertEquals("user", json.get("username").asText());
-        assertEquals("PROM_PASSWORD", json.get("password-key").asText());
+        assertEquals("PROM_PASSWORD", json.get("passwordKey").asText());
         assertFalse(json.has("password"));
         // The asset itself only carries `PROM_PASSWORD`, the variable name — the password lives in the environment
         // and is read at scrape time, so there is nothing for the API to leak.
@@ -139,9 +139,9 @@ class AssetInfoTest
         assertEquals("s", json.get("id").asText());
         assertEquals("S", json.get("name").asText());
         assertEquals(LLMStaticModule.TYPE.name(), json.get("type").asText());
-        assertFalse(json.has("prometheus-url"));
+        assertFalse(json.has("prometheusUrl"));
         assertFalse(json.has("namespace"));
-        assertFalse(json.has("config-path"));
+        assertFalse(json.has("configPath"));
     }
 
     @Test
@@ -156,7 +156,7 @@ class AssetInfoTest
         assertEquals("dyn1", json.get("id").asText());
         assertEquals("Dynamic", json.get("name").asText());
         assertEquals("tech.illuin.custom", json.get("type").asText());
-        assertEquals("custom-value", json.get("custom-field").asText());
+        assertEquals("custom-value", json.get("customField").asText());
         assertEquals("prof-1", json.get("profile").get("id").asText());
         assertEquals("test-val", json.get("profile").get("param").asText());
         assertEquals("uuid", json.get("uuid").asText());
@@ -168,7 +168,7 @@ class AssetInfoTest
     private record DynamicAsset(
         @JsonUnwrapped AssetIdentity identity,
         @JsonProperty("profile") DynamicProfile profile,
-        @JsonProperty("custom-field") String customField
+        @JsonProperty("customField") String customField
     ) implements Asset
     {
         @Override

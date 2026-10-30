@@ -76,8 +76,8 @@ class ImpactControllerTest
             .then()
             .statusCode(200)
             .body("payload.size()", is(1))
-            .body("payload[0].assetId", is("test-cluster"))
-            .body("payload[0].environmentId", is("test"))
+            .body("payload[0].assetIdentity.id", is("test-cluster"))
+            .body("payload[0].assetIdentity.environmentId", is("test"))
             .body("payload[0].provider", is("BOAVIZTA"))
             .body("payload[0].footprint.gwp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
@@ -99,7 +99,7 @@ class ImpactControllerTest
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
-            .body("payload.assetId", containsInAnyOrder("test-cluster", "test-llm"));
+            .body("payload.assetIdentity.id", containsInAnyOrder("test-cluster", "test-llm"));
     }
 
     @Test
@@ -118,11 +118,11 @@ class ImpactControllerTest
             .then()
             .statusCode(200)
             .body("payload.size()", is(2))
-            .body("payload.environmentId", containsInAnyOrder("test", "test"))
-            .body("payload.find { it.assetId == 'test-cluster' }.provider", is("BOAVIZTA"))
-            .body("payload.find { it.assetId == 'test-cluster' }.footprint.gwp", notNullValue())
-            .body("payload.find { it.assetId == 'test-cluster' }.serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"))
-            .body("payload.find { it.assetId == 'test-cluster' }.serviceImpacts[0].location.namespace", is("test-ns"));
+            .body("payload.assetIdentity.environmentId", containsInAnyOrder("test", "test"))
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.provider", is("BOAVIZTA"))
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.footprint.gwp", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"))
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].location.namespace", is("test-ns"));
     }
 
     @Test

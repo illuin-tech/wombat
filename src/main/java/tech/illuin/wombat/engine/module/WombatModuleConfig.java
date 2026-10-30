@@ -45,7 +45,7 @@ import java.util.List;
 @ApplicationScoped
 public class WombatModuleConfig
 {
-    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData _) -> new AssetCost(asset.identity().environmentId(), asset.identity().id());
+    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData _) -> new AssetCost(asset.identity());
     private static final Logger logger = LoggerFactory.getLogger(WombatModuleConfig.class);
 
     @Produces @Singleton

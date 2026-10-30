@@ -2,8 +2,9 @@ package tech.illuin.wombat.engine.impact.timeline;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
+import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
 import tech.illuin.wombat.core.evaluation.impact.commons.ImpactProvider;
@@ -217,7 +218,7 @@ class ImpactTimelineTest
     {
         List<ServiceImpact> serviceImpacts = List.of(services);
         Footprint footprint = Footprint.sum(serviceImpacts.stream().map(ServiceImpact::footprint).toList());
-        return new AssetImpact("env", assetId, footprint, serviceImpacts, ImpactProvider.BOAVIZTA);
+        return new AssetImpact(AssetIdentity.of(assetId, "env", "name"), footprint, serviceImpacts, ImpactProvider.BOAVIZTA);
     }
 
     private static ServiceImpact service(String serviceId, float embedded, float use)

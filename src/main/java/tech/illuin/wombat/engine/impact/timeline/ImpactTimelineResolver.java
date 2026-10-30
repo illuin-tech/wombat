@@ -38,7 +38,7 @@ public class ImpactTimelineResolver
                 .toList();
             if (services.isEmpty())
                 continue;
-            weights.put(impact.assetId(), this.activityOf(impact, services, range, step));
+            weights.put(impact.assetIdentity().id(), this.activityOf(impact, services, range, step));
         }
         return ImpactTimeline.of(range, step, impacts, includedServices, weights);
     }
@@ -49,9 +49,9 @@ public class ImpactTimelineResolver
         long end = toEpochMs(range.end());
 
         if (impact.serviceImpacts().stream().anyMatch(KubernetesImpact.class::isInstance))
-            return this.kubernetesRepository.cpuTimePerBucket(start, end, step.millis(), List.of(impact.assetId()), services);
+            return this.kubernetesRepository.cpuTimePerBucket(start, end, step.millis(), List.of(impact.assetIdentity().id()), services);
         if (impact.serviceImpacts().stream().anyMatch(LLMImpact.class::isInstance))
-            return this.llmRepository.outputTokensPerBucket(start, end, step.millis(), impact.assetId(), services);
+            return this.llmRepository.outputTokensPerBucket(start, end, step.millis(), impact.assetIdentity().id(), services);
         return Map.of();
     }
 }

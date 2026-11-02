@@ -3,6 +3,7 @@ package tech.illuin.wombat.engine.module.extension;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
+import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -26,11 +27,11 @@ public class CoreExtensionLoader implements ExtensionLoader
 
         modules.add(new KubernetesSimulatedModule());
         modules.add(new LLMSimulatedModule());
+        modules.add(new KubernetesStaticModule());
+        modules.add(new LLMStaticModule());
 
         if (this.properties.llmPrometheus().enabled())
             modules.add(new LLMPrometheusModule());
-        if (this.properties.llmStatic().enabled())
-            modules.add(new LLMStaticModule());
         if (this.properties.kubernetesApi().enabled())
             modules.add(new KubernetesAPIModule());
 

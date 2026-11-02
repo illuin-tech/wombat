@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.model.AssetInfo;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
@@ -30,8 +31,10 @@ import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
+import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,7 +66,7 @@ class AssetInfoTest
     @Test
     void exposesKubernetesConnectionProfileAndTimestamps() throws Exception
     {
-        KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800);
+        KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5));
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"),
             "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
@@ -125,10 +128,14 @@ class AssetInfoTest
     @Test
     void exposesStaticProfileWithoutConnectionFields() throws Exception
     {
-        LLMStaticProfile profile = new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE,
-            new LLMStaticProfile.RequestProfile(500, 1000));
+        LLMStaticProfile profile = new LLMStaticProfile(
+            LLMProvider.mistralai, "m", FRANCE,
+            List.of(new ConstantScenario(500, 1000, null))
+        );
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S"), profile)));
+            AssetIdentity.of("s", "env", "S"),
+            profile
+        )));
 
         AssetInfo info = AssetInfo.from(entity);
 

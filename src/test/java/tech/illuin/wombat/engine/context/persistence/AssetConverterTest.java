@@ -1,6 +1,7 @@
 package tech.illuin.wombat.engine.context.persistence;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
@@ -21,6 +22,7 @@ import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
+import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 
 import java.time.Duration;
 import java.util.List;
@@ -39,7 +41,7 @@ class AssetConverterTest
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"),
             "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
 
         assertEquals(asset, this.roundTrip(asset));
@@ -50,7 +52,9 @@ class AssetConverterTest
     {
         LLMStaticAsset asset = new LLMStaticAsset(
             AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
+                new ConstantScenario(500, 1000, null)
+            ))
         );
         assertEquals(asset, this.roundTrip(asset));
     }
@@ -69,8 +73,12 @@ class AssetConverterTest
     @Test
     void storedJson_carriesTheAssetTypeDiscriminator()
     {
-        LLMStaticAsset asset = new LLMStaticAsset(AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000)));
+        LLMStaticAsset asset = new LLMStaticAsset(
+            AssetIdentity.of("s", "env", "S"),
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
+                new ConstantScenario(500, 1000, null)
+            ))
+        );
 
         String json = this.converter.convertToDatabaseColumn(asset);
 

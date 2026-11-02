@@ -22,7 +22,7 @@ public record KubernetesAssetPanel(
     ServerProvider provider,
     String instanceType,
     String location,
-    int lifespan,
+    long lifespan,
     List<ClusterInfo> clusters,
     ServerSpecification specification,
     Load load

@@ -2,6 +2,7 @@ package tech.illuin.wombat.engine.context;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.EnvironmentReconciler;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
@@ -39,7 +40,7 @@ class EnvironmentReconcilerTest
     void createsMissingEnvironmentAndAsset_withCreateHistory()
     {
         // Everything unstubbed: Mockito returns Optional.empty()/empty lists, i.e. a fresh DB.
-        this.reconcile(desired("e1", "Env 1", k8s("a1", 43800)));
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
 
         verify(this.environments).persist(any(EnvironmentEntity.class));
         verify(this.assets).persist(any(AssetEntity.class));
@@ -49,22 +50,22 @@ class EnvironmentReconcilerTest
     @Test
     void updatesChangedAsset_withUpdateHistory()
     {
-        AssetEntity existing = AssetEntity.from("e1", k8s("a1", 43800));
+        AssetEntity existing = AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5)));
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(existing));
 
-        this.reconcile(desired("e1", "Env 1", k8s("a1", 26280))); // lifespan changed
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(3)))); // lifespan changed
 
         assertEquals(AssetConfigAction.UPDATE, this.capturedAction());
-        assertEquals(26280, ((KubernetesAPIAsset) existing.properties).profile().lifespan());
+        assertEquals("3y", ((KubernetesAPIAsset) existing.properties).profile().lifespan().asText());
     }
 
     @Test
     void leavesUnchangedAssetUntouched_withNoHistory()
     {
-        AssetEntity existing = AssetEntity.from("e1", k8s("a1", 43800));
+        AssetEntity existing = AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5)));
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(existing));
 
-        this.reconcile(desired("e1", "Env 1", k8s("a1", 43800))); // identical config
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))); // identical config
 
         verify(this.history, never()).persist(any(AssetConfigHistory.class));
     }
@@ -72,11 +73,11 @@ class EnvironmentReconcilerTest
     @Test
     void undeletesReturningAsset_withCreateHistory()
     {
-        AssetEntity existing = AssetEntity.from("e1", k8s("a1", 43800));
+        AssetEntity existing = AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5)));
         existing.deletedAt = EnvironmentEntity.now();
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(existing));
 
-        this.reconcile(desired("e1", "Env 1", k8s("a1", 43800)));
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
 
         assertNull(existing.deletedAt);
         assertEquals(AssetConfigAction.CREATE, this.capturedAction());
@@ -85,7 +86,7 @@ class EnvironmentReconcilerTest
     @Test
     void softDeletesAssetAbsentFromYaml_withDeleteHistory()
     {
-        AssetEntity orphan = AssetEntity.from("e1", k8s("gone", 43800));
+        AssetEntity orphan = AssetEntity.from("e1", k8s("gone", Lifetime.ofYears(5)));
         when(this.assets.list("deletedAt is null")).thenReturn(List.of(orphan));
 
         this.reconcile(desired("e1", "Env 1")); // env kept, but no assets -> "gone" must be removed
@@ -132,11 +133,11 @@ class EnvironmentReconcilerTest
 
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(existing));
 
-        this.reconcile(desired("e1", "Env 1", k8s("a1", 43800)));
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
 
         assertEquals(AssetConfigAction.UPDATE, this.capturedAction());
         assertEquals(KubernetesAPIModule.TYPE.name(), existing.type);
-        assertEquals(k8s("a1", 43800), existing.properties);
+        assertEquals(k8s("a1", Lifetime.ofYears(5)), existing.properties);
     }
 
     @Test
@@ -177,7 +178,7 @@ class EnvironmentReconcilerTest
         return Map.of(envId, new Environment(name, List.of(assetProps)));
     }
 
-    private static KubernetesAPIAsset k8s(String id, int lifespan)
+    private static KubernetesAPIAsset k8s(String id, Lifetime lifespan)
     {
         return new KubernetesAPIAsset(
             AssetIdentity.of(id, "e1", id),

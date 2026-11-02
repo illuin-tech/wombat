@@ -15,9 +15,6 @@ public interface WombatModuleProperties
     @WithName("llm-prometheus")
     LlmPrometheusProperties llmPrometheus();
 
-    @WithName("llm-static")
-    LlmStaticProperties llmStatic();
-
     @WithName("extension")
     ExtensionProperties extension();
 
@@ -28,12 +25,6 @@ public interface WombatModuleProperties
     }
 
     interface LlmPrometheusProperties
-    {
-        @WithDefault("true")
-        boolean enabled();
-    }
-
-    interface LlmStaticProperties
     {
         @WithDefault("true")
         boolean enabled();

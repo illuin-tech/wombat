@@ -4,20 +4,35 @@ environments:
   preprod:
     id: preprod
     assets:
-      - type: tech.illuin.wombat-module.kubernetes-api
+      - type: tech.illuin.wombat-module.kubernetes-static
         id: my-cluster
         environment-id: preprod
         name: My cluster (preprod)
-        namespace: my-namespace
-        config-path: /path/to/kubeconfig
-        period: 2s
-        resolvers:
-          cost: random
         profile:
           provider: aws
           instance-type: c5a.4xlarge
           location: FRA
-          lifespan: 43800  # hours
+          lifespan: 5y
+          node-count: 1
+          zone-id: Europe/Paris
+          scenarios:
+            - type: constant
+              load: 0.10
+            - type: user_activity
+              baseline-load: 0.10
+              peak-load: 0.75
+              opening-time: "08:00:00"
+              closing-time: "18:00:00"
+              #curve: bell
+              jitter: 0.05
+              applicability:
+                daysOfWeek: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+            - type: batch_activity
+              baseline-load: 0.0
+              peak-load: 0.90
+              trigger-time: "02:00:00"
+              duration: PT2H
+              #smoothing: linear_ramp
       - type: tech.illuin.wombat-module.llm-static
         id: my-llm
         environment-id: preprod
@@ -25,13 +40,47 @@ environments:
         resolvers:
           cost: csv-my-llm-a-con
         profile:
+          zone-id: Europe/Paris
           models:
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
-              request-profile:
-                output-token-count: 500
-                request-per-year: 1000000
+              scenarios:
+                - type: user_activity
+                  baseline-request-per-year: 50000
+                  peak-request-per-year: 5000000
+                  output-token-per-request: 400
+                  opening-time: "08:00:00"
+                  closing-time: "18:00:00"
+                  #curve: bell
+                  jitter: 0.05
+                  applicability:
+                    daysOfWeek: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+            - provider: openai
+              model: gpt-5.5-pro
+              location: SWE
+              scenarios:
+                - type: batch_activity
+                  baseline-request-per-year: 0
+                  peak-request-per-year: 1000000
+                  output-token-per-request: 2000
+                  trigger-time: "02:00:00"
+                  duration: PT2H
+                  smoothing: linear_ramp
+#      - type: tech.illuin.wombat-module.kubernetes-api
+#        id: my-cluster-live
+#        environment-id: preprod
+#        name: My cluster live (preprod)
+#        namespace: my-namespace
+#        config-path: /path/to/kubeconfig
+#        period: 2s
+#        resolvers:
+#          cost: random
+#        profile:
+#          provider: aws
+#          instance-type: c5a.4xlarge
+#          location: FRA
+#          lifespan: 5y
 #      - type: tech.illuin.wombat-module.llm-prometheus
 #        id: my-served-llm
 #        environment-id: preprod

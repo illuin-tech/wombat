@@ -3,14 +3,17 @@ package tech.illuin.wombat.ui;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
+import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
+import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -83,7 +86,7 @@ class TemplateFormattersTest
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", "K"),
             "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
+            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
         assertEquals("ns", TemplateFormatters.namespace(asset));
     }
@@ -93,7 +96,7 @@ class TemplateFormattersTest
     {
         LLMStaticAsset asset = new LLMStaticAsset(
             AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000)))
         );
         assertEquals("", TemplateFormatters.namespace(asset));
     }

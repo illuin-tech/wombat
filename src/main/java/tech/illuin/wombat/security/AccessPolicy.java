@@ -43,9 +43,12 @@ public class AccessPolicy implements HttpSecurityPolicy
         if (identity == null || identity.isAnonymous())
             return CheckResult.DENY;
 
-        if (!this.hasAllowedRole(identity))
+        if (Caller.isApiKey(identity))
+            return CheckResult.PERMIT;
+
+        if (Caller.roles(identity).isEmpty())
         {
-            logger.debug("Access denied to {}: none of the roles {} granted", identity.getPrincipal().getName(), this.properties.rolesAllowed().orElseThrow());
+            logger.debug("Access denied to {}: none of their identity provider roles {} is mapped to a Wombat role", identity.getPrincipal().getName(), identity.getRoles());
             return CheckResult.DENY;
         }
         if (!this.hasAllowedEmail(identity))
@@ -54,13 +57,6 @@ public class AccessPolicy implements HttpSecurityPolicy
             return CheckResult.DENY;
         }
         return CheckResult.PERMIT;
-    }
-
-    private boolean hasAllowedRole(SecurityIdentity identity)
-    {
-        return this.properties.rolesAllowed()
-            .map(roles -> roles.stream().anyMatch(identity::hasRole))
-            .orElse(true);
     }
 
     private boolean hasAllowedEmail(SecurityIdentity identity)

@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -15,6 +16,7 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.security.Permission;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,7 @@ import static tech.illuin.wombat.endpoint.SimulationRequest.Scope.COST;
 import static tech.illuin.wombat.endpoint.SimulationRequest.Scope.IMPACT;
 
 @Path("api/simulation")
+@PermissionsAllowed(Permission.Names.API_SIMULATION_READ)
 public class SimulationController
 {
     private final AssetEvaluator evaluator;

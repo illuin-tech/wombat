@@ -13,19 +13,60 @@
 <body>
 
 <div class="header">
-  <img src="/public/icons/wombat-large-mask.png" alt="Wombat" class="header-logo"/>
-  <h1>Wombat &mdash; <span>Environmental Impact</span></h1>
+  <a class="header-home" href="/" title="Back to the report">
+    <img src="/public/icons/wombat-large-mask.png" alt="Wombat" class="header-logo"/>
+    <h1>Wombat &mdash; <span>Environmental Impact</span></h1>
+  </a>
   {#insert headerExtra /}
   {#if inject:currentUser.authenticated}
-  <div class="header-user">
-    <span class="header-user-name" title="{inject:currentUser.name}">{inject:currentUser.name}</span>
-    <a class="header-logout" href="/logout" title="Sign out" aria-label="Sign out">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-        <path d="M16 17l5-5-5-5"/>
-        <path d="M21 12H9"/>
+  <div class="header-user" id="userMenu">
+    <button class="header-user-trigger" id="userMenuTrigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="userMenuDropdown">
+      <span class="header-user-name" title="{inject:currentUser.name}">{inject:currentUser.name}</span>
+      <svg class="header-user-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9l6 6 6-6"/>
       </svg>
-    </a>
+    </button>
+    <div class="header-user-menu" id="userMenuDropdown" role="menu">
+      <div class="header-user-identity">
+        <span class="header-user-label">Signed in as</span>
+        <span class="header-user-full-name">{inject:currentUser.name}</span>
+      </div>
+      <div class="header-user-roles">
+        <span class="header-user-label">Role</span>
+        <span class="header-user-role-list">
+          {#for role in inject:currentUser.roles}<span class="header-user-role">{role}</span>{/for}
+        </span>
+      </div>
+      {#if inject:currentUser.canViewUsers}
+      <a class="header-menu-link" href="/users" role="menuitem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Users
+      </a>
+      {/if}
+      {#if inject:currentUser.canManageApiKeys}
+      <a class="header-menu-link" href="/api-keys" role="menuitem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="7.5" cy="15.5" r="5.5"/>
+          <path d="M21 2l-9.6 9.6"/>
+          <path d="M15.5 7.5l3 3L22 7l-3-3"/>
+        </svg>
+        API keys
+      </a>
+      {/if}
+      <a class="header-logout" href="/logout" role="menuitem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <path d="M16 17l5-5-5-5"/>
+          <path d="M21 12H9"/>
+        </svg>
+        Sign out
+      </a>
+    </div>
   </div>
   {/if}
   <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">

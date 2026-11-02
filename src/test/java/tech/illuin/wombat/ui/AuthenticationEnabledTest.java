@@ -7,6 +7,7 @@ import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
 import io.quarkus.test.security.oidc.OidcSecurity;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.security.PermissionAugmentor;
 
 import java.util.Map;
 
@@ -16,7 +17,7 @@ import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 @TestProfile(AuthenticationEnabledTest.AuthenticationEnabledProfile.class)
-class AuthenticationEnabledTest
+public class AuthenticationEnabledTest
 {
     @Test
     void restEndpoint_isRejectedWithoutIdentity()
@@ -56,20 +57,94 @@ class AuthenticationEnabledTest
     }
 
     @Test
-    @TestSecurity(user = "someone")
+    @TestSecurity(user = "someone", roles = "wombat-users", augmentors = PermissionAugmentor.class)
     @OidcSecurity(claims = {
         @Claim(key = "email", value = "someone@example.com"),
     })
     void authenticatedCaller_reachesTheApi()
     {
         given()
-            .when().get("/environments")
+            .when().get("/api/environments")
             .then()
             .statusCode(200);
     }
 
     @Test
-    @TestSecurity(user = "someone")
+    @TestSecurity(user = "someone", roles = "unrelated", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "someone@example.com"),
+    })
+    void callerWithoutMappedRole_isForbidden()
+    {
+        given()
+            .when().get("/api/environments")
+            .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "someone", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "someone@example.com"),
+    })
+    void user_cannotManageApiKeys()
+    {
+        given()
+            .when().get("/api/keys")
+            .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "boss@example.com"),
+    })
+    void admin_managesApiKeys()
+    {
+        given()
+            .when().get("/api/keys")
+            .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "boss@example.com"),
+    })
+    void admin_opensTheUsersPage()
+    {
+        given()
+            .when().get("/users")
+            .then()
+            .statusCode(200)
+            .body(containsString("First seen"))
+            .body(containsString("boss@example.com"))
+            .body(containsString("href=\"/users\""));
+    }
+
+    @Test
+    @TestSecurity(user = "someone", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "someone@example.com"),
+    })
+    void user_cannotOpenTheUsersPage()
+    {
+        given()
+            .when().get("/users")
+            .then()
+            .statusCode(403);
+
+        given()
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .body(not(containsString("href=\"/users\"")));
+    }
+
+    @Test
+    @TestSecurity(user = "someone", roles = "wombat-users", augmentors = PermissionAugmentor.class)
     @OidcSecurity(claims = {
         @Claim(key = "email", value = "someone@example.com"),
     })
@@ -79,9 +154,76 @@ class AuthenticationEnabledTest
             .when().get("/")
             .then()
             .statusCode(200)
+            .body(containsString("class=\"header-home\" href=\"/\""))
             .body(containsString("header-user"))
             .body(containsString("someone@example.com"))
+            .body(containsString("<span class=\"header-user-role\">user</span>"))
+            .body(not(containsString("<span class=\"header-user-role\">admin</span>")))
             .body(containsString("href=\"/logout\""));
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "boss@example.com"),
+    })
+    void admin_opensTheApiKeysPage()
+    {
+        given()
+            .when().get("/api-keys")
+            .then()
+            .statusCode(200)
+            .body(containsString("id=\"apiKeyForm\""))
+            .body(containsString("value=\"api.impact.read\""))
+            .body(not(containsString("value=\"api.apikey.manage\"")))
+            .body(containsString("href=\"/api-keys\""));
+    }
+
+    @Test
+    @TestSecurity(user = "someone", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "someone@example.com"),
+    })
+    void user_cannotOpenTheApiKeysPage()
+    {
+        given()
+            .when().get("/api-keys")
+            .then()
+            .statusCode(403);
+
+        given()
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .body(not(containsString("href=\"/api-keys\"")));
+    }
+
+    @Test
+    @TestSecurity(user = "chief", roles = "unrelated", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "Chief@Example.com"),
+        @Claim(key = "email_verified", value = "true"),
+    })
+    void verifiedEmailListedForARole_getsThatRole()
+    {
+        given()
+            .when().get("/api-keys")
+            .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "chief", roles = "unrelated", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "chief@example.com"),
+        @Claim(key = "email_verified", value = "false"),
+    })
+    void unverifiedEmailListedForARole_getsNothing()
+    {
+        given()
+            .when().get("/api/environments")
+            .then()
+            .statusCode(403);
     }
 
     @Test
@@ -106,7 +248,11 @@ class AuthenticationEnabledTest
         @Override
         public Map<String, String> getConfigOverrides()
         {
-            return Map.of("quarkus.oidc.tenant-enabled", "false");
+            return Map.of(
+                "quarkus.oidc.tenant-enabled", "false",
+                "auth.roles.admin", "wombat-admins,chief@example.com",
+                "auth.roles.user", "wombat-users"
+            );
         }
     }
 }

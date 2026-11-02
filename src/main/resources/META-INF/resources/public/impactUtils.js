@@ -14,7 +14,23 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', function() {
   var btn = document.getElementById('themeToggle');
   if (btn) btn.addEventListener('click', toggleTheme);
+  initUserMenu();
 });
+
+function initUserMenu() {
+  var menu = document.getElementById('userMenu');
+  var trigger = document.getElementById('userMenuTrigger');
+  if (!menu || !trigger) return;
+  function toggle(open) {
+    menu.classList.toggle('open', open);
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  trigger.addEventListener('click', function(e) { e.stopPropagation(); toggle(!menu.classList.contains('open')); });
+  document.addEventListener('click', function(e) { if (!menu.contains(e.target)) toggle(false); });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && menu.classList.contains('open')) { toggle(false); trigger.focus(); }
+  });
+}
 
 /* ── Date conversions ──
    The wire contract is UTC (`from`/`to` query params, `data-*-utc` attributes) and the range is

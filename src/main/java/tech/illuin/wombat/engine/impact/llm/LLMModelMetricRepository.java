@@ -6,6 +6,7 @@ import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
 import tech.illuin.wombat.persistence.compaction.BucketCompactor;
 import tech.illuin.wombat.core.activity.commons.Country;
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
@@ -19,6 +20,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 @ApplicationScoped
 public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetricEntity, Long>, LLMMetricResolver, BucketCompactor
@@ -82,8 +85,12 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     }
 
     @Override
-    public Map<Long, Map<String, LLMServiceActivity>> serviceActivitiesPerBucket(long startMs, long endMs, long stepMs, String assetId)
+    public Map<Long, Map<String, LLMServiceActivity>> serviceActivitiesPerBucket(TimeRange range, String assetId)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
+        long stepMs = range.resolution().toMillis();
         String bucket = MetricBuckets.expression(startMs, stepMs);
         String serviceIdCol = this.dialect.text("data", "serviceId");
         String providerCol = this.dialect.text("data", "provider");

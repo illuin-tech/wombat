@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.impact.kubernetes;
 
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -10,6 +11,8 @@ import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,7 +113,7 @@ class KubernetesMetricRepositoryTest
         repository.save(row(HOUR_MS, FIVE_MINUTES_MS, "c1", "api", 4.0));
         repository.save(row(start + HOUR_MS, HOUR_MS, "c1", "api", 10.0));
 
-        Map<Long, Double> perHour = repository.averageCpuPerBucket(start, start + 2 * HOUR_MS, HOUR_MS, List.of("c1"));
+        Map<Long, Double> perHour = repository.averageCpuPerBucket(range(start, start + 2 * HOUR_MS, HOUR_MS), List.of("c1"));
 
         assertEquals(List.of(start, start + HOUR_MS), List.copyOf(perHour.keySet()));
         assertEquals(3.0, perHour.get(start), 1e-5);
@@ -123,8 +126,20 @@ class KubernetesMetricRepositoryTest
     {
         repository.save(row(HOUR_MS, HOUR_MS, "c1", "api", 2.0));
 
-        assertTrue(repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).isEmpty());
-        assertEquals(Set.of(HOUR_MS), repository.averageCpuPerBucket(0L, 2 * HOUR_MS, HOUR_MS, List.of("c1")).keySet());
+        assertTrue(repository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).isEmpty());
+        assertEquals(Set.of(HOUR_MS), repository.averageCpuPerBucket(range(0L, 2 * HOUR_MS, HOUR_MS), List.of("c1")).keySet());
+    }
+
+    /** Like the slots of the evaluation, the reading stops at the last full bucket: a trailing half hour is left out. */
+    @Test
+    void averageCpuPerBucket_leavesTheTrailingRemainderOut()
+    {
+        repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
+        repository.save(row(2 * HOUR_MS, HOUR_MS, "c1", "api", 4.0));
+
+        Map<Long, Double> perHour = repository.averageCpuPerBucket(range(0L, 2 * HOUR_MS + HOUR_MS / 2, HOUR_MS), List.of("c1"));
+
+        assertEquals(Set.of(0L), perHour.keySet());
     }
 
     /** A bucket no row covers is absent rather than zero: the caller knows the range it asked for. */
@@ -133,7 +148,7 @@ class KubernetesMetricRepositoryTest
     {
         repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
 
-        Map<Long, Double> perHour = repository.averageCpuPerBucket(0L, 5 * HOUR_MS, HOUR_MS, List.of("c1"));
+        Map<Long, Double> perHour = repository.averageCpuPerBucket(range(0L, 5 * HOUR_MS, HOUR_MS), List.of("c1"));
 
         assertEquals(Set.of(0L), perHour.keySet());
     }
@@ -145,7 +160,7 @@ class KubernetesMetricRepositoryTest
         repository.save(row(0L, HOUR_MS, "c1", "worker", 3.0));
         repository.save(row(HOUR_MS, HOUR_MS, "c1", "api", 2.0));
 
-        Map<Long, Map<String, Double>> shares = repository.containerSharesPerBucket(0L, 2 * HOUR_MS, HOUR_MS, List.of("c1"));
+        Map<Long, Map<String, Double>> shares = repository.containerSharesPerBucket(range(0L, 2 * HOUR_MS, HOUR_MS), List.of("c1"));
 
         assertEquals(Set.of(0L, HOUR_MS), shares.keySet());
         assertEquals(0.25, shares.get(0L).get("api"), 1e-7);
@@ -159,9 +174,9 @@ class KubernetesMetricRepositoryTest
     {
         repository.save(sampled(0L, FIVE_MINUTES_MS, "c1", "api", 4.0));
 
-        assertTrue(repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).isEmpty());
-        assertTrue(repository.containerSharesPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).isEmpty());
-        assertTrue(repository.containerLocations(0L, HOUR_MS, List.of("c1")).isEmpty());
+        assertTrue(repository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).isEmpty());
+        assertTrue(repository.containerSharesPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).isEmpty());
+        assertTrue(repository.containerLocations(range(0L, HOUR_MS), List.of("c1")).isEmpty());
     }
 
     /**
@@ -217,7 +232,7 @@ class KubernetesMetricRepositoryTest
         // Ten minutes at 2.0 and five at 8.0, so the mean follows the time each stands for.
         assertEquals(4.0, folded.getFirst().cpuNanocores, 1e-6);
         assertEquals(3 * FIVE_MINUTES_MS, folded.getFirst().windowMs);
-        assertEquals(4.0, repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).get(0L), 1e-5);
+        assertEquals(4.0, repository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).get(0L), 1e-5);
     }
 
     @Test
@@ -243,7 +258,7 @@ class KubernetesMetricRepositoryTest
 
         assertEquals(0, repository.compactBucket(0L, HOUR_MS));
         assertEquals(1, repository.findByRange(0L, HOUR_MS).size());
-        assertEquals(2.0, repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).get(0L), 1e-5);
+        assertEquals(2.0, repository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).get(0L), 1e-5);
     }
 
     @Test
@@ -323,7 +338,7 @@ class KubernetesMetricRepositoryTest
         repository.save(row(FIVE_MINUTES_MS, FIVE_MINUTES_MS, "c1", "api", 1.0));
         repository.save(row(HOUR_MS, HOUR_MS, "c1", "api", 10.0));
 
-        double average = repository.averageCpuPerBucket(0L, 2 * HOUR_MS, 2 * HOUR_MS, List.of("c1")).get(0L);
+        double average = repository.averageCpuPerBucket(range(0L, 2 * HOUR_MS, 2 * HOUR_MS), List.of("c1")).get(0L);
 
         assertEquals(36_600_000.0 / 4_200_000.0, average, 1e-5);
     }
@@ -334,7 +349,7 @@ class KubernetesMetricRepositoryTest
         repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
         repository.save(row(0L, HOUR_MS, "c1", "worker", 3.0));
 
-        double average = repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).get(0L);
+        double average = repository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).get(0L);
 
         assertEquals(5.0, average, 1e-5);
     }
@@ -344,7 +359,7 @@ class KubernetesMetricRepositoryTest
     {
         repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
 
-        assertTrue(repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("other")).isEmpty());
+        assertTrue(repository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("other")).isEmpty());
     }
 
     /** Same reasoning as the average: a container's share is the CPU-time it accounts for. */
@@ -354,7 +369,7 @@ class KubernetesMetricRepositoryTest
         repository.save(row(0L, FIVE_MINUTES_MS, "c1", "short", 10.0));
         repository.save(row(HOUR_MS, HOUR_MS, "c1", "long", 10.0));
 
-        Map<String, Double> shares = repository.containerSharesPerBucket(0L, 2 * HOUR_MS, 2 * HOUR_MS, List.of("c1")).get(0L);
+        Map<String, Double> shares = repository.containerSharesPerBucket(range(0L, 2 * HOUR_MS, 2 * HOUR_MS), List.of("c1")).get(0L);
 
         assertEquals(2, shares.size());
         assertEquals(3_000_000.0 / 39_000_000.0, shares.get("short"), 1e-7);
@@ -364,5 +379,15 @@ class KubernetesMetricRepositoryTest
     private static KubernetesData source(KubernetesMetricEntity row)
     {
         return (KubernetesData) row.data;
+    }
+
+    private static TimeRange range(long startMs, long endMs, long stepMs)
+    {
+        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs), Duration.ofMillis(stepMs));
+    }
+
+    private static TimeRange range(long startMs, long endMs)
+    {
+        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs));
     }
 }

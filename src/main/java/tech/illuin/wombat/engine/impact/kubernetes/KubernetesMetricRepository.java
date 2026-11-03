@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
 import tech.illuin.wombat.persistence.compaction.BucketCompactor;
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.ContainerLocation;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
@@ -15,6 +16,8 @@ import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+
+import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 @ApplicationScoped
 public class KubernetesMetricRepository implements PanacheRepositoryBase<KubernetesMetricEntity, Long>, KubernetesMetricResolver, BucketCompactor
@@ -54,8 +57,12 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
-    public Map<Long, Double> averageCpuPerBucket(long startMs, long endMs, long stepMs, List<String> assetIds)
+    public Map<Long, Double> averageCpuPerBucket(TimeRange range, List<String> assetIds)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
+        long stepMs = range.resolution().toMillis();
         String bucket = MetricBuckets.expression(startMs, stepMs);
         StringBuilder sql = new StringBuilder(
             "SELECT " + bucket + " AS bucket, SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) AS cpu FROM ("
@@ -79,8 +86,12 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
-    public Map<Long, Map<String, Double>> containerSharesPerBucket(long startMs, long endMs, long stepMs, List<String> assetIds)
+    public Map<Long, Map<String, Double>> containerSharesPerBucket(TimeRange range, List<String> assetIds)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
+        long stepMs = range.resolution().toMillis();
         StringBuilder sql = new StringBuilder(
             "SELECT bucket, container,"
             + " SUM(cpuTime) * 1.0 / NULLIF(SUM(SUM(cpuTime)) OVER (PARTITION BY bucket), 0) AS share FROM ("
@@ -111,8 +122,11 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
-    public Map<String, List<ContainerLocation>> containerLocations(long startMs, long endMs, List<String> assetIds)
+    public Map<String, List<ContainerLocation>> containerLocations(TimeRange range, List<String> assetIds)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
         StringBuilder sql = new StringBuilder(
             "SELECT DISTINCT " + this.dialect.text(DATA, SERVICE_ID) + " AS container,"
             + " " + this.dialect.text(DATA, "cluster") + " AS cluster,"

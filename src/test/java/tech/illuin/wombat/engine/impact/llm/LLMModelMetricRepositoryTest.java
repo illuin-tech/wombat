@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.impact.llm;
 
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -11,6 +12,8 @@ import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +58,7 @@ class LLMModelMetricRepositoryTest
         repository.save(row(2000L, "p-llm", "gpt-4o", 500L));
         repository.save(row(2000L, "other", "gpt-4o", 999L));
 
-        Map<String, LLMServiceActivity> activities = repository.serviceActivitiesPerBucket(0L, 5000L, 5000L, "p-llm").get(0L);
+        Map<String, LLMServiceActivity> activities = repository.serviceActivitiesPerBucket(range(0L, 5000L, 5000L), "p-llm").get(0L);
         assertEquals(2, activities.size());
 
         LLMServiceActivity mistral = activities.get("mistral-large");
@@ -81,7 +84,7 @@ class LLMModelMetricRepositoryTest
         repository.save(row(HOUR_MS, "p-llm", "mistral-large", 20L));
         repository.save(row(start + HOUR_MS, "p-llm", "gpt-4o", 7L));
 
-        Map<Long, Map<String, LLMServiceActivity>> perHour = repository.serviceActivitiesPerBucket(start, start + 2 * HOUR_MS, HOUR_MS, "p-llm");
+        Map<Long, Map<String, LLMServiceActivity>> perHour = repository.serviceActivitiesPerBucket(range(start, start + 2 * HOUR_MS, HOUR_MS), "p-llm");
 
         assertEquals(List.of(start, start + HOUR_MS), List.copyOf(perHour.keySet()));
         assertEquals(30L, perHour.get(start).get("mistral-large").outputTokenCount());
@@ -95,8 +98,18 @@ class LLMModelMetricRepositoryTest
     {
         repository.save(row(HOUR_MS, "p-llm", "m", 10L));
 
-        assertTrue(repository.serviceActivitiesPerBucket(0L, HOUR_MS, HOUR_MS, "p-llm").isEmpty());
-        assertEquals(Set.of(HOUR_MS), repository.serviceActivitiesPerBucket(0L, 2 * HOUR_MS, HOUR_MS, "p-llm").keySet());
+        assertTrue(repository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), "p-llm").isEmpty());
+        assertEquals(Set.of(HOUR_MS), repository.serviceActivitiesPerBucket(range(0L, 2 * HOUR_MS, HOUR_MS), "p-llm").keySet());
+    }
+
+    /** Like the slots of the evaluation, the reading stops at the last full bucket: a trailing half hour is left out. */
+    @Test
+    void serviceActivitiesPerBucket_leavesTheTrailingRemainderOut()
+    {
+        repository.save(row(0L, "p-llm", "m", 10L));
+        repository.save(row(2 * HOUR_MS, "p-llm", "m", 20L));
+
+        assertEquals(Set.of(0L), repository.serviceActivitiesPerBucket(range(0L, 2 * HOUR_MS + HOUR_MS / 2, HOUR_MS), "p-llm").keySet());
     }
 
     @Test
@@ -104,7 +117,7 @@ class LLMModelMetricRepositoryTest
     {
         repository.save(sampled(1000L, "p-llm", "m", 10L));
 
-        assertTrue(repository.serviceActivitiesPerBucket(0L, HOUR_MS, HOUR_MS, "p-llm").isEmpty());
+        assertTrue(repository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), "p-llm").isEmpty());
     }
 
     /** Tokens and requests are totals, so folding a window sums them rather than averaging. */
@@ -231,7 +244,7 @@ class LLMModelMetricRepositoryTest
     /** A folded row, the kind every serving query reads. */
     private long servedTokens(String assetId)
     {
-        return repository.serviceActivitiesPerBucket(0L, HOUR_MS, HOUR_MS, assetId).getOrDefault(0L, Map.of()).values().stream()
+        return repository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), assetId).getOrDefault(0L, Map.of()).values().stream()
             .mapToLong(LLMServiceActivity::outputTokenCount)
             .sum();
     }
@@ -264,5 +277,10 @@ class LLMModelMetricRepositoryTest
         row.outputTokens = outputTokens;
         row.requestCount = requestCount;
         return row;
+    }
+
+    private static TimeRange range(long startMs, long endMs, long stepMs)
+    {
+        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs), Duration.ofMillis(stepMs));
     }
 }

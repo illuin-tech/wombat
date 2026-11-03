@@ -2,35 +2,80 @@ environments:
   demo:
     id: demo
     assets:
-      # This type works by querying the kubernetes metrics API and gathering CPU/RAM load factors for each deployed container.
-      - type: tech.illuin.wombat-module.kubernetes-api
-        id: prod-cluster
+      # This type models static Kubernetes container workloads using superposed temporal scenarios.
+      - type: tech.illuin.wombat-module.kubernetes-static
+        id: demo-cluster
         environment-id: demo
         name: Demo Cluster
-        namespace: my-project-namespace # this should match the namespace you deployed your applications to ; you can create several assets of the same time if multiple namespaces are monitored
-        config-path: /deployments/monitored/k8s/my-kube.config # this should point at your kubeconfig file ; note that the path coincides with the mounting point in the compose.yaml file
-        profile: # this should be tweaked to match the node your workloads is running on
+        profile:
           provider: aws
           instance-type: c5.xlarge
           location: FRA
-          lifespan: 43800
-      # This type works with a request yearly estimate and will prorate it dynamically.
-      # This is the bare minimum available in some situations.
+          lifespan: 5y
+          node-count: 1
+          zone-id: Europe/Paris
+          scenarios:
+            - type: constant
+              load: 0.10
+            - type: user_activity
+              baseline-load: 0.10
+              peak-load: 0.75
+              opening-time: "08:00:00"
+              closing-time: "18:00:00"
+              jitter: 0.05
+              applicability:
+                daysOfWeek: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+            - type: batch_activity
+              baseline-load: 0.0
+              peak-load: 0.90
+              trigger-time: "02:00:00"
+              duration: PT2H
+              smoothing: linear_ramp
+      # This type models static LLM workloads using superposed temporal scenarios across multiple models.
+      # It runs immediately out-of-the-box without requiring external API credentials.
       - type: tech.illuin.wombat-module.llm-static
         id: demo-llm
         environment-id: demo
         name: LLM Services
         profile:
-          models: # this should be tweaked to match your model & model usage mix
+          zone-id: Europe/Paris
+          models:
+            # Interactive chat assistant model with diurnal user traffic (bell curve on weekdays)
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
-              request-profile:
-                output-token-count: 500
-                request-per-year: 500000
+              scenarios:
+                - type: user_activity
+                  baseline-request-per-year: 50000
+                  peak-request-per-year: 5000000
+                  output-token-per-request: 400
+                  opening-time: "08:00:00"
+                  closing-time: "18:00:00"
+                  curve: bell
+                  jitter: 0.05
+                  applicability:
+                    daysOfWeek: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+            # Scheduled document/PDF batch extraction model running nocturnal processing jobs
             - provider: openai
-              model: mistral-large-latest
+              model: gpt-5.5-pro
               location: SWE
-              request-profile:
-                output-token-count: 150
-                request-per-year: 8000000
+              scenarios:
+                - type: batch_activity
+                  baseline-request-per-year: 0
+                  peak-request-per-year: 1000000
+                  output-token-per-request: 2000
+                  trigger-time: "02:00:00"
+                  duration: PT2H
+                  smoothing: linear_ramp
+      # Alternatively, monitor live clusters via the Kubernetes Metrics API (requires mounting a valid kubeconfig into the container):
+      # - type: tech.illuin.wombat-module.kubernetes-api
+      #   id: prod-cluster
+      #   environment-id: demo
+      #   name: Demo Live Cluster
+      #   namespace: my-project-namespace # this should match the namespace you deployed your applications to
+      #   config-path: /deployments/monitored/k8s/my-kube.config # this should point at your kubeconfig file mounted in compose.yaml
+      #   profile:
+      #     provider: aws
+      #     instance-type: c5.xlarge
+      #     location: FRA
+      #     lifespan: 5y

@@ -64,8 +64,6 @@ module:
     enabled: true
   llm-prometheus:
     enabled: true
-  llm-static:
-    enabled: true
   extension:
     path: "extensions"
 

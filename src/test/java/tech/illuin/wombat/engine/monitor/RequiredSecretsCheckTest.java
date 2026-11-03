@@ -17,6 +17,7 @@ import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
+import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -131,7 +132,9 @@ class RequiredSecretsCheckTest
     {
         return new LLMStaticAsset(
             AssetIdentity.of("s", "env", "S"),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
+                new ConstantScenario(500, 1000)
+            ))
         );
     }
 }

@@ -39,7 +39,7 @@ class WombatModuleConfigTest
     @Test
     void provideWombatExtensionLoader_returnsCompositeExtensionLoader()
     {
-        WombatModuleProperties properties = properties(true, true, true);
+        WombatModuleProperties properties = properties(true, true);
         ExtensionLoader loader = this.config.provideWombatExtensionLoader(properties);
 
         assertInstanceOf(CompositeExtensionLoader.class, loader);
@@ -96,7 +96,7 @@ class WombatModuleConfigTest
         assertNotNull(llmHandlers.costResolver());
     }
 
-    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmStatic)
+    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus)
     {
         return new WombatModuleProperties()
         {
@@ -110,12 +110,6 @@ class WombatModuleConfigTest
             public LlmPrometheusProperties llmPrometheus()
             {
                 return () -> llmPrometheus;
-            }
-
-            @Override
-            public LlmStaticProperties llmStatic()
-            {
-                return () -> llmStatic;
             }
 
             @Override

@@ -14,6 +14,7 @@ import tech.illuin.wombat.core.context.WombatContext;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
+import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 
 import java.util.List;
 
@@ -39,7 +40,9 @@ class RepositoryContextProviderTest
 
         LLMStaticAsset validAsset = new LLMStaticAsset(
             AssetIdentity.of("valid-1", "env-1", "Valid Static"),
-            new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", FRANCE, new LLMStaticProfile.RequestProfile(100, 200))
+            new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", FRANCE, List.of(
+                new ConstantScenario(100, 200, null)
+            ))
         );
         AssetEntity validEntity = AssetEntity.from("env-1", validAsset);
 

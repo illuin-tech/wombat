@@ -22,7 +22,7 @@ public record LLMAssetPanel(
     String model,
     String location,
     long outputTokenCount,
-    int requestPerYear,
+    long requestPerYear,
     double requestCount
 ) implements AssetPanel {
     public ServiceFamily family()

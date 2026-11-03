@@ -209,7 +209,7 @@ public record EnvironmentImpact(
             profile.provider(),
             profile.instanceType(),
             profile.location() != null ? profile.location().alpha3() : null,
-            profile.lifespan(),
+            profile.lifespan().asHours(),
             clusters,
             specification,
             new KubernetesAssetPanel.Load(cpuUsageCores(first, specification), first.loadPercent(), first.nodeCount())
@@ -219,17 +219,8 @@ public record EnvironmentImpact(
     private static AssetPanel llmPanel(String name, Footprint footprint, List<LLMImpact> impacts)
     {
         LLMImpact first = impacts.getFirst();
-        LLMProfile profile = first.profile();
 
-        int requestPerYear = 0;
-        if (profile instanceof LLMStaticProfile staticProfile)
-        {
-            requestPerYear = staticProfile.models().stream()
-                .filter(mc -> impacts.stream().anyMatch(i -> i.serviceId().equals(mc.model()) || (i.model() != null && i.model().equals(mc.model()))))
-                .mapToInt(mc -> mc.requestProfile().requestPerYear())
-                .sum();
-        }
-
+        long requestPerYear = impacts.stream().mapToLong(impact -> (long) impact.requestCount()).sum();
         long totalOutputTokens = impacts.stream().mapToLong(LLMImpact::outputTokenCount).sum();
         double totalRequests = impacts.stream().mapToDouble(LLMImpact::requestCount).sum();
 

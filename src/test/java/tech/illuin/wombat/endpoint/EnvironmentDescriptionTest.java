@@ -1,6 +1,7 @@
 package tech.illuin.wombat.endpoint;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.endpoint.EnvironmentDescription;
 import tech.illuin.wombat.core.asset.AssetIdentity;
@@ -14,6 +15,7 @@ import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
+import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 
 import java.time.Instant;
 import java.util.List;
@@ -32,11 +34,13 @@ class EnvironmentDescriptionTest
             new KubernetesAPIAsset(
                 AssetIdentity.of("cluster-1", "Production", "Cluster One"),
                 "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
-                new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, 43800)
+                new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
             ),
             new LLMStaticAsset(
                 AssetIdentity.of("llm-1", "Production", "LLM One"),
-                new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, new LLMStaticProfile.RequestProfile(500, 1000))
+                new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, List.of(
+                    new ConstantScenario(500, 1000, null)
+                ))
             )
         ));
         TimeRange timeRange = new TimeRange(Instant.EPOCH, Instant.EPOCH.plusSeconds(60));

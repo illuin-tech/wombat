@@ -26,7 +26,6 @@ class PostgresQueryTest
     private static final String CLUSTER = POSTGRESQL.text("data", "cluster");
     private static final String CONTAINER = POSTGRESQL.text("data", "container");
     private static final String NAMESPACE = POSTGRESQL.text("data", "namespace");
-    private static final String MODEL = POSTGRESQL.text("data", "model");
 
     private static String jdbcUrl;
 
@@ -62,10 +61,7 @@ class PostgresQueryTest
                 + " (1000, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 100, 1),"
                 + " (2000, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 200, 1),"
                 + " (1500, 'b2', 'env', 'Asset Two', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 999, 1),"
-                + " (2500, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 50, 0),"
-                // One asset serving two models, for the query that narrows to some of them.
-                + " (1000, 'd4', 'env', 'Asset Four', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"mistral\"}', 10, 1),"
-                + " (1000, 'd4', 'env', 'Asset Four', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"gpt\"}', 40, 1)");
+                + " (2500, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 50, 0)");
         }
     }
 
@@ -79,45 +75,38 @@ class PostgresQueryTest
     }
 
     @Test
-    void averageCpuPerInstant_averagesThePerInstantSums() throws SQLException
+    void averageCpuPerBucket_averagesThePerInstantSums() throws SQLException
     {
         // t=1000 sums to 2.0e9 (1.5 + 0.5), t=2000 to 1.0e9, so the average per instant is 1.5e9.
-        assertEquals(1.5e9, scalar(averageCpuPerInstant("")).doubleValue(), 1.0);
+        List<String[]> rows = rows(averageCpuPerBucket(0, 3000, 3000, ""), 2);
+
+        assertEquals(1, rows.size());
+        assertEquals("0", rows.get(0)[0]);
+        assertEquals(1.5e9, Double.parseDouble(rows.get(0)[1]), 1.0);
     }
 
     @Test
-    void averageCpuPerInstant_appliesTheAssetFilterBeforeAveraging() throws SQLException
+    void averageCpuPerBucket_appliesTheAssetFilterBeforeAveraging() throws SQLException
     {
-        assertEquals(2.0e9, scalar(averageCpuPerInstant(" AND asset_id IN ('c1')")).doubleValue(), 1.0);
+        List<String[]> rows = rows(averageCpuPerBucket(0, 3000, 3000, " AND asset_id IN ('c1')"), 2);
+
+        assertEquals(2.0e9, Double.parseDouble(rows.get(0)[1]), 1.0);
     }
 
+    /**
+     * Buckets are laid from the start of the requested range, as the slots of the evaluation are,
+     * not from the epoch: starting at 500 with a 1s step puts t=1000 in the 500 bucket.
+     */
     @Test
-    void containerShares_areTheCpuFractionOfEachContainer() throws SQLException
+    void averageCpuPerBucket_groupsInstantsIntoBucketsAlignedOnTheStart() throws SQLException
     {
-        List<String[]> rows = rows(
-            "SELECT " + CONTAINER + " AS container,"
-            + " SUM(cpu_nanocores * window_ms) * 1.0 / NULLIF(SUM(SUM(cpu_nanocores * window_ms)) OVER (), 0) AS share FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id IN ('c1')"
-            + " GROUP BY " + CONTAINER, 2);
+        List<String[]> rows = rows(averageCpuPerBucket(500, 2500, 1000, ""), 2);
 
         assertEquals(2, rows.size());
-        assertEquals("api", rows.get(0)[0]);
-        assertEquals(0.75, Double.parseDouble(rows.get(0)[1]), 1e-9);
-        assertEquals("web", rows.get(1)[0]);
-        assertEquals(0.25, Double.parseDouble(rows.get(1)[1]), 1e-9);
-    }
-
-    @Test
-    void containerShares_sumToOneAcrossAllAssets() throws SQLException
-    {
-        List<String[]> rows = rows(
-            "SELECT " + CONTAINER + " AS container,"
-            + " SUM(cpu_nanocores * window_ms) * 1.0 / NULLIF(SUM(SUM(cpu_nanocores * window_ms)) OVER (), 0) AS share FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000"
-            + " GROUP BY " + CONTAINER, 2);
-
-        double total = rows.stream().mapToDouble(row -> Double.parseDouble(row[1])).sum();
-        assertEquals(1.0, total, 1e-9);
+        assertEquals("500", rows.get(0)[0]);
+        assertEquals(2.0e9, Double.parseDouble(rows.get(0)[1]), 1.0);
+        assertEquals("1500", rows.get(1)[0]);
+        assertEquals(1.0e9, Double.parseDouble(rows.get(1)[1]), 1.0);
     }
 
     /**
@@ -126,73 +115,59 @@ class PostgresQueryTest
      * to 2.5e9 once each is weighted by the time it stands for.
      */
     @Test
-    void averageCpuPerInstant_weighsEachInstantByItsWindowLength() throws SQLException
+    void averageCpuPerBucket_weighsEachInstantByItsWindowLength() throws SQLException
     {
-        String sql = "SELECT SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) FROM ("
-            + " SELECT SUM(cpu_nanocores) AS cpuPerInstant, MAX(window_ms) AS spanMs FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 4000 AND instant_ms <= 6000"
-            + " GROUP BY instant_ms) AS per_instant";
+        List<String[]> rows = rows(averageCpuPerBucket(4000, 8000, 4000, ""), 2);
 
-        assertEquals(2.5e9, scalar(sql).doubleValue(), 1.0);
-    }
-
-    /**
-     * Per-bucket reporting truncates the instant with the same expression in SELECT and GROUP BY;
-     * this pins that Postgres accepts it. A 2s step exercises the grouping over the seeded instants
-     * — the hour the UI actually charts is the same expression with a larger step.
-     */
-    @Test
-    void cpuTimePerBucket_groupsRowsByTruncatedInstant() throws SQLException
-    {
-        String bucket = "instant_ms - (instant_ms % 2000)";
-        List<String[]> rows = rows(
-            "SELECT " + bucket + " AS bucket, SUM(cpu_nanocores * window_ms) AS cpuTime FROM server_metrics"
-            + " WHERE instant_ms >= 0 AND instant_ms <= 6000"
-            + " GROUP BY " + bucket + " ORDER BY " + bucket, 2);
-
-        assertEquals(3, rows.size());
-        assertEquals("0", rows.get(0)[0]);
-        assertEquals(2.0e12, Double.parseDouble(rows.get(0)[1]), 1.0e6);
-        assertEquals("2000", rows.get(1)[0]);
-        assertEquals(1.0e12, Double.parseDouble(rows.get(1)[1]), 1.0e6);
-        // The 3s window at 5000 weighs three times the 1s one at 4000.
-        assertEquals("4000", rows.get(2)[0]);
-        assertEquals(1.0e13, Double.parseDouble(rows.get(2)[1]), 1.0e6);
+        assertEquals(1, rows.size());
+        assertEquals(2.5e9, Double.parseDouble(rows.get(0)[1]), 1.0);
     }
 
     @Test
-    void outputTokensPerBucket_sumsTheTokensOfEachBucket() throws SQLException
+    void containerSharesPerBucket_areTheCpuFractionOfEachContainer() throws SQLException
     {
-        String bucket = "instant_ms - (instant_ms % 2000)";
-        List<String[]> rows = rows(
-            "SELECT " + bucket + " AS bucket, SUM(output_tokens) AS tokens FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id = 'a1'"
-            + " GROUP BY " + bucket + " ORDER BY " + bucket, 2);
+        List<String[]> rows = rows(containerSharesPerBucket(0, 3000, 3000, " AND asset_id IN ('c1')"), 3);
 
         assertEquals(2, rows.size());
-        assertArrayEqualsAsList(new String[] {"0", "100"}, rows.get(0));
-        assertArrayEqualsAsList(new String[] {"2000", "200"}, rows.get(1));
+        assertArrayEqualsAsList(new String[] {"0", "api"}, new String[] {rows.get(0)[0], rows.get(0)[1]});
+        assertEquals(0.75, Double.parseDouble(rows.get(0)[2]), 1e-9);
+        assertArrayEqualsAsList(new String[] {"0", "web"}, new String[] {rows.get(1)[0], rows.get(1)[1]});
+        assertEquals(0.25, Double.parseDouble(rows.get(1)[2]), 1e-9);
+    }
+
+    /** The window function is partitioned by bucket, so the shares sum to one within each bucket. */
+    @Test
+    void containerSharesPerBucket_sumToOneWithinEachBucket() throws SQLException
+    {
+        List<String[]> rows = rows(containerSharesPerBucket(1000, 3000, 1000, ""), 3);
+
+        assertEquals(3, rows.size());
+        assertEquals(1.0, Double.parseDouble(rows.get(0)[2]) + Double.parseDouble(rows.get(1)[2]), 1e-9);
+        assertArrayEqualsAsList(new String[] {"2000", "api"}, new String[] {rows.get(2)[0], rows.get(2)[1]});
+        assertEquals(1.0, Double.parseDouble(rows.get(2)[2]), 1e-9);
     }
 
     /**
-     * The histogram narrowing an asset to some of its models: the filter is over the {@code model}
-     * key, which on Postgres only exists past the jsonb cast the dialect renders.
+     * Per-slot LLM activity groups on the start-aligned bucket and on the JSON labels together, which
+     * on Postgres are only reachable past the jsonb cast the dialect renders.
      */
     @Test
-    void outputTokensPerBucket_filtersOnTheJsonModelLabel() throws SQLException
+    void serviceActivitiesPerBucket_groupsTheLabelsOfEachBucket() throws SQLException
     {
-        String bucket = "instant_ms - (instant_ms % 2000)";
-        String sql = "SELECT " + bucket + " AS bucket, SUM(output_tokens) AS tokens FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id = 'd4'";
+        String bucket = bucket(0, 2000);
+        String labels = POSTGRESQL.text("data", "serviceId") + ", " + POSTGRESQL.text("data", "provider")
+            + ", " + POSTGRESQL.text("data", "model") + ", " + POSTGRESQL.text("data", "location");
+        List<String[]> rows = rows(
+            "SELECT " + bucket + " AS bucket, " + labels + ", SUM(output_tokens) AS tokens, SUM(request_count) AS requests"
+            + " FROM model_metrics WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms < 3000 AND asset_id = 'a1'"
+            + " GROUP BY " + bucket + ", " + labels + " ORDER BY " + bucket, 7);
 
-        List<String[]> filtered = rows(sql + " AND " + MODEL + " IN ('mistral')"
-            + " GROUP BY " + bucket + " ORDER BY " + bucket, 2);
-        assertEquals(1, filtered.size());
-        assertArrayEqualsAsList(new String[] {"0", "10"}, filtered.get(0));
-
-        // Unfiltered, the same bucket carries both models — which is what the filter has to remove.
-        List<String[]> all = rows(sql + " GROUP BY " + bucket + " ORDER BY " + bucket, 2);
-        assertArrayEqualsAsList(new String[] {"0", "50"}, all.get(0));
+        assertEquals(2, rows.size());
+        assertEquals("0", rows.get(0)[0]);
+        assertEquals("m", rows.get(0)[3]);
+        assertEquals("100", rows.get(0)[5]);
+        assertEquals("2000", rows.get(1)[0]);
+        assertEquals("200", rows.get(1)[5]);
     }
 
     /** Rows still being collected are invisible to every serving query, whatever else they match. */
@@ -204,7 +179,8 @@ class PostgresQueryTest
 
         assertEquals(0L, scalar("SELECT count(*) FROM server_metrics"
             + " WHERE compacted = 1 AND asset_id IN ('c9')").longValue());
-        assertEquals(300L, scalar(sumOutputTokens("a1", 0, 3000)).longValue(), "the 50-token sampling row is left out");
+        assertEquals(300L, scalar("SELECT SUM(output_tokens) FROM model_metrics"
+            + " WHERE compacted = 1 AND asset_id = 'a1'").longValue(), "the 50-token sampling row is left out");
     }
 
     /** The window listing compaction works from: sampling rows only, one entry per window, ordered. */
@@ -228,32 +204,13 @@ class PostgresQueryTest
             "SELECT DISTINCT " + CONTAINER + " AS container,"
             + " " + CLUSTER + " AS cluster,"
             + " " + NAMESPACE + " AS namespace FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000 AND asset_id IN ('c1', 'c2')"
+            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms < 3000 AND asset_id IN ('c1', 'c2')"
             + " ORDER BY container, cluster, namespace", 3);
 
         assertEquals(3, rows.size());
         assertArrayEqualsAsList(new String[] {"api", "c1", "ns1"}, rows.get(0));
         assertArrayEqualsAsList(new String[] {"api", "c2", "ns2"}, rows.get(1));
         assertArrayEqualsAsList(new String[] {"web", "c1", "ns1"}, rows.get(2));
-    }
-
-    @Test
-    void sumOutputTokens_addsUpOnlyTheRequestedAsset() throws SQLException
-    {
-        assertEquals(300L, scalar(sumOutputTokens("a1", 0, 3000)).longValue());
-        assertEquals(999L, scalar(sumOutputTokens("b2", 0, 3000)).longValue());
-    }
-
-    @Test
-    void sumOutputTokens_honoursTheInstantRange() throws SQLException
-    {
-        assertEquals(100L, scalar(sumOutputTokens("a1", 0, 1500)).longValue());
-    }
-
-    @Test
-    void sumOutputTokens_returnsZeroRatherThanNullWhenNothingMatches() throws SQLException
-    {
-        assertEquals(0L, scalar(sumOutputTokens("unknown", 0, 3000)).longValue());
     }
 
     @Test
@@ -265,22 +222,32 @@ class PostgresQueryTest
     }
 
     /**
-     * The derived table carries an explicit alias: Postgres 15 and earlier reject a subquery in FROM
+     * The derived tables carry an explicit alias: Postgres 15 and earlier reject a subquery in FROM
      * without one, so dropping it would break the query on those versions only.
      */
-    private static String averageCpuPerInstant(String assetFilter)
+    private static String averageCpuPerBucket(long startMs, long endMs, long stepMs, String assetFilter)
     {
-        return "SELECT SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) FROM ("
-            + " SELECT SUM(cpu_nanocores) AS cpuPerInstant, MAX(window_ms) AS spanMs FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= 0 AND instant_ms <= 3000" + assetFilter
-            + " GROUP BY instant_ms) AS per_instant";
+        String bucket = bucket(startMs, stepMs);
+        return "SELECT " + bucket + " AS bucket, SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) AS cpu FROM ("
+            + " SELECT instant_ms, SUM(cpu_nanocores) AS cpuPerInstant, MAX(window_ms) AS spanMs FROM server_metrics"
+            + " WHERE compacted = 1 AND instant_ms >= " + startMs + " AND instant_ms < " + endMs + assetFilter
+            + " GROUP BY instant_ms) AS per_instant"
+            + " GROUP BY " + bucket + " ORDER BY " + bucket;
     }
 
-    private static String sumOutputTokens(String assetId, long startMs, long endMs)
+    private static String containerSharesPerBucket(long startMs, long endMs, long stepMs, String assetFilter)
     {
-        return "SELECT COALESCE(SUM(output_tokens), 0) FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= " + startMs + " AND instant_ms <= " + endMs
-            + " AND asset_id = '" + assetId + "'";
+        return "SELECT bucket, container,"
+            + " SUM(cpuTime) * 1.0 / NULLIF(SUM(SUM(cpuTime)) OVER (PARTITION BY bucket), 0) AS share FROM ("
+            + " SELECT " + bucket(startMs, stepMs) + " AS bucket, " + CONTAINER + " AS container,"
+            + " cpu_nanocores * window_ms AS cpuTime FROM server_metrics"
+            + " WHERE compacted = 1 AND instant_ms >= " + startMs + " AND instant_ms < " + endMs + assetFilter
+            + ") AS per_row GROUP BY bucket, container ORDER BY bucket, container";
+    }
+
+    private static String bucket(long startMs, long stepMs)
+    {
+        return "(" + startMs + " + ((instant_ms - " + startMs + ") / " + stepMs + ") * " + stepMs + ")";
     }
 
     private static Number scalar(String sql) throws SQLException

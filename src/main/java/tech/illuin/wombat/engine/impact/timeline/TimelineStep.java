@@ -33,6 +33,16 @@ public enum TimelineStep
         return end - start <= INTRADAY_MAX_SPAN_MS ? HOUR : DAY;
     }
 
+    public static TimelineStep of(Duration resolution)
+    {
+        for (TimelineStep step : values())
+        {
+            if (step.millis == resolution.toMillis())
+                return step;
+        }
+        throw new IllegalArgumentException("No timeline step matches the resolution " + resolution);
+    }
+
     public long millis()
     {
         return this.millis;

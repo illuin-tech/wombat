@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
 import tech.illuin.wombat.persistence.compaction.BucketCompactor;
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.ContainerLocation;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
@@ -15,6 +16,8 @@ import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
 import java.util.*;
 import java.util.function.ToDoubleFunction;
+
+import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 @ApplicationScoped
 public class KubernetesMetricRepository implements PanacheRepositoryBase<KubernetesMetricEntity, Long>, KubernetesMetricResolver, BucketCompactor
@@ -54,59 +57,22 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
-    public Optional<Double> averageCpuPerInstant(long startMs, long endMs, List<String> assetIds)
+    public Map<Long, Double> averageCpuPerBucket(TimeRange range, List<String> assetIds)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
+        long stepMs = range.resolution().toMillis();
+        String bucket = MetricBuckets.expression(startMs, stepMs);
         StringBuilder sql = new StringBuilder(
-            "SELECT SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) FROM ("
-            + " SELECT SUM(cpu_nanocores) AS cpuPerInstant, MAX(window_ms) AS spanMs FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end");
+            "SELECT " + bucket + " AS bucket, SUM(cpuPerInstant * spanMs) / NULLIF(SUM(spanMs), 0) AS cpu FROM ("
+            + " SELECT instant_ms, SUM(cpu_nanocores) AS cpuPerInstant, MAX(window_ms) AS spanMs FROM server_metrics"
+            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms < :end");
         appendAssetFilter(sql, assetIds);
         sql.append(" GROUP BY instant_ms) AS per_instant");
-
-        Query query = bind(getEntityManager().createNativeQuery(sql.toString()), startMs, endMs, assetIds);
-        Object result = query.getSingleResult();
-        return result == null ? Optional.empty() : Optional.of(((Number) result).doubleValue());
-    }
-
-    @Override
-    public Map<String, Double> containerShares(long startMs, long endMs, List<String> assetIds)
-    {
-        String container = this.dialect.text(DATA, SERVICE_ID);
-        StringBuilder sql = new StringBuilder(
-            "SELECT " + container + " AS container,"
-            + " SUM(cpu_nanocores * window_ms) * 1.0 / NULLIF(SUM(SUM(cpu_nanocores * window_ms)) OVER (), 0) AS share FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end");
-        appendAssetFilter(sql, assetIds);
-        sql.append(" GROUP BY ").append(container);
-
-        Query query = bind(getEntityManager().createNativeQuery(sql.toString()), startMs, endMs, assetIds);
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = query.getResultList();
-
-        Map<String, Double> shares = new LinkedHashMap<>();
-        for (Object[] row : rows)
-        {
-            if (row[1] == null) return Map.of();
-            shares.put((String) row[0], ((Number) row[1]).doubleValue());
-        }
-        return shares;
-    }
-
-    @Override
-    public Map<Long, Double> cpuTimePerBucket(long startMs, long endMs, long stepMs, List<String> assetIds, Collection<String> serviceIds)
-    {
-        String bucket = MetricBuckets.expression(stepMs);
-        StringBuilder sql = new StringBuilder(
-            "SELECT " + bucket + " AS bucket, SUM(cpu_nanocores * window_ms) AS cpuTime FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end");
-        appendAssetFilter(sql, assetIds);
-        if (!serviceIds.isEmpty())
-            sql.append(" AND ").append(this.dialect.text(DATA, SERVICE_ID)).append(" IN (:services)");
         sql.append(" GROUP BY ").append(bucket).append(" ORDER BY ").append(bucket);
 
         Query query = bind(getEntityManager().createNativeQuery(sql.toString()), startMs, endMs, assetIds);
-        if (!serviceIds.isEmpty())
-            query.setParameter("services", serviceIds);
         @SuppressWarnings("unchecked")
         List<Object[]> rows = query.getResultList();
 
@@ -120,13 +86,52 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
-    public Map<String, List<ContainerLocation>> containerLocations(long startMs, long endMs, List<String> assetIds)
+    public Map<Long, Map<String, Double>> containerSharesPerBucket(TimeRange range, List<String> assetIds)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
+        long stepMs = range.resolution().toMillis();
+        StringBuilder sql = new StringBuilder(
+            "SELECT bucket, container,"
+            + " SUM(cpuTime) * 1.0 / NULLIF(SUM(SUM(cpuTime)) OVER (PARTITION BY bucket), 0) AS share FROM ("
+            + " SELECT " + MetricBuckets.expression(startMs, stepMs) + " AS bucket, " + this.dialect.text(DATA, SERVICE_ID) + " AS container,"
+            + " cpu_nanocores * window_ms AS cpuTime FROM server_metrics"
+            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms < :end");
+        appendAssetFilter(sql, assetIds);
+        sql.append(") AS per_row GROUP BY bucket, container ORDER BY bucket, container");
+
+        Query query = bind(getEntityManager().createNativeQuery(sql.toString()), startMs, endMs, assetIds);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+
+        Map<Long, Map<String, Double>> perBucket = new LinkedHashMap<>();
+        Set<Long> withoutCpu = new HashSet<>();
+        for (Object[] row : rows)
+        {
+            long bucketStart = ((Number) row[0]).longValue();
+            if (row[2] == null)
+            {
+                withoutCpu.add(bucketStart);
+                continue;
+            }
+            perBucket.computeIfAbsent(bucketStart, b -> new LinkedHashMap<>()).put((String) row[1], ((Number) row[2]).doubleValue());
+        }
+        withoutCpu.forEach(perBucket::remove);
+        return perBucket;
+    }
+
+    @Override
+    public Map<String, List<ContainerLocation>> containerLocations(TimeRange range, List<String> assetIds)
+    {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
         StringBuilder sql = new StringBuilder(
             "SELECT DISTINCT " + this.dialect.text(DATA, SERVICE_ID) + " AS container,"
             + " " + this.dialect.text(DATA, "cluster") + " AS cluster,"
             + " " + this.dialect.text(DATA, "namespace") + " AS namespace FROM server_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end");
+            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms < :end");
         appendAssetFilter(sql, assetIds);
         sql.append(" ORDER BY container, cluster, namespace");
 

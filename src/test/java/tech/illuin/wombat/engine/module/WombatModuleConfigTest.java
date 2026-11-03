@@ -113,6 +113,12 @@ class WombatModuleConfigTest
             }
 
             @Override
+            public LlmAnthropicProperties llmAnthropic()
+            {
+                return () -> false;
+            }
+
+            @Override
             public ExtensionProperties extension()
             {
                 return new ExtensionProperties() {

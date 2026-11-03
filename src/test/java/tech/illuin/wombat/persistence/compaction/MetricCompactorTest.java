@@ -1,10 +1,12 @@
 package tech.illuin.wombat.persistence.compaction;
 
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.KubernetesData;
@@ -18,6 +20,7 @@ import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -59,11 +62,11 @@ class MetricCompactorTest
         assertEquals(2, report.containerWindows());
         assertEquals(4, report.containerRows(), "one row per container per window");
         // Each hour holds api at cpu and worker at cpu/2, and the average sums the containers of an
-        // instant. The serving range is inclusive on both ends, so each hour is asked for on its own.
-        assertEquals(3.0, kubernetesRepository.averageCpuPerInstant(0L, HOUR_MS - 1, List.of("c1")).orElseThrow(), 1e-5);
-        assertEquals(9.0, kubernetesRepository.averageCpuPerInstant(HOUR_MS, 2 * HOUR_MS - 1, List.of("c1")).orElseThrow(), 1e-5);
-        assertTrue(kubernetesRepository.averageCpuPerInstant(2 * HOUR_MS, 3 * HOUR_MS, List.of("c1")).isEmpty(),
-            "the hour still being collected is not served");
+        // instant. The hour still being collected is not served.
+        Map<Long, Double> perHour = kubernetesRepository.averageCpuPerBucket(range(0L, 3 * HOUR_MS, HOUR_MS), List.of("c1"));
+        assertEquals(List.of(0L, HOUR_MS), List.copyOf(perHour.keySet()));
+        assertEquals(3.0, perHour.get(0L), 1e-5);
+        assertEquals(9.0, perHour.get(HOUR_MS), 1e-5);
 
         List<KubernetesMetricEntity> current = kubernetesRepository.findByRange(2 * HOUR_MS, 3 * HOUR_MS);
         assertEquals(4, current.size(), "its sampling rows are left untouched");
@@ -86,7 +89,7 @@ class MetricCompactorTest
 
         assertEquals(1, report.containerWindows());
         assertEquals(1, kubernetesRepository.findByRange(0L, HOUR_MS - 1).size(), "one row for the hour, not two");
-        assertEquals(5.0, kubernetesRepository.averageCpuPerInstant(0L, HOUR_MS - 1, List.of("c1")).orElseThrow(), 1e-5);
+        assertEquals(5.0, kubernetesRepository.averageCpuPerBucket(range(0L, HOUR_MS, HOUR_MS), List.of("c1")).get(0L), 1e-5);
     }
 
     /** A backlog — downtime, a stopped scheduler, rows older than compaction itself — is worked through. */
@@ -101,7 +104,7 @@ class MetricCompactorTest
         assertEquals(6, report.containerWindows());
         assertEquals(12, kubernetesRepository.findByRange(0L, 6 * HOUR_MS).size(), "two containers per window");
         // Hourly sums of 1.5 × (1..6), averaged over the six windows.
-        assertEquals(5.25, kubernetesRepository.averageCpuPerInstant(0L, 6 * HOUR_MS, List.of("c1")).orElseThrow(), 1e-5);
+        assertEquals(5.25, kubernetesRepository.averageCpuPerBucket(range(0L, 6 * HOUR_MS, 6 * HOUR_MS), List.of("c1")).get(0L), 1e-5);
     }
 
     @Test
@@ -114,7 +117,7 @@ class MetricCompactorTest
 
         assertEquals(1, report.modelWindows());
         assertEquals(1, report.modelRows());
-        assertEquals(30L, llmRepository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+        assertEquals(30L, servedTokens());
 
         LLMMetricEntity compacted = llmRepository.findAll().firstResult();
         assertEquals(30L, compacted.outputTokens);
@@ -143,7 +146,7 @@ class MetricCompactorTest
         MetricCompactor.CompactionReport report = narrow.compact(instant(Duration.ofMinutes(11).toMillis()));
 
         assertEquals(2, report.modelWindows());
-        assertEquals(30L, llmRepository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+        assertEquals(30L, servedTokens());
     }
 
     @Test
@@ -192,8 +195,20 @@ class MetricCompactorTest
         return row;
     }
 
+    private long servedTokens()
+    {
+        return llmRepository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), "p-llm").getOrDefault(0L, Map.of()).values().stream()
+            .mapToLong(LLMServiceActivity::outputTokenCount)
+            .sum();
+    }
+
     private static Instant instant(long epochMs)
     {
         return Instant.ofEpochMilli(epochMs);
+    }
+
+    private static TimeRange range(long startMs, long endMs, long stepMs)
+    {
+        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs), Duration.ofMillis(stepMs));
     }
 }

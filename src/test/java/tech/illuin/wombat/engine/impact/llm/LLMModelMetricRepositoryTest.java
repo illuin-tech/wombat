@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.impact.llm;
 
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -9,11 +10,13 @@ import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.LLMData;
-import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -48,34 +51,14 @@ class LLMModelMetricRepositoryTest
     }
 
     @Test
-    void sumOutputTokens_sumsDeltasWithinRangeForProfile()
-    {
-        repository.save(row(1000L, "p-llm", "m", 10L));
-        repository.save(row(2000L, "p-llm", "m", 20L));
-        repository.save(row(3000L, "p-llm", "m", 30L));
-
-        assertEquals(30L, repository.sumOutputTokens(1000L, 2000L, "p-llm"));
-        assertEquals(60L, repository.sumOutputTokens(0L, 5000L, "p-llm"));
-    }
-
-    @Test
-    void sumOutputTokens_filtersByProfile()
-    {
-        repository.save(row(1000L, "p-llm", "m", 10L));
-        repository.save(row(1000L, "other", "m", 99L));
-
-        assertEquals(10L, repository.sumOutputTokens(0L, 5000L, "p-llm"));
-    }
-
-    @Test
-    void serviceActivities_groupsByModelAndSumsTokensAndRequests()
+    void serviceActivitiesPerBucket_groupsByModelAndSumsTokensAndRequests()
     {
         repository.save(row(1000L, "p-llm", "mistral-large", 100L));
         repository.save(row(2000L, "p-llm", "mistral-large", 200L));
         repository.save(row(2000L, "p-llm", "gpt-4o", 500L));
         repository.save(row(2000L, "other", "gpt-4o", 999L));
 
-        Map<String, LLMServiceActivity> activities = repository.serviceActivities(0L, 5000L, "p-llm");
+        Map<String, LLMServiceActivity> activities = repository.serviceActivitiesPerBucket(range(0L, 5000L, 5000L), "p-llm").get(0L);
         assertEquals(2, activities.size());
 
         LLMServiceActivity mistral = activities.get("mistral-large");
@@ -89,63 +72,52 @@ class LLMModelMetricRepositoryTest
         assertEquals(1.0, gpt.requestCount());
     }
 
-    /** Tokens are a total, so a bucket is simply the sum of the rows landing in it. */
-    @Test
-    void outputTokensPerBucket_sumsTheTokensOfEachBucket()
-    {
-        repository.save(row(0L, "p-llm", "m", 10L));
-        repository.save(row(1000L, "p-llm", "m", 20L));
-        repository.save(row(HOUR_MS + 5L, "p-llm", "m", 7L));
-        repository.save(row(0L, "other", "m", 99L));
-
-        Map<Long, Double> perHour = repository.outputTokensPerBucket(0L, 2 * HOUR_MS, HOUR_MS, "p-llm", List.of());
-
-        assertEquals(2, perHour.size());
-        assertEquals(30.0, perHour.get(0L), 1e-6);
-        assertEquals(7.0, perHour.get(HOUR_MS), 1e-6);
-    }
-
     /**
-     * An asset serving several models, filtered down to one: the buckets have to follow that model's
-     * tokens alone, or the page would spread its footprint over hours another model was busy in.
+     * Buckets are laid from the start of the requested range, as the evaluation splits it into slots:
+     * from 00:30 with an hourly step, a row at 01:00 belongs to the 00:30 bucket.
      */
     @Test
-    void outputTokensPerBucket_withAServiceFilter_countsOnlyTheSelectedModels()
+    void serviceActivitiesPerBucket_groupsRowsIntoBucketsAlignedOnTheStart()
     {
-        repository.save(row(0L, "p-llm", "mistral", 10L));
-        repository.save(row(HOUR_MS, "p-llm", "gpt", 40L));
-        repository.save(row(HOUR_MS, "p-llm", "mistral", 5L));
+        long start = HOUR_MS / 2;
+        repository.save(row(start, "p-llm", "mistral-large", 10L));
+        repository.save(row(HOUR_MS, "p-llm", "mistral-large", 20L));
+        repository.save(row(start + HOUR_MS, "p-llm", "gpt-4o", 7L));
 
-        Map<Long, Double> perHour = repository.outputTokensPerBucket(0L, 2 * HOUR_MS, HOUR_MS, "p-llm", List.of("mistral"));
+        Map<Long, Map<String, LLMServiceActivity>> perHour = repository.serviceActivitiesPerBucket(range(start, start + 2 * HOUR_MS, HOUR_MS), "p-llm");
 
-        assertEquals(2, perHour.size());
-        assertEquals(10.0, perHour.get(0L), 1e-6);
-        assertEquals(5.0, perHour.get(HOUR_MS), 1e-6, "the other model's tokens should not land in this bucket");
+        assertEquals(List.of(start, start + HOUR_MS), List.copyOf(perHour.keySet()));
+        assertEquals(30L, perHour.get(start).get("mistral-large").outputTokenCount());
+        assertEquals(2.0, perHour.get(start).get("mistral-large").requestCount());
+        assertEquals(Set.of("gpt-4o"), perHour.get(start + HOUR_MS).keySet());
     }
 
-    /** An empty filter is "no filter": the page reporting on every model spreads over every model. */
+    /** The end is exclusive, so a row on the boundary of two buckets is only counted in the second. */
     @Test
-    void outputTokensPerBucket_withoutAServiceFilter_countsEveryModel()
+    void serviceActivitiesPerBucket_countsABoundaryRowInOneBucketOnly()
     {
-        repository.save(row(0L, "p-llm", "mistral", 10L));
-        repository.save(row(0L, "p-llm", "gpt", 40L));
+        repository.save(row(HOUR_MS, "p-llm", "m", 10L));
 
-        assertEquals(50.0, repository.outputTokensPerBucket(0L, HOUR_MS, HOUR_MS, "p-llm", List.of()).get(0L), 1e-6);
+        assertTrue(repository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), "p-llm").isEmpty());
+        assertEquals(Set.of(HOUR_MS), repository.serviceActivitiesPerBucket(range(0L, 2 * HOUR_MS, HOUR_MS), "p-llm").keySet());
+    }
+
+    /** Like the slots of the evaluation, the reading stops at the last full bucket: a trailing half hour is left out. */
+    @Test
+    void serviceActivitiesPerBucket_leavesTheTrailingRemainderOut()
+    {
+        repository.save(row(0L, "p-llm", "m", 10L));
+        repository.save(row(2 * HOUR_MS, "p-llm", "m", 20L));
+
+        assertEquals(Set.of(0L), repository.serviceActivitiesPerBucket(range(0L, 2 * HOUR_MS + HOUR_MS / 2, HOUR_MS), "p-llm").keySet());
     }
 
     @Test
-    void sumOutputTokens_noRows_returnsZero()
-    {
-        assertEquals(0L, repository.sumOutputTokens(0L, 5000L, "p-llm"));
-    }
-
-    @Test
-    void sumOutputTokens_ignoresRowsNotYetCompacted()
+    void serviceActivitiesPerBucket_ignoresRowsNotYetCompacted()
     {
         repository.save(sampled(1000L, "p-llm", "m", 10L));
 
-        assertEquals(0L, repository.sumOutputTokens(0L, 5000L, "p-llm"));
-        assertTrue(repository.outputTokensPerBucket(0L, HOUR_MS, HOUR_MS, "p-llm", List.of()).isEmpty());
+        assertTrue(repository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), "p-llm").isEmpty());
     }
 
     /** Tokens and requests are totals, so folding a window sums them rather than averaging. */
@@ -159,8 +131,8 @@ class LLMModelMetricRepositoryTest
         int rows = repository.compactBucket(0L, HOUR_MS);
 
         assertEquals(2, rows);
-        assertEquals(30L, repository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
-        assertEquals(5L, repository.sumOutputTokens(0L, HOUR_MS, "other"));
+        assertEquals(30L, servedTokens("p-llm"));
+        assertEquals(5L, servedTokens("other"));
 
         List<LLMMetricEntity> all = repository.findAll().list();
         assertEquals(2, all.size(), "the sampling rows should be gone");
@@ -223,7 +195,7 @@ class LLMModelMetricRepositoryTest
         assertEquals(6L, entity.requestCount);
         assertEquals(45L, entity.data.outputTokens());
         assertEquals(6L, entity.data.requests());
-        assertEquals(45L, repository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+        assertEquals(45L, servedTokens("p-llm"));
     }
 
     @Test
@@ -255,7 +227,7 @@ class LLMModelMetricRepositoryTest
         repository.compactBucket(0L, HOUR_MS);
 
         assertEquals(0, repository.compactBucket(0L, HOUR_MS));
-        assertEquals(10L, repository.sumOutputTokens(0L, HOUR_MS, "p-llm"));
+        assertEquals(10L, servedTokens("p-llm"));
         assertEquals(1, repository.findAll().list().size());
     }
 
@@ -270,6 +242,13 @@ class LLMModelMetricRepositoryTest
     }
 
     /** A folded row, the kind every serving query reads. */
+    private long servedTokens(String assetId)
+    {
+        return repository.serviceActivitiesPerBucket(range(0L, HOUR_MS, HOUR_MS), assetId).getOrDefault(0L, Map.of()).values().stream()
+            .mapToLong(LLMServiceActivity::outputTokenCount)
+            .sum();
+    }
+
     private static LLMMetricEntity row(long instantMs, String assetId, String model, long outputTokens)
     {
         return row(instantMs, assetId, model, outputTokens, 1L);
@@ -298,5 +277,10 @@ class LLMModelMetricRepositoryTest
         row.outputTokens = outputTokens;
         row.requestCount = requestCount;
         return row;
+    }
+
+    private static TimeRange range(long startMs, long endMs, long stepMs)
+    {
+        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs), Duration.ofMillis(stepMs));
     }
 }

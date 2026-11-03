@@ -6,6 +6,7 @@ import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
 import tech.illuin.wombat.persistence.compaction.BucketCompactor;
 import tech.illuin.wombat.core.activity.commons.Country;
+import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
@@ -16,10 +17,11 @@ import tech.illuin.wombat.engine.impact.commons.MetricBuckets;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 @ApplicationScoped
 public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetricEntity, Long>, LLMMetricResolver, BucketCompactor
@@ -35,36 +37,6 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     public void save(LLMMetricEntity entity)
     {
         this.persist(entity);
-    }
-
-    @Override
-    public Map<Long, Double> outputTokensPerBucket(long startMs, long endMs, long stepMs, String assetId, Collection<String> serviceIds)
-    {
-        String bucket = MetricBuckets.expression(stepMs);
-        StringBuilder sql = new StringBuilder(
-            "SELECT " + bucket + " AS bucket, SUM(output_tokens) AS tokens FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end"
-            + " AND asset_id = :assetId");
-        if (!serviceIds.isEmpty())
-            sql.append(" AND ").append(this.dialect.text("data", "model")).append(" IN (:services)");
-        sql.append(" GROUP BY ").append(bucket).append(" ORDER BY ").append(bucket);
-
-        Query query = getEntityManager().createNativeQuery(sql.toString());
-        query.setParameter("start", startMs);
-        query.setParameter("end", endMs);
-        query.setParameter("assetId", assetId);
-        if (!serviceIds.isEmpty())
-            query.setParameter("services", serviceIds);
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = query.getResultList();
-
-        Map<Long, Double> perBucket = new LinkedHashMap<>();
-        for (Object[] row : rows)
-        {
-            if (row[1] == null) continue;
-            perBucket.put(((Number) row[0]).longValue(), ((Number) row[1]).doubleValue());
-        }
-        return perBucket;
     }
 
     @Override @Transactional
@@ -113,24 +85,30 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     }
 
     @Override
-    public Map<String, LLMServiceActivity> serviceActivities(long startMs, long endMs, String assetId)
+    public Map<Long, Map<String, LLMServiceActivity>> serviceActivitiesPerBucket(TimeRange range, String assetId)
     {
+        List<TimeRange> slots = range.split();
+        long startMs = toEpochMs(range.start());
+        long endMs = toEpochMs(slots.getLast().end());
+        long stepMs = range.resolution().toMillis();
+        String bucket = MetricBuckets.expression(startMs, stepMs);
         String serviceIdCol = this.dialect.text("data", "serviceId");
         String providerCol = this.dialect.text("data", "provider");
         String modelCol = this.dialect.text("data", "model");
         String locationCol = this.dialect.text("data", "location");
 
         String sql = """
-            SELECT %1$s AS serviceId, %2$s AS provider, %3$s AS model, %4$s AS location,
+            SELECT %5$s AS bucket, %1$s AS serviceId, %2$s AS provider, %3$s AS model, %4$s AS location,
                SUM(output_tokens) AS tokens,
                SUM(request_count) AS requests
             FROM model_metrics
             WHERE compacted = 1
               AND instant_ms >= :start
-              AND instant_ms <= :end
+              AND instant_ms < :end
               AND asset_id = :assetId
-            GROUP BY %1$s, %2$s, %3$s, %4$s
-        """.formatted(serviceIdCol, providerCol, modelCol, locationCol);
+            GROUP BY %5$s, %1$s, %2$s, %3$s, %4$s
+            ORDER BY %5$s
+        """.formatted(serviceIdCol, providerCol, modelCol, locationCol, bucket);
 
         Query query = getEntityManager().createNativeQuery(sql);
         query.setParameter("start", startMs);
@@ -140,19 +118,20 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         @SuppressWarnings("unchecked")
         List<Object[]> rows = query.getResultList();
 
-        Map<String, LLMServiceActivity> activities = new LinkedHashMap<>();
+        Map<Long, Map<String, LLMServiceActivity>> perBucket = new LinkedHashMap<>();
         for (Object[] row : rows)
         {
-            String serviceId = (String) row[0];
-            String providerStr = (String) row[1];
+            long bucketStart = ((Number) row[0]).longValue();
+            String serviceId = (String) row[1];
+            String providerStr = (String) row[2];
             LLMProvider provider = (providerStr != null && !providerStr.isBlank()) ? LLMProvider.valueOf(providerStr) : null;
-            String model = (String) row[2];
-            String location = (String) row[3];
+            String model = (String) row[3];
+            String location = (String) row[4];
             Country locationCountry = Country.ofCode(location).orElseThrow(() -> new IllegalArgumentException("Cannot determine country from location: " + location));
-            long tokens = row[4] != null ? ((Number) row[4]).longValue() : 0L;
-            double requests = row[5] != null ? ((Number) row[5]).doubleValue() : 1.0;
+            long tokens = row[5] != null ? ((Number) row[5]).longValue() : 0L;
+            double requests = row[6] != null ? ((Number) row[6]).doubleValue() : 1.0;
 
-            activities.merge(serviceId, new LLMServiceActivity(provider, model, locationCountry, tokens, requests),
+            perBucket.computeIfAbsent(bucketStart, b -> new LinkedHashMap<>()).merge(serviceId, new LLMServiceActivity(provider, model, locationCountry, tokens, requests),
                 (oldVal, newVal) -> new LLMServiceActivity(
                     newVal.provider() != null ? newVal.provider() : oldVal.provider(),
                     newVal.model() != null ? newVal.model() : oldVal.model(),
@@ -162,20 +141,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
                 )
             );
         }
-        return activities;
-    }
-
-    @Override
-    public long sumOutputTokens(long startMs, long endMs, String assetId)
-    {
-        Query query = getEntityManager().createNativeQuery(
-            "SELECT COALESCE(SUM(output_tokens), 0) FROM model_metrics"
-            + " WHERE compacted = 1 AND instant_ms >= :start AND instant_ms <= :end"
-            + " AND asset_id = :assetId");
-        query.setParameter("start", startMs);
-        query.setParameter("end", endMs);
-        query.setParameter("assetId", assetId);
-        return ((Number) query.getSingleResult()).longValue();
+        return perBucket;
     }
 
     private record ModelKey(

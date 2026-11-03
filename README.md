@@ -192,6 +192,22 @@ flowchart LR
     class FINOPS_RESULT finopsStyle
 ```
 
+Here is a list of the current integrations shipped as core-modules or defaults:
+
+| Module                                            | Family        | Description                                                                                                                                   |
+|---------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `tech.illuin.wombat-module.kubernetes-api`        | K8S Container | Connects to Kubernetes cluster APIs to poll CPU and memory resource metrics.                                                                  |
+| `tech.illuin.wombat-module.kubernetes-static`     | K8S Container | Models static Kubernetes container workloads using node counts and superposed temporal scenarios.                                             |
+| `tech.illuin.wombat-module.llm-prometheus`        | LLM Service   | Queries Prometheus via PromQL for LLM inference telemetry.                                                                                    |
+| `tech.illuin.wombat-module.llm-static`            | LLM Service   | Models static LLM workloads based on annual request profiles.                                                                                 |
+| `tech.illuin.wombat-module.llm-anthropic`         | LLM Service   | Queries the Anthropic Admin usage report on demand for per-model token usage over the evaluated time range.                                   |
+| Default component: BoaviztAPI impact resolver     | K8S Container | Estimates multi-criteria environmental impacts (GHG emissions, primary energy, abiotic depletion) for server workloads using the Boavizta API |
+| Default component: Ecologits impact resolver      | LLM Service   | Estimates multi-criteria environmental footprints for AI/LLM inferences using EcoLogits                                                       |
+| Default component: Store-backed Activity Resolver | K8S Container | Aggregates container and node activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                           |
+| Default component: Store-backed Activity Resolver | LLM Service   | Aggregates LLM service activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                                  |
+
+More information on each of these modules can be found [in the `wombat-core` documentation](https://github.com/illuin-tech/wombat-core#core-modules).
+
 ## Documentation
 
 * [Access control (OpenID Connect)](doc/access-control.md)

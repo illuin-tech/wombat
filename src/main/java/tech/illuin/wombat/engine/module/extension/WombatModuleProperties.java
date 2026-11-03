@@ -15,6 +15,9 @@ public interface WombatModuleProperties
     @WithName("llm-prometheus")
     LlmPrometheusProperties llmPrometheus();
 
+    @WithName("llm-anthropic")
+    LlmAnthropicProperties llmAnthropic();
+
     @WithName("extension")
     ExtensionProperties extension();
 
@@ -25,6 +28,12 @@ public interface WombatModuleProperties
     }
 
     interface LlmPrometheusProperties
+    {
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface LlmAnthropicProperties
     {
         @WithDefault("true")
         boolean enabled();

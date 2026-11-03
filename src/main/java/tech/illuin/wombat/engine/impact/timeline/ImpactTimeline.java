@@ -3,12 +3,9 @@ package tech.illuin.wombat.engine.impact.timeline;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
-import tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
@@ -24,71 +21,68 @@ public record ImpactTimeline(
         new Metric("adp", "Abiotic resources", "kgSbeq", Footprint::adp)
     );
 
-    public static ImpactTimeline of(
-        TimeRange range,
-        TimelineStep step,
-        List<AssetImpact> impacts,
-        Collection<String> includedServices,
-        Map<String, Map<Long, Double>> weightsByAsset
-    ) {
-        List<Long> starts = bucketStarts(range, step.millis());
+    public static ImpactTimeline of(TimeRange range, List<AssetImpact> impacts)
+    {
+        TimelineStep step = TimelineStep.of(range.resolution());
+        List<Long> starts = bucketStarts(range, range.resolution().toMillis());
         if (starts.isEmpty())
             return new ImpactTimeline(step, List.of(), List.of());
 
         List<Series> series = METRICS.stream()
-            .map(metric -> spread(metric, starts.size(), impacts, includedServices, orderedWeights(starts, weightsByAsset)))
+            .map(metric -> collect(metric, starts, range.resolution().toMillis(), impacts))
             .toList();
         return new ImpactTimeline(step, starts, series);
     }
 
-    private static Map<String, double[]> orderedWeights(List<Long> starts, Map<String, Map<Long, Double>> weightsByAsset)
+    /**
+     * Each impact was evaluated over a single bucket of the range: its footprint is added as-is to the
+     * bucket its own range starts in.
+     */
+    private static Series collect(Metric metric, List<Long> starts, long stepMs, List<AssetImpact> impacts)
     {
-        Map<String, double[]> ordered = new java.util.LinkedHashMap<>();
-        weightsByAsset.forEach((assetId, weights) -> {
-            double[] perBucket = new double[starts.size()];
-            for (int i = 0; i < starts.size(); i++)
-                perBucket[i] = Math.max(0.0, weights.getOrDefault(starts.get(i), 0.0));
-            ordered.put(assetId, perBucket);
-        });
-        return ordered;
-    }
-
-    private static Series spread(
-        Metric metric,
-        int bucketCount,
-        List<AssetImpact> impacts,
-        Collection<String> includedServices,
-        Map<String, double[]> weightsByAsset
-    ) {
-        double[] embedded = new double[bucketCount];
-        double[] use = new double[bucketCount];
+        double[] embedded = new double[starts.size()];
+        double[] use = new double[starts.size()];
         String unit = null;
 
         for (AssetImpact impact : impacts)
         {
-            List<Footprint> included = impact.serviceImpacts().stream()
-                .filter(service -> includedServices.contains(service.serviceId()))
-                .map(ServiceImpact::footprint)
-                .toList();
-            if (included.isEmpty())
+            if (impact.footprint() == null || impact.range() == null)
                 continue;
 
-            Footprint.FootprintImpact component = metric.component().apply(Footprint.sum(included));
+            int index = bucketIndex(starts.getFirst(), stepMs, starts.size(), toEpochMs(impact.range().start()));
+            if (index < 0)
+                continue;
+
+            Footprint.FootprintImpact component = metric.component().apply(impact.footprint());
             if (component == null)
                 continue;
             if (unit == null)
                 unit = component.unit();
 
-            spreadEvenly(embedded, component.embedded().value());
-            spreadByActivity(use, component.use().value(), weightsByAsset.get(impact.assetIdentity().id()));
+            if (component.embedded() != null)
+                embedded[index] += component.embedded().value();
+            if (component.use() != null)
+                use[index] += component.use().value();
         }
 
-        List<Bucket> buckets = new ArrayList<>(bucketCount);
-        for (int i = 0; i < bucketCount; i++)
+        List<Bucket> buckets = new ArrayList<>(starts.size());
+        for (int i = 0; i < starts.size(); i++)
             buckets.add(new Bucket(embedded[i], use[i]));
         return new Series(metric.key(), metric.label(), unit == null ? metric.defaultUnit() : unit, buckets);
     }
 
+    private static int bucketIndex(long firstStart, long stepMs, int bucketCount, long start)
+    {
+        if (start < firstStart)
+            return -1;
+        long index = (start - firstStart) / stepMs;
+        return index < bucketCount ? (int) index : -1;
+    }
+
+    /**
+     * The buckets are laid from the start of the range, as {@link TimeRange#split()} does when the
+     * evaluation is resolved, so that each impact's range matches a bucket.
+     */
     private static List<Long> bucketStarts(TimeRange range, long stepMs)
     {
         long start = toEpochMs(range.start());
@@ -97,32 +91,9 @@ public record ImpactTimeline(
             return List.of();
 
         List<Long> starts = new ArrayList<>();
-        for (long bucket = start - Math.floorMod(start, stepMs); bucket < end; bucket += stepMs)
+        for (long bucket = start; bucket < end; bucket += stepMs)
             starts.add(bucket);
         return starts;
-    }
-
-    private static void spreadEvenly(double[] target, double value)
-    {
-        double perBucket = value / target.length;
-        for (int i = 0; i < target.length; i++)
-            target[i] += perBucket;
-    }
-
-    private static void spreadByActivity(double[] target, double value, double[] weights)
-    {
-        double total = weights == null ? 0.0 : java.util.Arrays.stream(weights).sum();
-        if (total <= 0)
-        {
-            spreadEvenly(target, value);
-            return;
-        }
-
-        for (int i = 0; i < target.length; i++)
-        {
-            if (weights[i] > 0)
-                target[i] += value * weights[i] / total;
-        }
     }
 
     public boolean empty()

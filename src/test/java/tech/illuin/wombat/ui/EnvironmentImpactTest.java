@@ -68,7 +68,8 @@ class EnvironmentImpactTest
             identity,
             globalFootprint,
             List.of(impact1, impact2),
-            ImpactProvider.ECOLOGITS
+            ImpactProvider.ECOLOGITS,
+            RANGE
         );
 
         TestAsset asset = new TestAsset(identity, LLM_TYPE, profile);

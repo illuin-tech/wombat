@@ -99,43 +99,58 @@ class KubernetesMetricRepositoryTest
     }
 
     /**
-     * A bucket holds the CPU-time of its rows whatever window each covers: two five-minute rows and
-     * one hourly row weigh by the span they stand for, not by being one row each.
+     * Buckets are laid from the start of the requested range, as the evaluation splits it into slots,
+     * not from the epoch: from 00:30 with an hourly step, a row at 01:00 belongs to the 00:30 bucket.
      */
     @Test
-    void cpuTimePerBucket_groupsRowsIntoBucketsWeightedByWindow()
+    void averageCpuPerBucket_groupsInstantsIntoBucketsAlignedOnTheStart()
     {
-        repository.save(row(0L, FIVE_MINUTES_MS, "c1", "api", 2.0));
-        repository.save(row(FIVE_MINUTES_MS, FIVE_MINUTES_MS, "c1", "api", 4.0));
-        repository.save(row(2 * HOUR_MS, HOUR_MS, "c1", "api", 1.0));
+        long start = HOUR_MS / 2;
+        repository.save(row(start, FIVE_MINUTES_MS, "c1", "api", 2.0));
+        repository.save(row(HOUR_MS, FIVE_MINUTES_MS, "c1", "api", 4.0));
+        repository.save(row(start + HOUR_MS, HOUR_MS, "c1", "api", 10.0));
 
-        Map<Long, Double> perHour = repository.cpuTimePerBucket(0L, 3 * HOUR_MS, HOUR_MS, List.of("c1"), List.of());
+        Map<Long, Double> perHour = repository.averageCpuPerBucket(start, start + 2 * HOUR_MS, HOUR_MS, List.of("c1"));
 
-        assertEquals(2, perHour.size());
-        assertEquals(6.0 * FIVE_MINUTES_MS, perHour.get(0L), 1.0);
-        assertEquals(1.0 * HOUR_MS, perHour.get(2 * HOUR_MS), 1.0);
+        assertEquals(List.of(start, start + HOUR_MS), List.copyOf(perHour.keySet()));
+        assertEquals(3.0, perHour.get(start), 1e-5);
+        assertEquals(10.0, perHour.get(start + HOUR_MS), 1e-5);
     }
 
+    /** The end is exclusive, so a row on the boundary of two buckets is only counted in the second. */
     @Test
-    void cpuTimePerBucket_countsOnlyTheSelectedContainers()
+    void averageCpuPerBucket_countsABoundaryRowInOneBucketOnly()
     {
-        repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
-        repository.save(row(0L, HOUR_MS, "c1", "worker", 8.0));
+        repository.save(row(HOUR_MS, HOUR_MS, "c1", "api", 2.0));
 
-        Map<Long, Double> perHour = repository.cpuTimePerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1"), List.of("api"));
-
-        assertEquals(2.0 * HOUR_MS, perHour.get(0L), 1.0);
+        assertTrue(repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).isEmpty());
+        assertEquals(Set.of(HOUR_MS), repository.averageCpuPerBucket(0L, 2 * HOUR_MS, HOUR_MS, List.of("c1")).keySet());
     }
 
     /** A bucket no row covers is absent rather than zero: the caller knows the range it asked for. */
     @Test
-    void cpuTimePerBucket_leavesBucketsWithoutRowsOut()
+    void averageCpuPerBucket_leavesBucketsWithoutRowsOut()
     {
         repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
 
-        Map<Long, Double> perHour = repository.cpuTimePerBucket(0L, 5 * HOUR_MS, HOUR_MS, List.of("c1"), List.of());
+        Map<Long, Double> perHour = repository.averageCpuPerBucket(0L, 5 * HOUR_MS, HOUR_MS, List.of("c1"));
 
         assertEquals(Set.of(0L), perHour.keySet());
+    }
+
+    @Test
+    void containerSharesPerBucket_areComputedWithinEachBucket()
+    {
+        repository.save(row(0L, HOUR_MS, "c1", "api", 1.0));
+        repository.save(row(0L, HOUR_MS, "c1", "worker", 3.0));
+        repository.save(row(HOUR_MS, HOUR_MS, "c1", "api", 2.0));
+
+        Map<Long, Map<String, Double>> shares = repository.containerSharesPerBucket(0L, 2 * HOUR_MS, HOUR_MS, List.of("c1"));
+
+        assertEquals(Set.of(0L, HOUR_MS), shares.keySet());
+        assertEquals(0.25, shares.get(0L).get("api"), 1e-7);
+        assertEquals(0.75, shares.get(0L).get("worker"), 1e-7);
+        assertEquals(Map.of("api", 1.0), shares.get(HOUR_MS));
     }
 
     /** An hour still being collected is a fraction of itself, so nothing serves it until it is folded. */
@@ -144,9 +159,8 @@ class KubernetesMetricRepositoryTest
     {
         repository.save(sampled(0L, FIVE_MINUTES_MS, "c1", "api", 4.0));
 
-        assertTrue(repository.averageCpuPerInstant(0L, HOUR_MS, List.of("c1")).isEmpty());
-        assertTrue(repository.containerShares(0L, HOUR_MS, List.of("c1")).isEmpty());
-        assertTrue(repository.cpuTimePerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1"), List.of()).isEmpty());
+        assertTrue(repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).isEmpty());
+        assertTrue(repository.containerSharesPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).isEmpty());
         assertTrue(repository.containerLocations(0L, HOUR_MS, List.of("c1")).isEmpty());
     }
 
@@ -203,7 +217,7 @@ class KubernetesMetricRepositoryTest
         // Ten minutes at 2.0 and five at 8.0, so the mean follows the time each stands for.
         assertEquals(4.0, folded.getFirst().cpuNanocores, 1e-6);
         assertEquals(3 * FIVE_MINUTES_MS, folded.getFirst().windowMs);
-        assertEquals(4.0, repository.averageCpuPerInstant(0L, HOUR_MS - 1, List.of("c1")).orElseThrow(), 1e-5);
+        assertEquals(4.0, repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).get(0L), 1e-5);
     }
 
     @Test
@@ -229,7 +243,7 @@ class KubernetesMetricRepositoryTest
 
         assertEquals(0, repository.compactBucket(0L, HOUR_MS));
         assertEquals(1, repository.findByRange(0L, HOUR_MS).size());
-        assertEquals(2.0, repository.averageCpuPerInstant(0L, HOUR_MS, List.of("c1")).orElseThrow(), 1e-5);
+        assertEquals(2.0, repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).get(0L), 1e-5);
     }
 
     @Test
@@ -303,44 +317,44 @@ class KubernetesMetricRepositoryTest
      * plain average would be 4.0 against a time-weighted 8.71.
      */
     @Test
-    void averageCpuPerInstant_weighsEachWindowByItsLength()
+    void averageCpuPerBucket_weighsEachWindowByItsLength()
     {
         repository.save(row(0L, FIVE_MINUTES_MS, "c1", "api", 1.0));
         repository.save(row(FIVE_MINUTES_MS, FIVE_MINUTES_MS, "c1", "api", 1.0));
         repository.save(row(HOUR_MS, HOUR_MS, "c1", "api", 10.0));
 
-        double average = repository.averageCpuPerInstant(0L, 2 * HOUR_MS, List.of("c1")).orElseThrow();
+        double average = repository.averageCpuPerBucket(0L, 2 * HOUR_MS, 2 * HOUR_MS, List.of("c1")).get(0L);
 
         assertEquals(36_600_000.0 / 4_200_000.0, average, 1e-5);
     }
 
     @Test
-    void averageCpuPerInstant_sumsTheContainersOfAWindowBeforeWeighing()
+    void averageCpuPerBucket_sumsTheContainersOfAWindowBeforeWeighing()
     {
         repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
         repository.save(row(0L, HOUR_MS, "c1", "worker", 3.0));
 
-        double average = repository.averageCpuPerInstant(0L, HOUR_MS, List.of("c1")).orElseThrow();
+        double average = repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("c1")).get(0L);
 
         assertEquals(5.0, average, 1e-5);
     }
 
     @Test
-    void averageCpuPerInstant_withoutMatchingRows_isEmpty()
+    void averageCpuPerBucket_withoutMatchingRows_isEmpty()
     {
         repository.save(row(0L, HOUR_MS, "c1", "api", 2.0));
 
-        assertTrue(repository.averageCpuPerInstant(0L, HOUR_MS, List.of("other")).isEmpty());
+        assertTrue(repository.averageCpuPerBucket(0L, HOUR_MS, HOUR_MS, List.of("other")).isEmpty());
     }
 
     /** Same reasoning as the average: a container's share is the CPU-time it accounts for. */
     @Test
-    void containerShares_weighEachWindowByItsLength()
+    void containerSharesPerBucket_weighEachWindowByItsLength()
     {
         repository.save(row(0L, FIVE_MINUTES_MS, "c1", "short", 10.0));
         repository.save(row(HOUR_MS, HOUR_MS, "c1", "long", 10.0));
 
-        Map<String, Double> shares = repository.containerShares(0L, 2 * HOUR_MS, List.of("c1"));
+        Map<String, Double> shares = repository.containerSharesPerBucket(0L, 2 * HOUR_MS, 2 * HOUR_MS, List.of("c1")).get(0L);
 
         assertEquals(2, shares.size());
         assertEquals(3_000_000.0 / 39_000_000.0, shares.get("short"), 1e-7);

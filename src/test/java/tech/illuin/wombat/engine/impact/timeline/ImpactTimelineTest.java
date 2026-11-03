@@ -3,28 +3,20 @@ package tech.illuin.wombat.engine.impact.timeline;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.AssetIdentity;
-import tech.illuin.wombat.core.asset.profile.AssetProfile;
-import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
 import tech.illuin.wombat.core.evaluation.impact.commons.ImpactProvider;
-import tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact;
-import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
-import tech.illuin.wombat.engine.impact.timeline.TimelineStep;
-import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The distribution rules, away from any database: what each half of a footprint is spread by, that
- * the three metrics share the same spread, and that whatever the spread, every series still adds up
- * to the footprint the page reports.
+ * The timeline is laid over the resolution of its range, and each bucket holds the footprints the
+ * evaluator reported for that bucket, as they were reported.
  */
 class ImpactTimelineTest
 {
@@ -32,189 +24,124 @@ class ImpactTimelineTest
     private static final long DAY_MS = 24 * HOUR_MS;
 
     @Test
-    void of_coversEveryBucketTheRangeTouches()
+    void of_laysOneBucketPerResolutionFromTheRangeStart()
     {
-        ImpactTimeline timeline = ImpactTimeline.of(
-            range(3 * HOUR_MS + 1_800_000L, 7 * HOUR_MS), TimelineStep.HOUR, List.of(), Set.of(), Map.of());
+        ImpactTimeline timeline = ImpactTimeline.of(range(3 * HOUR_MS + 1_800_000L, 7 * HOUR_MS + 1_800_000L, HOUR_MS), List.of());
 
         assertEquals(4, timeline.bucketCount());
-        assertEquals(3 * HOUR_MS, timeline.bucketStarts().getFirst());
-        assertEquals(6 * HOUR_MS, timeline.bucketStarts().getLast());
+        assertEquals(3 * HOUR_MS + 1_800_000L, timeline.bucketStarts().getFirst());
+        assertEquals(6 * HOUR_MS + 1_800_000L, timeline.bucketStarts().getLast());
+        assertEquals(HOUR_MS, timeline.stepMs());
+        assertEquals("hourly", timeline.stepLabel());
     }
 
     @Test
     void of_offersTheThreeMetricsInOrder()
     {
-        ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, HOUR_MS), TimelineStep.HOUR, List.of(), Set.of(), Map.of());
+        ImpactTimeline timeline = ImpactTimeline.of(range(0, HOUR_MS, HOUR_MS), List.of());
 
         assertEquals(List.of("gwp", "pe", "adp"), timeline.series().stream().map(ImpactTimeline.Series::key).toList());
     }
 
-    /** Manufacturing accrues with time passing, the use phase with the work actually measured. */
     @Test
-    void of_spreadsEmbeddedEvenlyAndUseByMeasuredActivity()
+    void of_putsEachFootprintInTheBucketOfItsRange()
     {
         ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, 4 * HOUR_MS),
-            TimelineStep.HOUR,
-            List.of(impact("cluster", service("api", 12.0f, 8.0f))),
-            Set.of("api"),
-            Map.of("cluster", Map.of("api", Map.of(HOUR_MS, 1.0, 2 * HOUR_MS, 3.0)))
+            range(0, 3 * HOUR_MS, HOUR_MS),
+            List.of(
+                impact("cluster", HOUR_MS, footprint(2.0f, 5.0f)),
+                impact("cluster", 2 * HOUR_MS, footprint(1.0f, 3.0f))
+            )
         );
 
         List<ImpactTimeline.Bucket> buckets = series(timeline, "gwp").buckets();
-        assertEquals(4, buckets.size());
-        buckets.forEach(bucket -> assertEquals(3.0, bucket.embedded(), 1e-6));
-        assertEquals(0.0, buckets.get(0).use(), 1e-6);
-        assertEquals(2.0, buckets.get(1).use(), 1e-6);
-        assertEquals(6.0, buckets.get(2).use(), 1e-6);
-        assertEquals(0.0, buckets.get(3).use(), 1e-6);
-    }
-
-    /** The work done in an hour does not depend on which impact is read off it. */
-    @Test
-    void of_spreadsEveryMetricOverTheSameActivity()
-    {
-        ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, 2 * HOUR_MS),
-            TimelineStep.HOUR,
-            List.of(impact("cluster", service("api", 12.0f, 8.0f, 30.0f, 10.0f, 0.6f, 0.4f))),
-            Set.of("api"),
-            Map.of("cluster", Map.of("api", Map.of(HOUR_MS, 1.0)))
-        );
-
-        // Every metric puts its whole use in the only bucket with activity, and half its embedded in each.
-        assertUseOnlyInSecondBucket(series(timeline, "gwp"), 6.0, 8.0);
-        assertUseOnlyInSecondBucket(series(timeline, "pe"), 15.0, 10.0);
-        assertUseOnlyInSecondBucket(series(timeline, "adp"), 0.3, 0.4);
+        assertEquals(3, buckets.size());
+        assertEquals(0.0, buckets.get(0).total(), 1e-6);
+        assertEquals(2.0, buckets.get(1).embedded(), 1e-6);
+        assertEquals(5.0, buckets.get(1).use(), 1e-6);
+        assertEquals(1.0, buckets.get(2).embedded(), 1e-6);
+        assertEquals(3.0, buckets.get(2).use(), 1e-6);
     }
 
     @Test
-    void of_spreadsEachServiceOverItsOwnActivity()
+    void of_addsUpTheAssetsOfASameBucket()
     {
         ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, 2 * HOUR_MS),
-            TimelineStep.HOUR,
-            List.of(impact("claude", service("opus", 0.0f, 90.0f), service("haiku", 0.0f, 10.0f))),
-            Set.of("opus", "haiku"),
-            Map.of("claude", Map.of("opus", Map.of(0L, 100.0), "haiku", Map.of(HOUR_MS, 100.0)))
+            range(0, 2 * HOUR_MS, HOUR_MS),
+            List.of(
+                impact("cluster", 0, footprint(2.0f, 5.0f)),
+                impact("model", 0, footprint(1.0f, 4.0f))
+            )
         );
 
-        List<ImpactTimeline.Bucket> buckets = series(timeline, "gwp").buckets();
-        assertEquals(90.0, buckets.get(0).use(), 1e-6);
-        assertEquals(10.0, buckets.get(1).use(), 1e-6);
+        ImpactTimeline.Bucket bucket = series(timeline, "gwp").buckets().getFirst();
+        assertEquals(3.0, bucket.embedded(), 1e-6);
+        assertEquals(9.0, bucket.use(), 1e-6);
     }
 
     @Test
-    void of_carriesTheUnitOfEachMetric()
+    void of_readsEachMetricOffTheReportedFootprint()
     {
         ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, HOUR_MS),
-            TimelineStep.HOUR,
-            List.of(impact("cluster", service("api", 12.0f, 8.0f, 30.0f, 10.0f, 0.6f, 0.4f))),
-            Set.of("api"),
-            Map.of()
+            range(0, HOUR_MS, HOUR_MS),
+            List.of(impact("cluster", 0, new Footprint(
+                component("kgCO2eq", 12.0f, 8.0f),
+                component("MJ", 30.0f, 10.0f),
+                component("kgSbeq", 0.6f, 0.4f)
+            )))
         );
 
+        assertBucket(series(timeline, "gwp"), 12.0, 8.0);
+        assertBucket(series(timeline, "pe"), 30.0, 10.0);
+        assertBucket(series(timeline, "adp"), 0.6, 0.4);
         assertEquals("kgCO2eq", series(timeline, "gwp").unit());
         assertEquals("MJ", series(timeline, "pe").unit());
         assertEquals("kgSbeq", series(timeline, "adp").unit());
     }
 
-    /** A modelled asset measures nothing; a constant rate over the range is the only honest split. */
     @Test
-    void of_withoutMeasuredActivity_spreadsUseEvenlyToo()
+    void of_ignoresImpactsOutsideTheRange()
     {
         ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, 4 * HOUR_MS),
-            TimelineStep.HOUR,
-            List.of(impact("model", service("mistral", 4.0f, 20.0f))),
-            Set.of("mistral"),
-            Map.of()
-        );
-
-        series(timeline, "gwp").buckets().forEach(bucket -> {
-            assertEquals(1.0, bucket.embedded(), 1e-6);
-            assertEquals(5.0, bucket.use(), 1e-6);
-        });
-    }
-
-    @Test
-    void of_bucketsAddUpToTheReportedFootprint()
-    {
-        ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, 5 * HOUR_MS),
-            TimelineStep.HOUR,
+            range(HOUR_MS, 2 * HOUR_MS, HOUR_MS),
             List.of(
-                impact("cluster", service("api", 12.0f, 8.0f), service("worker", 3.0f, 1.0f)),
-                impact("model", service("mistral", 4.0f, 20.0f))
-            ),
-            Set.of("api", "worker", "mistral"),
-            Map.of("cluster", Map.of("api", Map.of(0L, 2.0, 3 * HOUR_MS, 1.0), "worker", Map.of(HOUR_MS, 1.0)))
+                impact("cluster", 0, footprint(2.0f, 5.0f)),
+                impact("cluster", 2 * HOUR_MS, footprint(2.0f, 5.0f))
+            )
         );
 
-        double total = series(timeline, "gwp").buckets().stream().mapToDouble(ImpactTimeline.Bucket::total).sum();
-        assertEquals(12.0 + 8.0 + 3.0 + 1.0 + 4.0 + 20.0, total, 1e-5);
+        assertEquals(0.0, series(timeline, "gwp").buckets().getFirst().total(), 1e-6);
     }
 
     @Test
-    void of_countsOnlyTheSelectedServices()
+    void of_withADailyResolution_laysDailyBuckets()
     {
         ImpactTimeline timeline = ImpactTimeline.of(
-            range(0, 2 * HOUR_MS),
-            TimelineStep.HOUR,
-            List.of(impact("cluster", service("api", 10.0f, 0.0f), service("worker", 90.0f, 0.0f))),
-            Set.of("api"),
-            Map.of()
-        );
-
-        double total = series(timeline, "gwp").buckets().stream().mapToDouble(ImpactTimeline.Bucket::total).sum();
-        assertEquals(10.0, total, 1e-5);
-    }
-
-    /**
-     * A day is a whole number of hours, so a daily step is the same alignment one rung up: the
-     * columns land on UTC midnight and hold exactly the hours of their day.
-     */
-    @Test
-    void of_withADailyStep_alignsBucketsOnUtcDays()
-    {
-        ImpactTimeline timeline = ImpactTimeline.of(
-            range(DAY_MS + 5 * HOUR_MS, 3 * DAY_MS),
-            TimelineStep.DAY,
-            List.of(impact("cluster", service("api", 12.0f, 9.0f))),
-            Set.of("api"),
-            Map.of("cluster", Map.of("api", Map.of(DAY_MS, 1.0, 2 * DAY_MS, 2.0)))
+            range(DAY_MS, 3 * DAY_MS, DAY_MS),
+            List.of(impact("cluster", 2 * DAY_MS, footprint(6.0f, 3.0f)))
         );
 
         assertEquals(DAY_MS, timeline.stepMs());
         assertEquals("daily", timeline.stepLabel());
         assertEquals("days", timeline.stepPlural());
         assertEquals(List.of(DAY_MS, 2 * DAY_MS), timeline.bucketStarts());
-
-        List<ImpactTimeline.Bucket> buckets = series(timeline, "gwp").buckets();
-        buckets.forEach(bucket -> assertEquals(6.0, bucket.embedded(), 1e-6));
-        assertEquals(3.0, buckets.get(0).use(), 1e-6);
-        assertEquals(6.0, buckets.get(1).use(), 1e-6);
+        assertEquals(0.0, series(timeline, "gwp").buckets().get(0).total(), 1e-6);
+        assertEquals(9.0, series(timeline, "gwp").buckets().get(1).total(), 1e-6);
     }
 
     @Test
     void of_withAnOpenEndedRange_hasNoBuckets()
     {
-        ImpactTimeline timeline = ImpactTimeline.of(
-            new TimeRange(Instant.MIN, Instant.MAX), TimelineStep.HOUR, List.of(), Set.of(), Map.of());
+        ImpactTimeline timeline = ImpactTimeline.of(new TimeRange(Instant.MIN, Instant.MAX, Duration.ofHours(1)), List.of());
 
         assertTrue(timeline.empty());
         assertTrue(timeline.series().isEmpty());
     }
 
-    private static void assertUseOnlyInSecondBucket(ImpactTimeline.Series series, double embeddedPerBucket, double use)
+    private static void assertBucket(ImpactTimeline.Series series, double embedded, double use)
     {
-        assertEquals(embeddedPerBucket, series.buckets().get(0).embedded(), 1e-6);
-        assertEquals(0.0, series.buckets().get(0).use(), 1e-6);
-        assertEquals(embeddedPerBucket, series.buckets().get(1).embedded(), 1e-6);
-        assertEquals(use, series.buckets().get(1).use(), 1e-6);
+        assertEquals(embedded, series.buckets().getFirst().embedded(), 1e-6);
+        assertEquals(use, series.buckets().getFirst().use(), 1e-6);
     }
 
     private static ImpactTimeline.Series series(ImpactTimeline timeline, String key)
@@ -225,34 +152,25 @@ class ImpactTimelineTest
             .orElseThrow(() -> new AssertionError("no series " + key + " in " + timeline.series()));
     }
 
-    private static TimeRange range(long startMs, long endMs)
+    private static TimeRange range(long startMs, long endMs, long resolutionMs)
     {
-        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs));
+        return new TimeRange(Instant.ofEpochMilli(startMs), Instant.ofEpochMilli(endMs), Duration.ofMillis(resolutionMs));
     }
 
-    private static AssetImpact impact(String assetId, ServiceImpact... services)
+    private static AssetImpact impact(String assetId, long bucketStartMs, Footprint footprint)
     {
-        List<ServiceImpact> serviceImpacts = List.of(services);
-        Footprint footprint = Footprint.sum(serviceImpacts.stream().map(ServiceImpact::footprint).toList());
-        return new AssetImpact(AssetIdentity.of(assetId, "env", "name"), footprint, serviceImpacts, ImpactProvider.BOAVIZTA);
+        return new AssetImpact(
+            AssetIdentity.of(assetId, "env", "name"),
+            footprint,
+            List.of(),
+            ImpactProvider.BOAVIZTA,
+            range(bucketStartMs, bucketStartMs + HOUR_MS, HOUR_MS)
+        );
     }
 
-    private static ServiceImpact service(String serviceId, float embedded, float use)
+    private static Footprint footprint(float embedded, float use)
     {
-        return new TestServiceImpact(serviceId, new Footprint(component("kgCO2eq", embedded, use), null, null));
-    }
-
-    private static ServiceImpact service(
-        String serviceId,
-        float gwpEmbedded, float gwpUse,
-        float peEmbedded, float peUse,
-        float adpEmbedded, float adpUse
-    ) {
-        return new TestServiceImpact(serviceId, new Footprint(
-            component("kgCO2eq", gwpEmbedded, gwpUse),
-            component("MJ", peEmbedded, peUse),
-            component("kgSbeq", adpEmbedded, adpUse)
-        ));
+        return new Footprint(component("kgCO2eq", embedded, use), null, null);
     }
 
     private static Footprint.FootprintImpact component(String unit, float embedded, float use)
@@ -262,21 +180,5 @@ class ImpactTimelineTest
             new Footprint.FootprintImpact.FootprintImpactItem(embedded, List.of()),
             new Footprint.FootprintImpact.FootprintImpactItem(use, List.of())
         );
-    }
-
-    /** Only the service id and the footprint matter here; the rest of the contract stays unused. */
-    private record TestServiceImpact(String serviceId, Footprint footprint) implements ServiceImpact
-    {
-        @Override
-        public AssetProfile profile()
-        {
-            return null;
-        }
-
-        @Override
-        public AssetType assetType()
-        {
-            return KubernetesAPIModule.TYPE;
-        }
     }
 }

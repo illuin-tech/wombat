@@ -545,7 +545,7 @@ class SimulationControllerTest
     {
         Mockito.when(boaviztaClient.getInstanceConfig(any(), any())).thenThrow(new RuntimeException("Downstream error"));
 
-        String body = "{\"scopes\": [\"IMPACT\"], \"assets\": [" + KUBERNETES_ASSET_JSON + "]}";
+        String body = "{\"scopes\": [\"IMPACT\"], \"assets\": [" + KUBERNETES_ASSET_JSON.replace("100.0", "99.0") + "]}";
 
         given()
             .contentType("application/json").body(body)

@@ -69,6 +69,12 @@ module:
   extension:
     path: "extensions"
 
+evaluation:
+  cache:
+    enabled: true
+    maximum-size: 5000
+    expire-after-write: 10m
+
 compaction:
   cron: "0 1 * * * ?" # a minute past every hour
   window: 1h

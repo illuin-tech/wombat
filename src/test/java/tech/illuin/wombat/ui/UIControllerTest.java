@@ -219,6 +219,48 @@ class UIControllerTest
             .body(containsString("var timelineStepMs = 86400000"));
     }
 
+    @Test
+    void get_withFilteredServices_filtersTimelineSeries()
+    {
+        String unfilteredBody = given()
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .extract().body().asString();
+
+        String filteredApiBody = given()
+            .queryParam("services", "test-cluster=api")
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .extract().body().asString();
+
+        String filteredWorkerBody = given()
+            .queryParam("services", "test-cluster=worker")
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .extract().body().asString();
+
+        // Timeline JS variable block must reflect different values when filtering services
+        org.junit.jupiter.api.Assertions.assertNotEquals(unfilteredBody, filteredApiBody);
+        org.junit.jupiter.api.Assertions.assertNotEquals(filteredApiBody, filteredWorkerBody);
+    }
+
+    @Test
+    void get_withFilteredServices_preservesAllServicesInDropdownWithCheckedStates()
+    {
+        given()
+            .queryParam("services", "test-cluster=api")
+            .when().get("/")
+            .then()
+            .statusCode(200)
+            .body(containsString("value=\"api\""))
+            .body(containsString("value=\"worker\""))
+            .body(containsString("value=\"api\"\n                   checked/>"))
+            .body(not(containsString("value=\"worker\"\n                   checked/>")));
+    }
+
     /** A week or less is the one case the columns go hourly, so intraday swings stay visible. */
     @Test
     void get_withAShortRange_rendersAnHourlyHistogram()

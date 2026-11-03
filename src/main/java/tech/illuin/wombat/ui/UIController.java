@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Path("/")
 public class UIController
@@ -90,8 +92,9 @@ public class UIController
             if (effectiveAssetIds.isEmpty())
                 effectiveAssetIds = environmentAssets.stream().map(asset -> asset.identity().id()).toList();
 
-            AssetFilter filter = AssetFilter.of(selectedEnvironmentId, effectiveAssetIds);
-            List<AssetImpact> assetImpacts = this.assetEvaluator.evaluate(timeRange, filter).stream()
+            AssetFilter globalFilter = AssetFilter.of(selectedEnvironmentId, effectiveAssetIds);
+
+            List<AssetImpact> assetImpacts = this.assetEvaluator.evaluate(timeRange, globalFilter).stream()
                 .filter(AssetImpact.class::isInstance)
                 .map(AssetImpact.class::cast)
                 .toList();
@@ -103,9 +106,16 @@ public class UIController
 
             EnvironmentImpact environmentImpact = EnvironmentImpact.from(assetImpacts, environmentAssets, requestedServices, timeRange, unrecognizedAssets);
 
+            AssetFilter timelineFilter = new AssetFilter(new AssetFilter.Environment(
+                selectedEnvironmentId,
+                effectiveAssetIds.stream()
+                    .map(assetId -> new AssetFilter.Asset(assetId, services.containsKey(assetId) ? Set.copyOf(services.get(assetId)) : Set.of()))
+                    .collect(Collectors.toSet())
+            ));
+
             TimelineStep step = TimelineStep.of(timeRange);
             TimeRange timelineRange = TimeRange.cloneRescale(timeRange, Duration.ofMillis(step.millis()));
-            List<AssetImpact> evaluations = this.assetEvaluator.evaluate(timelineRange, filter, AssetImpact.class);
+            List<AssetImpact> evaluations = this.assetEvaluator.evaluate(timelineRange, timelineFilter, AssetImpact.class);
             ImpactTimeline timeline = ImpactTimeline.of(timelineRange, evaluations);
 
             Templates.AssetSelection assetSelection = new Templates.AssetSelection(environmentAssets, effectiveAssetIds);

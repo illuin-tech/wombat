@@ -11,6 +11,8 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties;
 import tech.illuin.wombat.engine.module.WombatModuleConfig.DefaultHandlers;
 
 import java.nio.file.Path;
@@ -73,8 +75,10 @@ public class WombatCoreConfig
      * as their type is already wired; a brand-new asset-type needs a fresh one.
      */
     @Singleton
-    public AssetEvaluator provideImpactCalculator(WombatCore core)
+    public AssetEvaluator provideImpactCalculator(WombatCore core, CachedAssetEvaluatorProperties cacheProperties)
     {
+        if (cacheProperties.enabled())
+            return new CachedAssetEvaluator(core.createEvaluator(), cacheProperties);
         return core.createEvaluator();
     }
 

@@ -26,13 +26,13 @@ class TimelineStepTest
     @Test
     void of_atExactlyAWeek_chartsByTheHour()
     {
-        assertEquals(TimelineStep.HOUR, TimelineStep.of(spanning(TimelineStep.HOURLY_MAX_SPAN)));
+        assertEquals(TimelineStep.HOUR, TimelineStep.of(spanning(Duration.ofDays(7))));
     }
 
     @Test
     void of_pastAWeek_chartsByTheDay()
     {
-        assertEquals(TimelineStep.DAY, TimelineStep.of(spanning(TimelineStep.HOURLY_MAX_SPAN.plusMillis(1))));
+        assertEquals(TimelineStep.DAY, TimelineStep.of(spanning(Duration.ofDays(7).plusMillis(1))));
         assertEquals(TimelineStep.DAY, TimelineStep.of(spanning(Duration.ofDays(90))));
         assertEquals(TimelineStep.DAY, TimelineStep.of(spanning(Duration.ofDays(366))));
     }

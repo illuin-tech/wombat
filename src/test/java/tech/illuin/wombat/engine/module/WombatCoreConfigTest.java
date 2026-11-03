@@ -16,6 +16,7 @@ import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
+import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -73,13 +74,14 @@ class WombatCoreConfigTest
     @Test
     void everyModuleIsWiredWhenNoToggleIsSet()
     {
-        assertEquals(6, this.modules.size());
+        assertEquals(7, this.modules.size());
         assertTrue(this.modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(KubernetesSimulatedModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(KubernetesStaticModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(LLMSimulatedModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(LLMStaticModule.class::isInstance));
+        assertTrue(this.modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
     }
 
     @Test

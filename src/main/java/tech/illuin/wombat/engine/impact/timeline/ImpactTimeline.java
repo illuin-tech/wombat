@@ -24,17 +24,17 @@ public record ImpactTimeline(
         new Metric("adp", "Abiotic resources", "kgSbeq", Footprint::adp)
     );
 
-    public static ImpactTimeline of(
-        TimeRange range,
-        TimelineStep step,
-        List<AssetImpact> impacts,
-        Collection<String> includedServices,
-        Map<String, Map<Long, Double>> weightsByAsset
-    ) {
-        List<Long> starts = bucketStarts(range, step.millis());
+    public static ImpactTimeline of(TimeRange range, List<AssetImpact> impacts)
+    {
+        List<Long> starts = bucketStarts(range, range.resolution().toMillis());
         if (starts.isEmpty())
-            return new ImpactTimeline(step, List.of(), List.of());
+            return new ImpactTimeline(TimelineStep.of(range.resolution()), List.of(), List.of());
 
+        /*
+         * TODO: compute Series from the list of AssetImpact:
+         *    - each AssetImpact has a TimeRange corresponding to the time bucket in the timeline
+         *    - the new model should directly use the Footprint as reported by the AssetImpact in the resulting Timeline
+         */
         List<Series> series = METRICS.stream()
             .map(metric -> spread(metric, starts.size(), impacts, includedServices, orderedWeights(starts, weightsByAsset)))
             .toList();

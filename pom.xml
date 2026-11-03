@@ -71,7 +71,7 @@
         <!-- Test deps -->
         <junit-jupiter.version>6.1.3</junit-jupiter.version>
         <logback.version>1.6.4</logback.version>
-        <surefire-plugin.version>3.6.0</surefire-plugin.version>
+        <surefire-plugin.version>3.6.1</surefire-plugin.version>
         <junit4.version>4.13.2</junit4.version>
         <jacoco.version>0.8.15</jacoco.version>
         <checkstyle.version>14.3.0</checkstyle.version>

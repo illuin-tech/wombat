@@ -17,7 +17,7 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
-import tech.illuin.wombat.engine.impact.timeline.ImpactTimelineResolver;
+import tech.illuin.wombat.engine.impact.timeline.TimelineStep;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,18 +37,16 @@ public class UIController
     private final WombatContextProvider contextProvider;
     private final UIProperties uiProperties;
     private final AssetRepository assetRepository;
-    private final ImpactTimelineResolver timelineResolver;
 
     private static final int DEFAULT_RANGE_MONTHS = 3;
     private static final Logger logger = LoggerFactory.getLogger(UIController.class);
 
-    public UIController(AssetEvaluator assetEvaluator, WombatContextProvider contextProvider, UIProperties uiProperties, AssetRepository assetRepository, ImpactTimelineResolver timelineResolver)
+    public UIController(AssetEvaluator assetEvaluator, WombatContextProvider contextProvider, UIProperties uiProperties, AssetRepository assetRepository)
     {
         this.assetEvaluator = assetEvaluator;
         this.contextProvider = contextProvider;
         this.uiProperties = uiProperties;
         this.assetRepository = assetRepository;
-        this.timelineResolver = timelineResolver;
     }
 
     @GET @Produces(MediaType.TEXT_HTML)
@@ -92,9 +90,8 @@ public class UIController
             if (effectiveAssetIds.isEmpty())
                 effectiveAssetIds = environmentAssets.stream().map(asset -> asset.identity().id()).toList();
 
-            List<String> selectedIds = effectiveAssetIds;
-
-            List<AssetImpact> assetImpacts = this.assetEvaluator.evaluate(timeRange, AssetFilter.of(selectedEnvironmentId, selectedIds)).stream()
+            AssetFilter filter = AssetFilter.of(selectedEnvironmentId, effectiveAssetIds);
+            List<AssetImpact> assetImpacts = this.assetEvaluator.evaluate(timeRange, filter).stream()
                 .filter(AssetImpact.class::isInstance)
                 .map(AssetImpact.class::cast)
                 .toList();
@@ -105,7 +102,12 @@ public class UIController
                 .toList();
 
             EnvironmentImpact environmentImpact = EnvironmentImpact.from(assetImpacts, environmentAssets, requestedServices, timeRange, unrecognizedAssets);
-            ImpactTimeline timeline = this.timelineResolver.resolve(timeRange, assetImpacts, environmentImpact.includedServices());
+
+            TimelineStep step = TimelineStep.of(timeRange);
+            TimeRange timelineRange = TimeRange.cloneRescale(timeRange, Duration.ofMillis(step.millis()));
+            List<AssetImpact> evaluations = this.assetEvaluator.evaluate(timelineRange, filter, AssetImpact.class);
+            ImpactTimeline timeline = ImpactTimeline.of(timelineRange, evaluations);
+
             Templates.AssetSelection assetSelection = new Templates.AssetSelection(environmentAssets, effectiveAssetIds);
             Templates.EnvironmentSelection environmentSelection = new Templates.EnvironmentSelection(environmentViews, selectedEnvironmentId);
             return Templates.impact(environmentImpact, assetSelection, environmentSelection, this.maxSpan(), timeline);

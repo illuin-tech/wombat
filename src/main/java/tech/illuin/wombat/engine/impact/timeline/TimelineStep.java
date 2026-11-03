@@ -33,6 +33,15 @@ public enum TimelineStep
         return end - start <= INTRADAY_MAX_SPAN_MS ? HOUR : DAY;
     }
 
+    public static TimelineStep of(Duration duration)
+    {
+        long start = 0;
+        long end = duration.toMillis();
+        if (start == Long.MIN_VALUE || end == Long.MAX_VALUE || end <= start)
+            return DAY;
+        return end - start <= INTRADAY_MAX_SPAN_MS ? HOUR : DAY;
+    }
+
     public long millis()
     {
         return this.millis;

@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.context;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -200,9 +199,9 @@ public class EnvironmentReconciler
     }
 
     private record AssetSnapshot(
-        @JsonProperty("id") String id,
-        @JsonProperty("name") String name,
-        @JsonProperty("type") String type,
-        @JsonProperty("data") Asset data
+        String id,
+        String name,
+        String type,
+        Asset data
     ) {}
 }

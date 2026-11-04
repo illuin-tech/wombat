@@ -1,8 +1,5 @@
 package tech.illuin.wombat.engine.module.extension;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -248,21 +245,10 @@ class DynamicModuleIntegrationTest
 
     public record CustomDynamicAsset(
         @JsonUnwrapped AssetIdentity identity,
-        @JsonProperty("endpoint") String endpoint,
-        @JsonProperty("period") Period period
+        String endpoint,
+        Period period
     ) implements Asset, Monitorable
     {
-        @JsonCreator
-        public CustomDynamicAsset(
-            @JsonProperty("id") String id,
-            @JsonProperty("environment-id") @JsonAlias("environmentId") String environmentId,
-            @JsonProperty("name") String name,
-            @JsonProperty("endpoint") String endpoint,
-            @JsonProperty("period") Period period
-        ) {
-            this(AssetIdentity.of(id, environmentId, name), endpoint, period != null ? period : Period.ZERO);
-        }
-
         @Override
         public AssetType type()
         {

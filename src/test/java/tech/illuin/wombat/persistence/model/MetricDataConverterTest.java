@@ -87,6 +87,22 @@ class MetricDataConverterTest
         assertNull(this.llm.convertToEntityAttribute("  "));
     }
 
+    @Test
+    void ignoresUnknownPropertiesDuringDeserialization()
+    {
+        KubernetesData expectedK8s = new KubernetesData("svc", "cluster-1", "ns", "pod-1", 1.5, 2.5);
+        String baseK8s = this.kubernetes.convertToDatabaseColumn(expectedK8s);
+        String k8sWithExtra = baseK8s.substring(0, baseK8s.lastIndexOf('}')) + ",\"extraField\":\"ignored\"}";
+        KubernetesData actualK8s = this.kubernetes.convertToEntityAttribute(k8sWithExtra);
+        assertEquals(expectedK8s, actualK8s);
+
+        LLMData expectedLlm = new LLMData("svc", LLMProvider.mistralai, "mistral-large", FRANCE, 100L, 5L);
+        String baseLlm = this.llm.convertToDatabaseColumn(expectedLlm);
+        String llmWithExtra = baseLlm.substring(0, baseLlm.lastIndexOf('}')) + ",\"unknownField\":999}";
+        LLMData actualLlm = this.llm.convertToEntityAttribute(llmWithExtra);
+        assertEquals(expectedLlm, actualLlm);
+    }
+
     private static void assertContainsKey(String json, String key)
     {
         assertTrue(json.contains("\"" + key + "\":"), key + " missing from " + json);

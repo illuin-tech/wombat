@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.context.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,8 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.engine.context.model.AssetInfo;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.persistence.AssetEntity;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
@@ -174,8 +171,8 @@ class AssetInfoTest
     @JsonTypeName("tech.illuin.custom")
     private record DynamicAsset(
         @JsonUnwrapped AssetIdentity identity,
-        @JsonProperty("profile") DynamicProfile profile,
-        @JsonProperty("customField") String customField
+        DynamicProfile profile,
+        String customField
     ) implements Asset
     {
         @Override

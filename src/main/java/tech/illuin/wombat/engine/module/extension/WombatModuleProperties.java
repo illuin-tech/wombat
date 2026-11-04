@@ -18,6 +18,9 @@ public interface WombatModuleProperties
     @WithName("llm-anthropic")
     LlmAnthropicProperties llmAnthropic();
 
+    @WithName("llm-vertex-ai")
+    LlmVertexAIProperties llmVertexAi();
+
     @WithName("extension")
     ExtensionProperties extension();
 
@@ -34,6 +37,12 @@ public interface WombatModuleProperties
     }
 
     interface LlmAnthropicProperties
+    {
+        @WithDefault("true")
+        boolean enabled();
+    }
+
+    interface LlmVertexAIProperties
     {
         @WithDefault("true")
         boolean enabled();

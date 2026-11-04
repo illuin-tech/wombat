@@ -142,6 +142,7 @@ flowchart LR
         subgraph ACTIVITY[Wombat Activity Resolvers]
             direction LR
             SAMPLED[Query Metrics DB]
+            QUERIED[Query 3rd-party metrics APIs]
             MODELED[On-the-fly\nModeling & Fallback]
         end
 
@@ -200,7 +201,8 @@ Here is a list of the current integrations shipped as core-modules or defaults:
 | `tech.illuin.wombat-module.kubernetes-static`     | K8S Container | Models static Kubernetes container workloads using node counts and superposed temporal scenarios.                                             |
 | `tech.illuin.wombat-module.llm-prometheus`        | LLM Service   | Queries Prometheus via PromQL for LLM inference telemetry.                                                                                    |
 | `tech.illuin.wombat-module.llm-static`            | LLM Service   | Models static LLM workloads based on annual request profiles.                                                                                 |
-| `tech.illuin.wombat-module.llm-anthropic`         | LLM Service   | Queries the Anthropic Admin usage report on demand for per-model token usage over the evaluated time range.                                   |
+| `tech.illuin.wombat-module.llm-anthropic`         | LLM Service   | Queries the Anthropic Admin usage report for per-model token usage over the evaluated time range.                                             |
+| `tech.illuin.wombat-module.llm-vertexai`          | LLM Service   | Queries the VertexAI metrics API for per-model token usage over the evaluated time range.                                                     |
 | Default component: BoaviztAPI impact resolver     | K8S Container | Estimates multi-criteria environmental impacts (GHG emissions, primary energy, abiotic depletion) for server workloads using the Boavizta API |
 | Default component: Ecologits impact resolver      | LLM Service   | Estimates multi-criteria environmental footprints for AI/LLM inferences using EcoLogits                                                       |
 | Default component: Store-backed Activity Resolver | K8S Container | Aggregates container and node activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                           |

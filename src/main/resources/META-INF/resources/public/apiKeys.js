@@ -136,7 +136,7 @@ function revokeApiKey(key, button) {
 function showApiKeyToken(token) {
   document.getElementById('apiKeyTokenValue').textContent = token;
   document.getElementById('apiKeyTokenUsage').textContent =
-    'curl -H "Authorization: Bearer ' + token + '" ' + window.location.origin + '/api/environments';
+    'curl -H "X-API-Key: ' + token + '" ' + window.location.origin + '/api/environments';
   var panel = document.getElementById('apiKeyToken');
   panel.hidden = false;
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

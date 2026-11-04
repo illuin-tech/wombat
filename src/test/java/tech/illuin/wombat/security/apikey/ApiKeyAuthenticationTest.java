@@ -28,6 +28,7 @@ import java.util.UUID;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -49,8 +50,8 @@ class ApiKeyAuthenticationTest
     {
         String token = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ)).token();
 
-        given().auth().oauth2(token).when().get("/api/environments").then().statusCode(200);
-        given().auth().oauth2(token).contentType(ContentType.JSON).body("{}").when().post("/api/simulation").then().statusCode(403);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).when().get("/api/environments").then().statusCode(200);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).contentType(ContentType.JSON).body("{}").when().post("/api/simulation").then().statusCode(403);
     }
 
     @Test
@@ -58,9 +59,9 @@ class ApiKeyAuthenticationTest
     {
         String token = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ)).token();
 
-        given().auth().oauth2(token).redirects().follow(false).when().get("/").then().statusCode(403);
-        given().auth().oauth2(token).when().get("/api/keys").then().statusCode(403);
-        given().auth().oauth2(token).when().get("/users").then().statusCode(403);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).redirects().follow(false).when().get("/").then().statusCode(403);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).when().get("/api/keys").then().statusCode(403);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).when().get("/users").then().statusCode(403);
     }
 
     @Test
@@ -70,7 +71,7 @@ class ApiKeyAuthenticationTest
         String token = this.issue(creator, List.of(Permission.Names.API_ENVIRONMENT_READ)).token();
         QuarkusTransaction.requiringNew().run(() -> this.users.findByIdentity(creator.issuer(), creator.subject()).orElseThrow().roles = EnumSet.noneOf(Role.class));
 
-        given().auth().oauth2(token).when().get("/api/environments").then().statusCode(200);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).when().get("/api/environments").then().statusCode(200);
     }
 
     @Test
@@ -79,7 +80,7 @@ class ApiKeyAuthenticationTest
         ApiKeyService.Issued issued = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ));
         this.service.revoke(issued.key().id);
 
-        given().auth().oauth2(issued.token()).when().get("/api/environments").then().statusCode(401);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(401);
     }
 
     @Test
@@ -88,7 +89,29 @@ class ApiKeyAuthenticationTest
         ApiKeyService.Issued issued = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ));
         QuarkusTransaction.requiringNew().run(() -> this.keys.findById(issued.key().id).expiresAt = Instant.now().minusSeconds(1));
 
-        given().auth().oauth2(issued.token()).when().get("/api/environments").then().statusCode(401);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(401);
+    }
+
+    @Test
+    void unknownKey_isRejected()
+    {
+        given().header(ApiKeyAuthenticationMechanism.HEADER, ApiKeyTokens.generate()).when().get("/api/environments").then().statusCode(401);
+    }
+
+    @Test
+    void key_isOnlyAcceptedInItsOwnHeader()
+    {
+        String token = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ)).token();
+
+        given().auth().oauth2(token).when().get("/api/environments").then().statusCode(401);
+    }
+
+    @Test
+    void onlyTheKeyHash_isStored()
+    {
+        ApiKeyService.Issued issued = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ));
+
+        QuarkusTransaction.requiringNew().run(() -> assertEquals(ApiKeyTokens.hash(issued.token()), this.keys.findById(issued.key().id).keyHash));
     }
 
     @Test
@@ -96,7 +119,7 @@ class ApiKeyAuthenticationTest
     {
         ApiKeyService.Issued issued = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ));
 
-        given().auth().oauth2(issued.token()).when().get("/api/environments").then().statusCode(200);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(200);
         QuarkusTransaction.requiringNew().run(() -> assertNotNull(this.keys.findById(issued.key().id).lastUsedAt));
     }
 
@@ -157,7 +180,7 @@ class ApiKeyAuthenticationTest
             .body("payload.find { it.id == '" + other.key().id + "' }.name", is("test"));
 
         given().when().delete("/api/keys/" + other.key().id).then().statusCode(200);
-        given().auth().oauth2(other.token()).when().get("/api/impact/environments").then().statusCode(401);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, other.token()).when().get("/api/impact/environments").then().statusCode(401);
     }
 
     private ApiKeyService.Issued issue(Caller caller, List<String> permissions)

@@ -1,16 +1,11 @@
 package tech.illuin.wombat.security;
 
-import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.SecurityIdentityAugmentor;
-import io.quarkus.security.runtime.QuarkusPrincipal;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.jwt.JsonWebToken;
-import tech.illuin.wombat.security.apikey.ApiKeyService;
-import tech.illuin.wombat.security.apikey.ApiKeyTenantResolver;
 import tech.illuin.wombat.security.user.RoleGrantService;
 import tech.illuin.wombat.security.user.UserActivity;
 
@@ -21,21 +16,16 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class PermissionAugmentor implements SecurityIdentityAugmentor
 {
-    // io.quarkus.oidc.runtime.OidcUtils#TENANT_ID_ATTRIBUTE
-    private static final String TENANT_ID_ATTRIBUTE = "tenant-id";
-
     private final AuthProperties properties;
     private final RoleMapping roleMapping;
-    private final ApiKeyService apiKeyService;
     private final UserActivity userActivity;
     private final RoleGrantService roleGrants;
 
-    public PermissionAugmentor(AuthProperties properties, RoleMapping roleMapping, ApiKeyService apiKeyService, UserActivity userActivity, RoleGrantService roleGrants)
+    public PermissionAugmentor(AuthProperties properties, RoleMapping roleMapping, UserActivity userActivity, RoleGrantService roleGrants)
     {
         this.roleGrants = roleGrants;
         this.properties = properties;
         this.roleMapping = roleMapping;
-        this.apiKeyService = apiKeyService;
         this.userActivity = userActivity;
     }
 
@@ -49,8 +39,9 @@ public class PermissionAugmentor implements SecurityIdentityAugmentor
             return Uni.createFrom().item(withPermissions(identity, EnumSet.allOf(Role.class), EnumSet.allOf(Permission.class)));
         }
 
-        if (ApiKeyTenantResolver.TENANT_ID.equals(identity.getAttribute(TENANT_ID_ATTRIBUTE)))
-            return context.runBlocking(() -> this.fromApiKey(identity));
+        // ApiKeyIdentityProvider already gave the key its permissions
+        if (Caller.isApiKey(identity))
+            return Uni.createFrom().item(identity);
 
         Set<Role> mapped = this.roleMapping.map(identity);
         Caller caller = Caller.from(identity, this.properties, mapped);
@@ -64,25 +55,6 @@ public class PermissionAugmentor implements SecurityIdentityAugmentor
                 this.userActivity.record(caller);
             return this.withGrantedRoles(identity, caller);
         });
-    }
-
-    private SecurityIdentity fromApiKey(SecurityIdentity identity)
-    {
-        if (!(identity.getPrincipal() instanceof JsonWebToken token) || token.getTokenID() == null)
-            throw new AuthenticationFailedException("API key without an id");
-
-        ApiKeyService.Grant grant = this.apiKeyService.authenticate(token.getTokenID())
-            .orElseThrow(() -> new AuthenticationFailedException("API key " + token.getTokenID() + " is revoked, expired or its owner lost access"));
-
-        return QuarkusSecurityIdentity.builder()
-            .setPrincipal(new QuarkusPrincipal(grant.principal()))
-            .addCredentials(identity.getCredentials())
-            .addAttribute(TENANT_ID_ATTRIBUTE, ApiKeyTenantResolver.TENANT_ID)
-            .addAttribute(Caller.API_KEY_ATTRIBUTE, grant.keyId())
-            .addAttribute(Caller.ROLES_ATTRIBUTE, EnumSet.noneOf(Role.class))
-            .addAttribute(Caller.PERMISSIONS_ATTRIBUTE, grant.permissions())
-            .addPermissionsAsString(values(grant.permissions()))
-            .build();
     }
 
     /* Mapped roles plus those granted in Wombat: users are recorded with the mapped ones only, so the users page can tell them apart. */

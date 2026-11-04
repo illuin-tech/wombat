@@ -32,7 +32,7 @@ class NeverExpiringApiKeyTest
         ApiKeyService.Issued issued = this.service.create(caller, "forever", List.of(Permission.Names.API_ENVIRONMENT_READ), null);
 
         assertNull(issued.key().expiresAt);
-        given().auth().oauth2(issued.token()).when().get("/api/environments").then().statusCode(200);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(200);
     }
 
     @Test
@@ -42,7 +42,7 @@ class NeverExpiringApiKeyTest
         ApiKeyService.Issued issued = this.service.create(caller, "forever", List.of(Permission.Names.API_ENVIRONMENT_READ), null);
         this.service.revoke(issued.key().id);
 
-        given().auth().oauth2(issued.token()).when().get("/api/environments").then().statusCode(401);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(401);
     }
 
     public static class NeverExpiringProfile extends AuthenticationEnabledTest.AuthenticationEnabledProfile

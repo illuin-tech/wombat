@@ -36,28 +36,28 @@ public class ApiKeyService
     private final ApiKeyRepository keys;
     private final UserRepository users;
     private final UserService userService;
-    private final ApiKeySigningKey signingKey;
     private final AuthProperties properties;
 
     public ApiKeyService(
         ApiKeyRepository keys,
         UserRepository users,
         UserService userService,
-        ApiKeySigningKey signingKey,
         AuthProperties properties
     ) {
         this.keys = keys;
         this.users = users;
         this.userService = userService;
-        this.signingKey = signingKey;
         this.properties = properties;
     }
 
     @Transactional
-    public Optional<Grant> authenticate(String keyId)
+    public Optional<Grant> authenticate(String token)
     {
+        if (!ApiKeyTokens.isApiKey(token))
+            return Optional.empty();
+
         Instant now = now();
-        ApiKeyEntity key = this.keys.findById(keyId);
+        ApiKeyEntity key = this.keys.findByHash(ApiKeyTokens.hash(token)).orElse(null);
         if (key == null || !key.isActive(now))
             return Optional.empty();
 
@@ -72,9 +72,11 @@ public class ApiKeyService
         Set<Permission> granted = grantable(permissions, caller.permissions());
         UserEntity creator = this.userService.ensure(caller);
 
+        String token = ApiKeyTokens.generate();
         ApiKeyEntity key = this.newKey(creator, name, granted, expiresAt);
+        key.keyHash = ApiKeyTokens.hash(token);
         key.persist();
-        return new Issued(key, this.signingKey.sign(key, PRINCIPAL_PREFIX + key.id));
+        return new Issued(key, token);
     }
 
     /** Every key, newest first, with the name of the admin who created it. */

@@ -82,23 +82,22 @@ Unauthenticated browsers are redirected to the provider, and unauthenticated RES
 
 ## API keys
 
-Admins create API keys for scripts and CI. A key belongs to no one: it carries its own `api.*` read permissions (never `ui.*` or `api.apikey.manage`), works for whoever holds it until it expires or is revoked, and is sent as a bearer token. Only admins can create, list and revoke keys, from the **API keys** page (`/api-keys`, in the user menu) or the API:
+Admins create API keys for scripts and CI. A key belongs to no one: it carries its own `api.*` read permissions (never `ui.*` or `api.apikey.manage`), works for whoever holds it until it expires or is revoked, and is sent in the `X-API-Key` header. Only admins can create, list and revoke keys, from the **API keys** page (`/api-keys`, in the user menu) or the API:
 
 ```sh
 curl -X POST https://<wombat-host>/api/keys -H 'Content-Type: application/json' --cookie <session> \
   -d '{"name": "ci", "permissions": ["api.impact.read"], "expires-at": "2027-01-30T00:00:00Z"}'
-curl https://<wombat-host>/api/impact/environments -H 'Authorization: Bearer <token>'
+curl https://<wombat-host>/api/impact/environments -H 'X-API-Key: <key>'
 ```
 
-The token is returned once and never stored. `GET /api/keys` lists every key with the admin who created it, and `DELETE /api/keys/{id}` revokes one.
+The key is returned once: Wombat only stores its SHA-256 hash, so a lost key cannot be recovered, only revoked and replaced. `GET /api/keys` lists every key with the admin who created it, and `DELETE /api/keys/{id}` revokes one.
+
+Keys are opaque random strings starting with `wmb_` (256 random bits), not JWTs: there is no signing key to configure, and keys survive restarts. The prefix lets secret scanners spot leaked keys. A key sent as `Authorization: Bearer` is rejected: that header is left to the identity provider.
 
 ```sh
-AUTH_API_KEYS_SIGNING_KEY="$(cat signing-key.pem)"   # PKCS#8 RSA private key: openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048
-AUTH_API_KEYS_MAX_LIFETIME=90d                       # longest expiry a key can be given
-AUTH_API_KEYS_ALLOW_NEVER_EXPIRING=false             # true lets keys be created without "expires-at"
+AUTH_API_KEYS_MAX_LIFETIME=90d             # longest expiry a key can be given
+AUTH_API_KEYS_ALLOW_NEVER_EXPIRING=false   # true lets keys be created without "expires-at"
 ```
-
-Without a signing key, Wombat generates a temporary one and every key stops working on restart. Rotating the signing key also invalidates every key.
 
 Keys work the same with every provider: Wombat alone decides whether a key is valid, and never calls the provider. A key keeps working when the admin who created it leaves or is demoted, so revoke keys that are no longer needed, and prefer keys that expire.
 

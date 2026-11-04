@@ -47,8 +47,6 @@ public interface AuthProperties
 
     interface ApiKeys
     {
-        Optional<String> signingKey();
-
         @WithDefault("90d")
         Duration maxLifetime();
 

@@ -27,6 +27,10 @@ public class ApiKeyEntity extends PanacheEntityBase
     @Column(nullable = false)
     public String name;
 
+    /** SHA-256 of the key, see {@link ApiKeyTokens}: the key itself is only shown once, when created. */
+    @Column(name = "key_hash", nullable = false, unique = true)
+    public String keyHash;
+
     @Convert(converter = PermissionSetConverter.class)
     @Column(nullable = false)
     public Set<Permission> permissions = EnumSet.noneOf(Permission.class);

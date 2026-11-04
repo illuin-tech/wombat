@@ -13,7 +13,7 @@ QUARKUS_OIDC_CLIENT_ID=<client-id>
 QUARKUS_OIDC_CREDENTIALS_SECRET=<client-secret>
 ```
 
-In dev mode, use `./mvnw quarkus:dev -Dquarkus.profile=dev,oidc` (see [`application-dev.yaml.dist`](../src/main/resources/application-dev.yaml.dist)).
+In dev mode, [`application-dev.yaml.dist`](../src/main/resources/application-dev.yaml.dist) makes `oidc` the parent of the `dev` profile (`quarkus.config.profile.parent`), so a plain `./mvnw quarkus:dev` requires signing in once its `"%oidc"` block points to your provider. Comment that line out to run dev mode without authentication.
 
 Any property of `application-oidc.yaml` can be overridden the usual way, e.g. `QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`.
 The profile trusts `X-Forwarded-*` headers, so redirect URIs use the external `https` URL behind a TLS-terminating proxy or ingress. If Wombat is directly reachable by clients, disable this with `QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING=false`.

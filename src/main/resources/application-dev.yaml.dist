@@ -1,11 +1,16 @@
-# Alternative PostgreSQL Datasource for dev:
-# quarkus:
-#   datasource:
-#     db-kind: postgresql
-#     username: wombat
-#     password: wombat
-#     jdbc:
-#       url: "jdbc:postgresql://localhost:5432/wombat"
+quarkus:
+  # dev inherits the oidc profile (application-oidc.yaml and the "%oidc" block below), so `quarkus:dev` requires signing in.
+  # Comment out to run without authentication.
+  config:
+    profile:
+      parent: oidc
+  # Alternative PostgreSQL Datasource for dev:
+  # datasource:
+  #   db-kind: postgresql
+  #   username: wombat
+  #   password: wombat
+  #   jdbc:
+  #     url: "jdbc:postgresql://localhost:5432/wombat"
 
 # Connector endpoints for local mock / stub services
 connector:
@@ -42,6 +47,7 @@ compaction:
 #     directory:
 #       path: /secrets
 
+# Identity provider for dev mode, see doc/access-control.md. Register http://localhost:8080/auth/callback as a redirect URI.
 "%oidc":
   quarkus:
     oidc:
@@ -57,3 +63,13 @@ compaction:
             paths:
               - /q/dev/*
               - /q/dev-ui/*
+  auth:
+    # Without a mapped role every user is denied after signing in. Entries are provider roles or groups, "*" for every
+    # signed-in user, or emails (entries containing "@", matched against the verified email).
+    roles:
+      admin: ["you@example.com"]
+      user: ["*"]
+    # allowed-email-domains: [example.com]
+    # api-keys:
+    #   max-lifetime: 90d
+    #   allow-never-expiring: false

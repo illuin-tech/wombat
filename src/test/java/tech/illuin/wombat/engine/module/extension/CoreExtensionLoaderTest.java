@@ -11,6 +11,7 @@ import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
+import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -23,7 +24,7 @@ class CoreExtensionLoaderTest
     @Test
     void alwaysLoadsSimulatedModulesEvenWhenAllCoreModulesDisabled()
     {
-        WombatModuleProperties properties = properties(false, false, false);
+        WombatModuleProperties properties = properties(false, false, false, false);
         try (CoreExtensionLoader loader = new CoreExtensionLoader(properties))
         {
             List<WombatModule> modules = loader.load();
@@ -36,6 +37,7 @@ class CoreExtensionLoaderTest
             assertFalse(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
             assertFalse(modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
             assertFalse(modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
+            assertFalse(modules.stream().anyMatch(LLMVertexAIModule.class::isInstance));
         }
         catch (IOException e) {
             fail(e);
@@ -45,12 +47,12 @@ class CoreExtensionLoaderTest
     @Test
     void loadsAllModulesWhenAllTogglesEnabled()
     {
-        WombatModuleProperties properties = properties(true, true, true);
+        WombatModuleProperties properties = properties(true, true, true, true);
         try (CoreExtensionLoader loader = new CoreExtensionLoader(properties))
         {
             List<WombatModule> modules = loader.load();
 
-            assertEquals(7, modules.size());
+            assertEquals(8, modules.size());
             assertTrue(modules.stream().anyMatch(KubernetesSimulatedModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(LLMSimulatedModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
@@ -58,6 +60,7 @@ class CoreExtensionLoaderTest
             assertTrue(modules.stream().anyMatch(LLMStaticModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(KubernetesStaticModule.class::isInstance));
             assertTrue(modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
+            assertTrue(modules.stream().anyMatch(LLMVertexAIModule.class::isInstance));
         }
         catch (IOException e) {
             fail(e);
@@ -67,7 +70,7 @@ class CoreExtensionLoaderTest
     @Test
     void loadsOnlySpecificallyEnabledModules()
     {
-        WombatModuleProperties properties = properties(true, false, false);
+        WombatModuleProperties properties = properties(true, false, false, false);
         try (CoreExtensionLoader loader = new CoreExtensionLoader(properties))
         {
             List<WombatModule> modules = loader.load();
@@ -80,13 +83,14 @@ class CoreExtensionLoaderTest
             assertTrue(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
             assertFalse(modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
             assertFalse(modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
+            assertFalse(modules.stream().anyMatch(LLMVertexAIModule.class::isInstance));
         }
         catch (IOException e) {
             fail(e);
         }
     }
 
-    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmAnthropic)
+    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmAnthropic, boolean vertexAi)
     {
         return new WombatModuleProperties()
         {
@@ -106,6 +110,12 @@ class CoreExtensionLoaderTest
             public LlmAnthropicProperties llmAnthropic()
             {
                 return () -> llmAnthropic;
+            }
+
+            @Override
+            public LlmVertexAIProperties llmVertexAi()
+            {
+                return () -> vertexAi;
             }
 
             @Override

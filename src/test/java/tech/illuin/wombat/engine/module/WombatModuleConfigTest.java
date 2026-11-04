@@ -119,6 +119,12 @@ class WombatModuleConfigTest
             }
 
             @Override
+            public LlmVertexAIProperties llmVertexAi()
+            {
+                return () -> false;
+            }
+
+            @Override
             public ExtensionProperties extension()
             {
                 return new ExtensionProperties() {

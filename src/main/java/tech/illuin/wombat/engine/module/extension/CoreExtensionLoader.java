@@ -8,6 +8,7 @@ import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
+import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +38,8 @@ public class CoreExtensionLoader implements ExtensionLoader
             modules.add(new KubernetesAPIModule());
         if (this.properties.llmAnthropic().enabled())
             modules.add(new LLMAnthropicModule());
+        if (this.properties.llmVertexAi().enabled())
+            modules.add(new LLMVertexAIModule());
 
         return modules;
     }

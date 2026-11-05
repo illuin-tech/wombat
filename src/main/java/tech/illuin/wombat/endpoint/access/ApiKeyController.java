@@ -4,7 +4,13 @@ import io.quarkus.security.PermissionsAllowed;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
+import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.security.AuthProperties;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
@@ -30,6 +36,18 @@ public class ApiKeyController
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", type = SchemaType.ARRAY, implementation = ApiKeyInfo.class)
+                }
+            )
+        )
+    )
     public Response<List<ApiKeyInfo>> list()
     {
         this.requireAuthentication();
@@ -39,6 +57,18 @@ public class ApiKeyController
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", implementation = ApiKeyInfo.class)
+                }
+            )
+        )
+    )
     public Response<ApiKeyInfo> create(ApiKeyRequest request)
     {
         if (request == null)
@@ -53,6 +83,17 @@ public class ApiKeyController
     @DELETE
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class)
+                }
+            )
+        )
+    )
     public Response<Void> revoke(@PathParam("id") String id)
     {
         this.requireAuthentication();

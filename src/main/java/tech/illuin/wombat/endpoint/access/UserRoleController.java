@@ -4,7 +4,12 @@ import io.quarkus.security.PermissionsAllowed;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
+import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.security.AuthProperties;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
@@ -28,6 +33,17 @@ public class UserRoleController
 
     @PUT
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class)
+                }
+            )
+        )
+    )
     public Response<Void> grant(@PathParam("userId") String userId, @PathParam("role") String role)
     {
         this.roleGrants.grant(this.caller(), userId, role);
@@ -36,6 +52,17 @@ public class UserRoleController
 
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class)
+                }
+            )
+        )
+    )
     public Response<Void> revoke(@PathParam("userId") String userId, @PathParam("role") String role)
     {
         this.roleGrants.revoke(this.caller(), userId, role);

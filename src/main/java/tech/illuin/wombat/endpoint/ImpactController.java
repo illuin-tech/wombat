@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -18,6 +19,7 @@ import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.NoCPUUsageException;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.security.Permission;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -28,6 +30,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("api/impact")
+@PermissionsAllowed(Permission.Names.API_IMPACT_READ)
 public class ImpactController
 {
     private final AssetEvaluator assetEvaluator;

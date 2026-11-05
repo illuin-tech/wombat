@@ -28,9 +28,16 @@ quarkus:
           paths:
             - /*
 
+auth:
+  enabled: true
+  ## Identity provider roles granting each Wombat role, "*" grants it to every authenticated user.
+  ## Users with no mapped role are denied.
+  #roles:
+  #  admin: [wombat-admins]
+  #  user: [wombat-users]
+
 ## Access rules (all optional)
 #auth:
-#  roles-allowed: [wombat-users]
 #  allowed-email-domains: [example.com]
 #  email-claim: email
 #  require-verified-email: true

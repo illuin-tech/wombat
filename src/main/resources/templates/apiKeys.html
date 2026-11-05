@@ -1,0 +1,88 @@
+{#include impactLayout.html}
+
+{#headScripts}
+  <script src="/public/apiKeys.js"></script>
+{/headScripts}
+
+<!-- Main -->
+<div class="main">
+  <div class="page-head">
+    <a class="page-back" href="/">&larr; Back to the report</a>
+    <h2 class="page-title">API keys</h2>
+    <p class="page-desc">
+      Keys let scripts and CI call the Wombat API, sent in the <code>X-API-Key</code> header.
+      A key belongs to no one: whoever holds it gets its permissions until it expires or is revoked, even if the admin who created it leaves.
+    </p>
+  </div>
+
+  {#if page.enabled}
+  <form class="chart-card apikey-form" id="apiKeyForm" autocomplete="off"
+        data-max-lifetime-days="{page.maxLifetimeDays}"
+        data-allow-never-expiring="{page.allowNeverExpiring}">
+    <div class="chart-title">New key</div>
+
+    <label class="apikey-field">
+      <span class="filter-label">Name</span>
+      <input type="text" id="apiKeyName" maxlength="100" placeholder="e.g. ci-pipeline" required/>
+    </label>
+
+    <div class="apikey-field">
+      <span class="filter-label">Permissions</span>
+      <div class="apikey-checks">
+        {#for permission in page.permissions}
+        <label class="apikey-check"><input type="checkbox" name="permissions" value="{permission}" checked/><span>{permission}</span></label>
+        {/for}
+      </div>
+    </div>
+
+    <div class="apikey-field">
+      <span class="filter-label">Expires on (UTC)</span>
+      <div class="apikey-expiry">
+        <input type="date" id="apiKeyExpiry" required/>
+        {#if page.allowNeverExpiring}
+        <label class="apikey-check"><input type="checkbox" id="apiKeyNeverExpires"/><span>Never expires</span></label>
+        {/if}
+      </div>
+      <span class="apikey-hint">At most {page.maxLifetimeDays} days from today.</span>
+    </div>
+
+    <div class="apikey-actions">
+      <button type="submit" class="btn-apply" id="apiKeySubmit">Create key</button>
+      <span class="apikey-error" id="apiKeyError" role="alert" hidden></span>
+    </div>
+  </form>
+
+  <div class="apikey-token" id="apiKeyToken" hidden>
+    <div class="apikey-token-title">Copy your new key now: it won't be shown again</div>
+    <div class="apikey-token-row">
+      <code class="apikey-token-value" id="apiKeyTokenValue"></code>
+      <button type="button" class="btn-reset" id="apiKeyCopy">Copy</button>
+    </div>
+    <pre class="apikey-token-usage" id="apiKeyTokenUsage"></pre>
+  </div>
+
+  <div class="table-card">
+    <div class="table-head apikey-table-head">
+      <span>Keys</span>
+      <div class="apikey-filters">
+        <input type="search" id="apiKeySearch" class="apikey-search" placeholder="Filter by name or creator" aria-label="Filter keys by name or creator"/>
+        <label class="apikey-check"><input type="checkbox" id="apiKeyActiveOnly" checked/><span>Active only</span></label>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Permissions</th><th>Created by</th><th>Created</th><th>Expires</th><th>Last used</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="apiKeyRows"></tbody>
+    </table>
+    <div class="apikey-empty" id="apiKeyEmpty">Loading&hellip;</div>
+  </div>
+  {#else}
+  <div class="notice-card">
+    <div class="notice-title">Authentication is disabled</div>
+    <div class="notice-body">API keys need authentication: start Wombat with the <code>oidc</code> profile (see doc/access-control.md).</div>
+  </div>
+  {/if}
+</div>
+
+{/include}

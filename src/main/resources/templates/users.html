@@ -1,0 +1,71 @@
+{#include impactLayout.html}
+
+{#headScripts}
+  <script src="/public/users.js"></script>
+{/headScripts}
+
+<!-- Main -->
+<div class="main">
+  <div class="page-head">
+    <a class="page-back" href="/">&larr; Back to the report</a>
+    <h2 class="page-title">Users</h2>
+    <p class="page-desc">
+      Everyone who signed in to Wombat. A user's roles come from the identity provider and the <code>auth.roles.*</code> settings
+      (as of their last visit, refreshed at most every 5 minutes), plus the roles granted here, which apply at their next request.
+      Roles from the provider or the settings can only be changed there.
+    </p>
+  </div>
+
+  {#if page.enabled}
+  <div class="table-card">
+    <div class="table-head">{page.users.size} {#if page.users.size == 1}user{#else}users{/if}</div>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Roles</th>{#if page.canManage}<th>Grant</th>{/if}<th>First seen</th><th>Last seen</th></tr>
+      </thead>
+      <tbody>
+        {#for user in page.users}
+        <tr>
+          <td class="name">{user.name}{#if user.self} <span class="user-self">you</span>{/if}</td>
+          <td{#if !user.email} class="muted"{/if}>{user.email ?: '—'}</td>
+          <td>
+            <div class="user-roles">
+              {#for role in user.roles}
+              <span class="user-role{#if role.granted} granted{/if}" title="{role.source}">
+                {role.value}
+                {#if role.removable}
+                <button type="button" class="user-role-remove" data-user-id="{user.id}" data-user-name="{user.name}" data-role="{role.value}" aria-label="Remove role {role.value} from {user.name}">&times;</button>
+                {#else if !role.granted}
+                <svg class="user-role-lock" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                {/if}
+              </span>
+              {/for}
+              {#if user.roles.isEmpty}<span class="user-role none">no access</span>{/if}
+            </div>
+          </td>
+          {#if page.canManage}
+          <td>
+            <div class="user-grants">
+              {#for role in user.grantable}
+              <button type="button" class="user-grant" data-user-id="{user.id}" data-user-name="{user.name}" data-role="{role}">+ {role}</button>
+              {/for}
+            </div>
+          </td>
+          {/if}
+          <td>{user.firstSeen}</td>
+          <td>{user.lastSeen}</td>
+        </tr>
+        {/for}
+      </tbody>
+    </table>
+    {#if page.users.isEmpty}<div class="apikey-empty">No one has signed in yet.</div>{/if}
+  </div>
+  {#else}
+  <div class="notice-card">
+    <div class="notice-title">Authentication is disabled</div>
+    <div class="notice-body">Users are only recorded with authentication: start Wombat with the <code>oidc</code> profile (see doc/access-control.md).</div>
+  </div>
+  {/if}
+</div>
+
+{/include}

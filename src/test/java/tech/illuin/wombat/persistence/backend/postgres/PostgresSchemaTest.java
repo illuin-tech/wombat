@@ -31,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PostgresSchemaTest
 {
     private static final Set<String> EXPECTED_TABLES = Set.of(
-        "server_metrics", "model_metrics", "environments", "assets", "asset_config_history"
+        "server_metrics", "model_metrics", "environments", "assets", "asset_config_history",
+        "users", "api_keys", "role_grants"
     );
 
     private static String jdbcUrl;

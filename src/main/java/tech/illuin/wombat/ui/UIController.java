@@ -1,6 +1,7 @@
 package tech.illuin.wombat.ui;
 
 import io.quarkus.qute.TemplateInstance;
+import io.quarkus.security.PermissionsAllowed;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
 import tech.illuin.wombat.engine.impact.timeline.TimelineStep;
+import tech.illuin.wombat.security.Permission;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("/")
+@PermissionsAllowed(Permission.Names.UI_DASHBOARD_READ)
 public class UIController
 {
     private final AssetEvaluator assetEvaluator;

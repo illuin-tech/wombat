@@ -9,9 +9,19 @@ export interface ApiResponse<T> {
 }
 
 export class ApiError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(readonly status: number, message: string, readonly reason: string | null = null) {
     super(message)
     this.name = 'ApiError'
+  }
+}
+
+async function errorReason(response: Response): Promise<string | null> {
+  try {
+    const json = (await response.json()) as Partial<ApiResponse<unknown>>
+    const metadata = json.status?.metadata
+    return metadata && typeof metadata === 'object' && 'reason' in metadata && typeof metadata.reason === 'string' ? metadata.reason : null
+  } catch {
+    return null
   }
 }
 
@@ -49,7 +59,7 @@ export async function request<T>(url: string, options: RequestOptions = {}): Pro
     throw new ApiError(response.status, errorMessage(401, options.messages))
   }
   if (!response.ok)
-    throw new ApiError(response.status, errorMessage(response.status, options.messages))
+    throw new ApiError(response.status, errorMessage(response.status, options.messages), await errorReason(response))
 
   if (response.status === 204)
     return undefined as T

@@ -4,6 +4,7 @@ import type { EnvironmentInfo, LiveEnvironment } from '@/domain/environment'
 import type { AssetImpact, TimelineResponse } from '@/domain/impact'
 import App from '@/App.vue'
 import { router } from '@/router'
+import { ApiError } from '@/services/api/client'
 
 const api = vi.hoisted(() => ({
   fetchAppInfo: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock('@/services/api/environments', () => ({
   fetchEnvironments: api.fetchEnvironments,
 }))
 vi.mock('@/services/api/impact', () => ({
+  NO_DATA_REASON: 'no-data',
   fetchImpact: api.fetchImpact,
   fetchTimeline: api.fetchTimeline,
 }))
@@ -96,6 +98,43 @@ describe('ImpactPage progressive loading', () => {
     expect(wrapper.find('.overview-row').exists()).toBe(true)
     expect(wrapper.find('.metrics-row').exists()).toBe(true)
     expect(wrapper.find('.dashboard-counts').exists()).toBe(false)
+    wrapper.unmount()
+  })
+})
+
+describe('ImpactPage errors', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  async function mountWithImpactError(error: Error) {
+    api.fetchAppInfo.mockResolvedValue({
+      auth: { enabled: false },
+      user: { authenticated: false, name: null, roles: [], permissions: ['ui.dashboard.read'] },
+      ui: { maxDateRange: { millis: 90 * 86_400_000, label: '90 days' } },
+    })
+    api.fetchLiveEnvironments.mockResolvedValue([{ id: 'test', name: 'Test environment', assets: [{ id: 'asset', name: 'Asset' }] }])
+    api.fetchEnvironments.mockResolvedValue([])
+    api.fetchImpact.mockRejectedValue(error)
+    api.fetchTimeline.mockRejectedValue(error)
+
+    await router.push('/impact/test')
+    await router.isReady()
+    const wrapper = mount(App, { global: { plugins: [router], stubs: { ChartCanvas: { template: '<canvas />' } } } })
+    await flushPromises()
+    return wrapper
+  }
+
+  it('tells an empty time range apart', async () => {
+    const wrapper = await mountWithImpactError(new ApiError(400, 'Unexpected error (400), try again.', 'no-data'))
+    expect(wrapper.find('.error-title').text()).toBe('No activity found')
+    wrapper.unmount()
+  })
+
+  it('shows any other failure with its message', async () => {
+    const wrapper = await mountWithImpactError(new ApiError(500, 'Unexpected error (500), try again.'))
+    expect(wrapper.find('.error-title').text()).toBe('The impact could not be loaded')
+    expect(wrapper.find('.error-body').text()).toBe('Unexpected error (500), try again.')
     wrapper.unmount()
   })
 })

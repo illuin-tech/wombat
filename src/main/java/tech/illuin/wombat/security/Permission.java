@@ -13,6 +13,7 @@ public enum Permission
     API_ENVIRONMENT_READ(Names.API_ENVIRONMENT_READ, true),
     API_APIKEY_MANAGE(Names.API_APIKEY_MANAGE, false),
     API_USER_MANAGE(Names.API_USER_MANAGE, false),
+    API_USER_READ(Names.API_USER_READ, false),
     ;
 
     private final String value;
@@ -51,6 +52,7 @@ public enum Permission
         public static final String API_ENVIRONMENT_READ = "api.environment.read";
         public static final String API_APIKEY_MANAGE = "api.apikey.manage";
         public static final String API_USER_MANAGE = "api.user.manage";
+        public static final String API_USER_READ = "api.user.read";
 
         private Names() {}
     }

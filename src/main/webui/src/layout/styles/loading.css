@@ -1,0 +1,23 @@
+.skeleton-block {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--border, #e3ede8) 25%, var(--surface, #f3f7f5) 50%, var(--border, #e3ede8) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.is-refreshing {
+  opacity: 0.58;
+  transition: opacity 160ms ease;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block { animation: none; }
+}

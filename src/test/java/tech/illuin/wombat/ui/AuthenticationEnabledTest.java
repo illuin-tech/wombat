@@ -12,7 +12,11 @@ import tech.illuin.wombat.security.PermissionAugmentor;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
@@ -35,6 +39,11 @@ public class AuthenticationEnabledTest
             .when().get("/")
             .then()
             .statusCode(401);
+
+        given()
+            .when().get("/impact/test")
+            .then()
+            .statusCode(401);
     }
 
     @Test
@@ -47,13 +56,36 @@ public class AuthenticationEnabledTest
     }
 
     @Test
-    void logout_staysReachableWithoutIdentity()
+    void logout_staysReachableWithoutIdentityAndRedirectsToTheSignedOutPage()
     {
-        given()
+        given().redirects().follow(false)
             .when().get("/logout")
             .then()
+            .statusCode(303)
+            .header("Location", endsWith("/signed-out?idp=false"));
+    }
+
+    @Test
+    void postLogoutRedirect_landsOnTheSignedOutPage()
+    {
+        given().redirects().follow(false)
+            .when().get("/logout/done")
+            .then()
+            .statusCode(303)
+            .header("Location", endsWith("/signed-out?idp=true"));
+    }
+
+    @Test
+    void appBootstrap_isPublicAndReturnsAnAnonymousUserWithoutIdentity()
+    {
+        given()
+            .when().get("/api/app")
+            .then()
             .statusCode(200)
-            .body(containsString("Signed out"));
+            .body("payload.auth.enabled", is(true))
+            .body("payload.user.authenticated", is(false))
+            .body("payload.user.roles.size()", is(0))
+            .body("payload.user.permissions.size()", is(0));
     }
 
     @Test
@@ -106,6 +138,14 @@ public class AuthenticationEnabledTest
             .when().get("/api/keys")
             .then()
             .statusCode(200);
+
+        given()
+            .when().get("/api/keys/settings")
+            .then()
+            .statusCode(200)
+            .body("payload.grantablePermissions", containsInAnyOrder("api.impact.read", "api.simulation.read", "api.environment.read"))
+            .body("payload.maxLifetimeDays", is(90))
+            .body("payload.allowNeverExpiring", is(false));
     }
 
     @Test
@@ -118,10 +158,20 @@ public class AuthenticationEnabledTest
         given()
             .when().get("/users")
             .then()
+            .statusCode(not(anyOf(is(401), is(403))));
+
+        given()
+            .when().get("/api/app")
+            .then()
             .statusCode(200)
-            .body(containsString("First seen"))
-            .body(containsString("boss@example.com"))
-            .body(containsString("href=\"/users\""));
+            .body("payload.user.permissions", hasItems("ui.users.read", "ui.apikeys.manage"));
+
+        given()
+            .when().get("/api/users")
+            .then()
+            .statusCode(200)
+            .body("payload.find { it.email == 'boss@example.com' }.self", is(true))
+            .body("payload.find { it.email == 'boss@example.com' }.roles.find { it.role == 'admin' }.fromProvider", is(true));
     }
 
     @Test
@@ -137,10 +187,20 @@ public class AuthenticationEnabledTest
             .statusCode(403);
 
         given()
+            .when().get("/api/users")
+            .then()
+            .statusCode(403);
+
+        given()
             .when().get("/")
             .then()
+            .statusCode(not(anyOf(is(401), is(403))));
+
+        given()
+            .when().get("/api/app")
+            .then()
             .statusCode(200)
-            .body(not(containsString("href=\"/users\"")));
+            .body("payload.user.permissions", not(hasItems("ui.users.read")));
     }
 
     @Test
@@ -148,18 +208,16 @@ public class AuthenticationEnabledTest
     @OidcSecurity(claims = {
         @Claim(key = "email", value = "someone@example.com"),
     })
-    void dashboard_showsSignedInIndicatorAndLogoutLink()
+    void appBootstrap_reportsAuthenticatedUserAndPermissions()
     {
         given()
-            .when().get("/")
+            .when().get("/api/app")
             .then()
             .statusCode(200)
-            .body(containsString("class=\"header-home\" href=\"/\""))
-            .body(containsString("header-user"))
-            .body(containsString("someone@example.com"))
-            .body(containsString("<span class=\"header-user-role\">user</span>"))
-            .body(not(containsString("<span class=\"header-user-role\">admin</span>")))
-            .body(containsString("href=\"/logout\""));
+            .body("payload.user.authenticated", is(true))
+            .body("payload.user.name", is("someone@example.com"))
+            .body("payload.user.roles", hasItems("user"))
+            .body("payload.user.permissions", hasItems("ui.dashboard.read", "api.impact.read"));
     }
 
     @Test
@@ -172,11 +230,7 @@ public class AuthenticationEnabledTest
         given()
             .when().get("/api-keys")
             .then()
-            .statusCode(200)
-            .body(containsString("id=\"apiKeyForm\""))
-            .body(containsString("value=\"api.impact.read\""))
-            .body(not(containsString("value=\"api.apikey.manage\"")))
-            .body(containsString("href=\"/api-keys\""));
+            .statusCode(not(anyOf(is(401), is(403))));
     }
 
     @Test
@@ -192,10 +246,15 @@ public class AuthenticationEnabledTest
             .statusCode(403);
 
         given()
-            .when().get("/")
+            .when().get("/api/app")
             .then()
             .statusCode(200)
-            .body(not(containsString("href=\"/api-keys\"")));
+            .body("payload.user.permissions", not(hasItems("ui.apikeys.manage")));
+
+        given()
+            .when().get("/api/keys/settings")
+            .then()
+            .statusCode(403);
     }
 
     @Test
@@ -209,7 +268,7 @@ public class AuthenticationEnabledTest
         given()
             .when().get("/api-keys")
             .then()
-            .statusCode(200);
+            .statusCode(not(anyOf(is(401), is(403))));
     }
 
     @Test
@@ -224,16 +283,6 @@ public class AuthenticationEnabledTest
             .when().get("/api/environments")
             .then()
             .statusCode(403);
-    }
-
-    @Test
-    void loggedOutPage_carriesNoIndicator()
-    {
-        given()
-            .when().get("/logout")
-            .then()
-            .statusCode(200)
-            .body(not(containsString("header-user")));
     }
 
     /** Applies the permissions of application-oidc.yaml, without the OIDC tenant which would need a reachable provider. */

@@ -17,10 +17,13 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.NoCPUUsageException;
+import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
+import tech.illuin.wombat.engine.impact.timeline.TimelineStep;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.security.Permission;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -117,6 +120,43 @@ public class ImpactController
             if (assetImpacts.isEmpty())
                 throw new BadRequestException("No assets matched scope " + scope.environments());
             return Response.success(assetImpacts);
+        }
+        catch (WombatEvaluationException e) {
+            throw new InternalServerErrorException(e);
+        }
+        catch (NoCPUUsageException e) {
+            throw new BadRequestException("No CPU Usage Could be found", e);
+        }
+    }
+
+    @POST
+    @Path("timeline")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", implementation = TimelineResponse.class)
+                }
+            )
+        )
+    )
+    public Response<TimelineResponse> getTimeline(@Valid ImpactRequest request)
+    {
+        try {
+            TimeRange sourceTimeRange = request.sourceTimeRange() == null ? currentMonthTimeRange() : request.sourceTimeRange();
+            AssetFilter scope = scope(request.environments());
+            TimelineStep step = TimelineStep.of(sourceTimeRange);
+            TimeRange timelineRange = TimeRange.cloneRescale(sourceTimeRange, Duration.ofMillis(step.millis()));
+            List<AssetImpact> impacts = this.calculate(timelineRange, scope);
+
+            if (impacts.isEmpty())
+                throw new BadRequestException("No assets matched scope " + scope.environments());
+            return Response.success(TimelineResponse.from(ImpactTimeline.of(timelineRange, impacts)));
         }
         catch (WombatEvaluationException e) {
             throw new InternalServerErrorException(e);

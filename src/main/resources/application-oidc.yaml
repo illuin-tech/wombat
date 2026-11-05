@@ -8,6 +8,7 @@ quarkus:
         - profile
       redirect-path: /auth/callback
       restore-path-after-redirect: true
+      java-script-auto-redirect: false
   http:
     proxy:
       proxy-address-forwarding: true
@@ -22,7 +23,11 @@ quarkus:
             - /q/health/*
             - /logout
             - /logout/*
-            - /public/*
+            - /signed-out
+            - /api/app
+            - /assets/*
+            - /icons/*
+            - /favicon.png
         authenticated:
           policy: wombat-access # authenticated + optional auth.* rules
           paths:

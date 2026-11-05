@@ -20,3 +20,7 @@ src/**/monitored-environments-dev.yaml
 .idea/
 *.iml
 .junie/
+graphify-out/
+.quinoa/
+src/main/webui/node_modules/
+src/main/webui/dist/

@@ -16,7 +16,11 @@ import java.util.EnumSet;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 @TestProfile(AuthenticationEnabledTest.AuthenticationEnabledProfile.class)
@@ -40,8 +44,8 @@ class RoleGrantTest
 
         this.grants.grant(admin(), this.recorded("promoted").id, Role.ADMIN.value());
 
-        given().when().get("/users").then().statusCode(200);
-        given().when().get("/").then().statusCode(200).body(containsString("<span class=\"header-user-role\">admin</span>"));
+        given().when().get("/users").then().statusCode(not(anyOf(is(401), is(403))));
+        given().when().get("/api/app").then().statusCode(200).body("payload.user.roles", hasItems("admin"));
     }
 
     @Test
@@ -53,7 +57,7 @@ class RoleGrantTest
     {
         String id = this.recorded("demoted").id;
         this.grants.grant(admin(), id, Role.ADMIN.value());
-        given().when().get("/users").then().statusCode(200);
+        given().when().get("/users").then().statusCode(not(anyOf(is(401), is(403))));
 
         this.grants.revoke(admin(), id, Role.ADMIN.value());
         given().when().get("/users").then().statusCode(403);
@@ -70,7 +74,7 @@ class RoleGrantTest
         this.grants.grant(admin(), id, Role.ADMIN.value());
 
         given().when().delete("/api/users/" + id + "/roles/admin").then().statusCode(409);
-        given().when().get("/users").then().statusCode(200);
+        given().when().get("/users").then().statusCode(not(anyOf(is(401), is(403))));
     }
 
     @Test
@@ -85,9 +89,9 @@ class RoleGrantTest
         String id = this.recorded(subject).id;
 
         given().when().put("/api/users/" + id + "/roles/admin").then().statusCode(200);
-        given().when().get("/users").then().statusCode(200)
-            .body(containsString("data-user-id=\"" + id + "\" data-user-name=\"" + subject + "\" data-role=\"admin\" aria-label"))
-            .body(containsString("Granted in Wombat by"));
+        given().when().get("/api/users").then().statusCode(200)
+            .body("payload.find { it.id == '" + id + "' }.roles.find { it.role == 'admin' }.removable", is(true))
+            .body("payload.find { it.id == '" + id + "' }.roles.find { it.role == 'admin' }.grant.grantedBy", notNullValue());
         given().when().delete("/api/users/" + id + "/roles/admin").then().statusCode(200);
 
         given().when().put("/api/users/" + id + "/roles/owner").then().statusCode(400);

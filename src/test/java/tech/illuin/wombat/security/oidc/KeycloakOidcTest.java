@@ -21,7 +21,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -57,10 +61,11 @@ class KeycloakOidcTest
 
         given().cookies(session).when().get("/api/environments").then().statusCode(200);
         given().cookies(session).when().get("/api/keys").then().statusCode(403);
-        given().cookies(session).when().get("/").then()
+        given().cookies(session).when().get("/").then().statusCode(not(anyOf(is(401), is(403))));
+        given().cookies(session).when().get("/api/app").then()
             .statusCode(200)
-            .body(containsString("alice@example.com"))
-            .body(containsString("<span class=\"header-user-role\">user</span>"));
+            .body("payload.user.name", is("alice@example.com"))
+            .body("payload.user.roles", hasItems("user"));
 
         UserEntity user = MockProvider.awaitUser(this.users, ISSUER, subject);
         assertEquals(EnumSet.of(Role.USER), user.roles);
@@ -72,7 +77,8 @@ class KeycloakOidcTest
         Map<String, String> session = this.signIn(UUID.randomUUID().toString(), "boss", List.of("wombat-admins"));
 
         given().cookies(session).when().get("/api/keys").then().statusCode(200);
-        given().cookies(session).when().get("/users").then().statusCode(200);
+        given().cookies(session).when().get("/users").then().statusCode(not(anyOf(is(401), is(403))));
+        given().cookies(session).when().get("/api/users").then().statusCode(200);
     }
 
     @Test

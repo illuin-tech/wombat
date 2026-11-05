@@ -84,11 +84,14 @@ class AssetInfoTest
 
         JsonNode json = mapper.readTree(mapper.writeValueAsString(info));
         assertEquals("k", json.get("id").asText());
+        assertEquals("env", json.get("environmentId").asText());
         assertEquals("K", json.get("name").asText());
         assertEquals(KubernetesAPIModule.TYPE.name(), json.get("type").asText());
         assertEquals("/kube/config", json.get("configPath").asText());
         assertEquals("ns", json.get("namespace").asText());
         assertEquals("c5.large", json.get("profile").get("instanceType").asText());
+        assertFalse(json.has("environment-id"));
+        assertFalse(json.get("profile").has("instance-type"));
         assertEquals("uuid", json.get("uuid").asText());
         assertTrue(json.has("createdAt"));
         assertTrue(json.has("updatedAt"));

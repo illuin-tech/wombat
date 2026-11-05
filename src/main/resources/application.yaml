@@ -28,7 +28,7 @@ quarkus:
       - /auth/
     package-manager-install:
       ~: true
-      node-version: 22.14.0
+      node-version: 22.22.2
     dev-server:
       port: 5173
   rest-client:

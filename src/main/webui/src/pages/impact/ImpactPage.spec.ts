@@ -138,3 +138,83 @@ describe('ImpactPage errors', () => {
     wrapper.unmount()
   })
 })
+
+describe('ImpactPage API requests', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('builds separate requests from route filters and reloads them after a route change', async () => {
+    api.fetchAppInfo.mockReset().mockResolvedValue({
+      auth: { enabled: false },
+      user: { authenticated: false, name: null, roles: [], permissions: ['ui.dashboard.read'] },
+      ui: { maxDateRange: { millis: 90 * 86_400_000, label: '90 days' } },
+    })
+    api.fetchLiveEnvironments.mockReset().mockResolvedValue([
+      { id: 'test', name: 'Test environment', assets: [{ id: 'test-api', name: 'API' }, { id: 'test-worker', name: 'Worker' }] },
+      { id: 'prod', name: 'Production', assets: [{ id: 'prod-api', name: 'API' }, { id: 'prod-db', name: 'Database' }] },
+    ])
+    api.fetchEnvironments.mockReset().mockResolvedValue([])
+    api.fetchImpact.mockReset().mockResolvedValue([])
+    api.fetchTimeline.mockReset().mockResolvedValue({
+      stepMs: 86_400_000,
+      stepLabel: 'day',
+      stepPlural: 'days',
+      bucketStarts: [Date.UTC(2026, 2, 1)],
+      series: [{ key: 'gwp', label: 'GWP', unit: 'kgCO2eq', buckets: [{ embedded: 1, use: 2 }] }],
+    })
+
+    await router.push({
+      name: 'impact',
+      params: { environment: 'test' },
+      query: {
+        from: '2026-03-01T12:15',
+        to: '2026-03-02T00:00',
+        services: ['test-api=cpu,queue', 'test-worker=database'],
+      },
+    })
+    await router.isReady()
+    const wrapper = mount(App, { global: { plugins: [router], stubs: { ChartCanvas: { template: '<canvas />' } } } })
+    await flushPromises()
+
+    const firstRange = { start: '2026-03-01T00:00:00Z', end: '2026-03-02T00:00:00Z' }
+    expect(api.fetchImpact).toHaveBeenCalledWith({
+      sourceTimeRange: firstRange,
+      environments: [{ id: 'test', assets: [{ id: 'test-api' }, { id: 'test-worker' }] }],
+    })
+    expect(api.fetchTimeline).toHaveBeenCalledWith({
+      sourceTimeRange: firstRange,
+      environments: [{ id: 'test', assets: [
+        { id: 'test-api', serviceIds: ['cpu', 'queue'] },
+        { id: 'test-worker', serviceIds: ['database'] },
+      ] }],
+    })
+    expect(wrapper.find('.chart-title').text()).toContain('Impact over time — day')
+    expect(wrapper.find('.chart-wrap.timeline .skeleton-block').exists()).toBe(false)
+
+    await router.push({
+      name: 'impact',
+      params: { environment: 'prod' },
+      query: {
+        from: '2026-04-04T00:00',
+        to: '2026-04-05T00:00',
+        services: ['prod-db=postgres'],
+      },
+    })
+    await flushPromises()
+
+    const updatedRange = { start: '2026-04-04T00:00:00Z', end: '2026-04-05T00:00:00Z' }
+    expect(api.fetchImpact).toHaveBeenCalledTimes(2)
+    expect(api.fetchImpact).toHaveBeenLastCalledWith({
+      sourceTimeRange: updatedRange,
+      environments: [{ id: 'prod', assets: [{ id: 'prod-db' }] }],
+    })
+    expect(api.fetchTimeline).toHaveBeenCalledTimes(2)
+    expect(api.fetchTimeline).toHaveBeenLastCalledWith({
+      sourceTimeRange: updatedRange,
+      environments: [{ id: 'prod', assets: [{ id: 'prod-db', serviceIds: ['postgres'] }] }],
+    })
+    expect(wrapper.find('.chart-title').text()).toContain('Impact over time — day')
+    wrapper.unmount()
+  })
+})

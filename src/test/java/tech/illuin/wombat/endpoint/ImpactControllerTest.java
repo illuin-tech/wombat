@@ -15,8 +15,10 @@ import tech.illuin.wombat.engine.connector.ecologits.EcologitsTestData;
 import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
+import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -65,7 +67,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
               "environments": [ { "id": "test", "assets": [ { "id": "test-cluster" } ] } ]
             }
             """;
@@ -89,7 +91,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" }
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" }
             }
             """;
 
@@ -107,7 +109,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
               "environments": [ { "id": "test" } ]
             }
             """;
@@ -130,7 +132,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-02T00:00:00Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-02T00:00:00Z" },
               "environments": [ { "id": "test" } ]
             }
             """;
@@ -141,6 +143,7 @@ class ImpactControllerTest
             .then()
             .statusCode(200)
             .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].profile", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].profile.instanceType", is("c5.large"))
             .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].serverSpecification", notNullValue())
             .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].location.namespace", is("test-ns"))
             .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].estimation", notNullValue())
@@ -149,11 +152,31 @@ class ImpactControllerTest
     }
 
     @Test
+    void getImpact_filtersServicesFromCamelCaseRequest()
+    {
+        String body = """
+            {
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
+              "environments": [ { "id": "test", "assets": [ { "id": "test-cluster", "serviceIds": ["api"] } ] } ]
+            }
+            """;
+
+        given()
+            .contentType("application/json").body(body)
+            .when().post("/api/impact")
+            .then()
+            .statusCode(200)
+            .body("payload.size()", is(1))
+            .body("payload[0].serviceImpacts.size()", is(1))
+            .body("payload[0].serviceImpacts[0].serviceId", is("api"));
+    }
+
+    @Test
     void getTimeline_rescalesAndReturnsSeriesBuckets()
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
               "environments": [ { "id": "test" } ]
             }
             """;
@@ -173,11 +196,41 @@ class ImpactControllerTest
     }
 
     @Test
+    void getTimeline_serviceIdsChangeTheReturnedBuckets()
+    {
+        String allServices = """
+            {
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
+              "environments": [ { "id": "test", "assets": [ { "id": "test-cluster" } ] } ]
+            }
+            """;
+        String oneService = """
+            {
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
+              "environments": [ { "id": "test", "assets": [ { "id": "test-cluster", "serviceIds": ["api"] } ] } ]
+            }
+            """;
+
+        List<?> allBuckets = given()
+            .contentType("application/json").body(allServices)
+            .when().post("/api/impact/timeline")
+            .then().statusCode(200)
+            .extract().path("payload.series.find { it.key == 'gwp' }.buckets");
+        List<?> filteredBuckets = given()
+            .contentType("application/json").body(oneService)
+            .when().post("/api/impact/timeline")
+            .then().statusCode(200)
+            .extract().path("payload.series.find { it.key == 'gwp' }.buckets");
+
+        assertNotEquals(allBuckets, filteredBuckets);
+    }
+
+    @Test
     void getImpact_withoutActivityInRange_returnsBadRequestWithItsReason()
     {
         String body = """
             {
-              "source_time_range": { "start": "2000-01-01T00:00:00Z", "end": "2000-01-02T00:00:00Z" },
+              "sourceTimeRange": { "start": "2000-01-01T00:00:00Z", "end": "2000-01-02T00:00:00Z" },
               "environments": [ { "id": "test", "assets": [ { "id": "test-cluster" } ] } ]
             }
             """;
@@ -195,7 +248,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
               "environments": [ { "id": "test", "assets": [ { "id": "unknown-asset" } ] } ]
             }
             """;
@@ -212,7 +265,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
               "environments": [ { "id": "unknown-env" } ]
             }
             """;
@@ -229,7 +282,7 @@ class ImpactControllerTest
     {
         String body = """
             {
-              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
+              "sourceTimeRange": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-01T00:00:10Z" },
               "environments": [ { "assets": [ { "id": "test-cluster" } ] } ]
             }
             """;

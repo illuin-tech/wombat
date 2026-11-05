@@ -15,17 +15,17 @@ export interface ApiKeyInfo {
   name: string
   permissions: string[]
   owner: string | null
-  'created-at': string | null
-  'expires-at': string | null
-  'revoked-at': string | null
-  'last-used-at': string | null
+  createdAt: string | null
+  expiresAt: string | null
+  revokedAt: string | null
+  lastUsedAt: string | null
   token?: string
 }
 
 export interface ApiKeyRequest {
   name: string
   permissions: string[]
-  'expires-at': string | null
+  expiresAt: string | null
 }
 
 export interface ApiKeySettings {

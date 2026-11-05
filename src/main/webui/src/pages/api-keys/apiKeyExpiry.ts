@@ -35,8 +35,8 @@ export function clampApiKeyExpiry(value: string, bounds: ApiKeyExpiryBounds): st
 }
 
 export function apiKeyStatus(key: ApiKeyInfo, now: Date = new Date()): ApiKeyStatus {
-  if (key['revoked-at']) return 'revoked'
-  if (key['expires-at'] && new Date(key['expires-at']).getTime() <= now.getTime()) return 'expired'
+  if (key.revokedAt) return 'revoked'
+  if (key.expiresAt && new Date(key.expiresAt).getTime() <= now.getTime()) return 'expired'
   return 'active'
 }
 

@@ -93,8 +93,8 @@ const options = computed(() => {
           const value = timeline.value.bucketStarts[items[0]?.dataIndex]
           return value === undefined ? '' : `${titleFormat.format(new Date(value))} UTC`
         },
-        label: (context: {dataset: {label?: string}; parsed: {y: number}}) => ` ${context.dataset.label}: ${amount(context.parsed.y)} ${series?.unit ?? ''}`,
-        footer: (items: {parsed: {y: number}}[]) => `Total: ${amount(items.reduce((sum, item) => sum + item.parsed.y, 0))} ${series?.unit ?? ''}`,
+        label: (context: {dataset: {label?: string}; parsed: {y: number | null}}) => ` ${context.dataset.label}: ${amount(context.parsed.y ?? 0)} ${series?.unit ?? ''}`,
+        footer: (items: {parsed: {y: number | null}}[]) => `Total: ${amount(items.reduce((sum, item) => sum + (item.parsed.y ?? 0), 0))} ${series?.unit ?? ''}`,
       }},
     },
     scales: {

@@ -47,11 +47,10 @@ export interface ServerSpecification {
   platform: string | null
 }
 
-/** Server profiles are module records: only the ServerProfile members are relied upon, under either naming. */
+/** Server profiles are module records and may contain module-specific properties. */
 export interface ServerProfile {
   provider?: string
   instanceType?: string
-  'instance-type'?: string
   location?: string
   lifespan?: string
   [key: string]: unknown
@@ -116,8 +115,8 @@ export interface AssetImpact {
 }
 
 export interface ImpactRequest {
-  source_time_range?: { start: string; end: string }
-  environments: { id: string; assets?: { id: string; service_ids?: string[] }[] }[]
+  sourceTimeRange?: { start: string; end: string }
+  environments: { id: string; assets?: { id: string; serviceIds?: string[] }[] }[]
 }
 
 export interface TimelineBucket {

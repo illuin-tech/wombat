@@ -20,6 +20,7 @@ import tech.illuin.wombat.ui.AuthenticationEnabledTest;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,9 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
@@ -166,24 +169,45 @@ class ApiKeyAuthenticationTest
     })
     void admin_createsListsAndRevokesKeys()
     {
-        String id = given()
+        Instant expiresAt = Instant.now().plus(Duration.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
+        Map<String, Object> createdKey = given()
             .contentType(ContentType.JSON)
-            .body(Map.of("name", "ci", "permissions", List.of(Permission.Names.API_ENVIRONMENT_READ), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .body(Map.of("name", "ci", "permissions", List.of(Permission.Names.API_ENVIRONMENT_READ), "expiresAt", expiresAt.toString()))
             .when().post("/api/keys")
             .then()
             .statusCode(200)
-            .body("payload.token", notNullValue())
-            .body("payload.owner", is("boss@example.com"))
-            .extract().path("payload.id");
+            .extract().path("payload");
+        String id = (String) createdKey.get("id");
+        assertEquals("boss@example.com", createdKey.get("owner"));
+        assertNotNull(createdKey.get("createdAt"));
+        assertEquals(expiresAt.toString(), createdKey.get("expiresAt"));
+        assertNull(createdKey.get("revokedAt"));
+        assertNull(createdKey.get("lastUsedAt"));
+        assertNotNull(createdKey.get("token"));
+        assertFalse(createdKey.containsKey("created-at"));
+        assertFalse(createdKey.containsKey("expires-at"));
+        assertFalse(createdKey.containsKey("revoked-at"));
+        assertFalse(createdKey.containsKey("last-used-at"));
 
         ApiKeyService.Issued other = this.issue(admin(), List.of(Permission.Names.API_IMPACT_READ));
 
-        given()
+        Map<String, Object> listedKey = given()
             .when().get("/api/keys")
             .then()
             .statusCode(200)
             .body("payload.find { it.id == '" + id + "' }.owner", is("boss@example.com"))
-            .body("payload.find { it.id == '" + other.key().id + "' }", nullValue());
+            .body("payload.find { it.id == '" + other.key().id + "' }", nullValue())
+            .extract().path("payload.find { it.id == '" + id + "' }");
+
+        assertNotNull(listedKey.get("createdAt"));
+        assertEquals(expiresAt.toString(), listedKey.get("expiresAt"));
+        assertNull(listedKey.get("revokedAt"));
+        assertNull(listedKey.get("lastUsedAt"));
+        assertFalse(listedKey.containsKey("token"));
+        assertFalse(listedKey.containsKey("created-at"));
+        assertFalse(listedKey.containsKey("expires-at"));
+        assertFalse(listedKey.containsKey("revoked-at"));
+        assertFalse(listedKey.containsKey("last-used-at"));
 
         given()
             .when().get("/api/keys?all=true")
@@ -206,7 +230,7 @@ class ApiKeyAuthenticationTest
     {
         String id = given()
             .contentType(ContentType.JSON)
-            .body(Map.of("name", "script", "permissions", List.of(Permission.Names.API_IMPACT_READ), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .body(Map.of("name", "script", "permissions", List.of(Permission.Names.API_IMPACT_READ), "expiresAt", Instant.now().plus(Duration.ofDays(1)).toString()))
             .when().post("/api/keys")
             .then()
             .statusCode(200)
@@ -236,7 +260,7 @@ class ApiKeyAuthenticationTest
     {
         given()
             .contentType(ContentType.JSON)
-            .body(Map.of("name", "admin-key", "permissions", List.of(Permission.Names.API_APIKEY_ADMIN), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .body(Map.of("name", "admin-key", "permissions", List.of(Permission.Names.API_APIKEY_ADMIN), "expiresAt", Instant.now().plus(Duration.ofDays(1)).toString()))
             .when().post("/api/keys")
             .then()
             .statusCode(400);
@@ -270,7 +294,7 @@ class ApiKeyAuthenticationTest
     {
         given()
             .contentType(ContentType.JSON)
-            .body(Map.of("name", "reader", "permissions", List.of(Permission.Names.API_IMPACT_READ), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .body(Map.of("name", "reader", "permissions", List.of(Permission.Names.API_IMPACT_READ), "expiresAt", Instant.now().plus(Duration.ofDays(1)).toString()))
             .when().post("/api/keys")
             .then()
             .statusCode(200);

@@ -50,8 +50,10 @@ describe('dashboard helpers', () => {
 
     it('requests all impact services but applies selected services to the timeline', () => {
         const requests = buildDashboardRequests('env', assets, new Map([['a', ['svc-1']]]), new Date('2025-01-01T00:00:00Z'), new Date('2025-02-01T00:00:00Z'))
+        expect(requests.impact.sourceTimeRange).toEqual({start: '2025-01-01T00:00:00Z', end: '2025-02-01T00:00:00Z'})
         expect(requests.impact.environments[0].assets).toEqual([{id: 'a'}])
-        expect(requests.timeline.environments[0].assets).toEqual([{id: 'a', service_ids: ['svc-1']}])
+        expect(requests.timeline.sourceTimeRange).toEqual({start: '2025-01-01T00:00:00Z', end: '2025-02-01T00:00:00Z'})
+        expect(requests.timeline.environments[0].assets).toEqual([{id: 'a', serviceIds: ['svc-1']}])
     })
 
     it('builds timeline labels and embedded/use datasets for the selected metric', () => {

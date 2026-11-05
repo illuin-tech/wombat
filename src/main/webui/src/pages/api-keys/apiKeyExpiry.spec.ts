@@ -3,9 +3,9 @@ import { apiKeyExpiryBounds, apiKeyStatus, clampApiKeyExpiry, filterApiKeys } fr
 import type { ApiKeyInfo } from '@/domain/access'
 
 const keys: ApiKeyInfo[] = [
-  { id: '1', name: 'ci-pipeline', permissions: [], owner: 'admin@example.com', 'created-at': null, 'expires-at': '2025-02-10T00:00:00Z', 'revoked-at': null, 'last-used-at': null },
-  { id: '2', name: 'old-key', permissions: [], owner: 'builder', 'created-at': null, 'expires-at': '2025-01-01T00:00:00Z', 'revoked-at': null, 'last-used-at': null },
-  { id: '3', name: 'revoked-key', permissions: [], owner: 'admin@example.com', 'created-at': null, 'expires-at': null, 'revoked-at': '2025-01-02T00:00:00Z', 'last-used-at': null },
+  { id: '1', name: 'ci-pipeline', permissions: [], owner: 'admin@example.com', createdAt: null, expiresAt: '2025-02-10T00:00:00Z', revokedAt: null, lastUsedAt: null },
+  { id: '2', name: 'old-key', permissions: [], owner: 'builder', createdAt: null, expiresAt: '2025-01-01T00:00:00Z', revokedAt: null, lastUsedAt: null },
+  { id: '3', name: 'revoked-key', permissions: [], owner: 'admin@example.com', createdAt: null, expiresAt: null, revokedAt: '2025-01-02T00:00:00Z', lastUsedAt: null },
 ]
 
 describe('admin view helpers', () => {

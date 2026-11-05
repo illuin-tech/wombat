@@ -241,7 +241,7 @@ If you want to run it in dev mode:
 
 This will require you to have a functional Java 25+ JDK installed on your machine.
 
-The UI is a Vue 3 + TypeScript single-page app in [`src/main/webui`](src/main/webui), integrated with [Quarkus Quinoa](https://docs.quarkiverse.io/quarkus-quinoa/dev/): dev mode starts the Vite dev server with hot reload behind the Quarkus port, and `./mvnw package` type-checks, tests (Vitest) and bundles it into the application. Quinoa installs its own Node.js, so no local Node is required. Pages load their data from the REST API (`/api/app`, `/api/environments`, `/api/impact`, `/api/impact/timeline`, ...).
+The UI is a Vue 3 + TypeScript single-page app in [`src/main/webui`](src/main/webui), integrated with [Quarkus Quinoa](https://docs.quarkiverse.io/quarkus-quinoa/dev/): dev mode starts the Vite dev server with hot reload behind the Quarkus port, and `./mvnw package` type-checks, tests (Vitest) and bundles it into the application. Quinoa installs Node.js 22.22.2, so no local Node is required. Pages load their data from the REST API (`/api/app`, `/api/environments`, `/api/impact`, `/api/impact/timeline`, ...).
 
 For a faster frontend loop, run `npx vue-tsc --noEmit && npx vitest run` from `src/main/webui`.
 

@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.module;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,6 @@ import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.module.WombatModuleConfig;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
@@ -73,6 +73,58 @@ class WombatModuleConfigTest
         YAMLMapper yamlMapper = this.config.provideYAMLMapper(modules);
         assertNotNull(yamlMapper);
     }
+
+    @Test
+    void yamlMapper_deserializesKebabCaseAndIgnoresUnknownProperties() throws Exception
+    {
+        YAMLMapper yamlMapper = this.config.provideYAMLMapper(List.of());
+        String yaml = """
+            first-name: Alice
+            home-address: 123 Main St
+            unknown-extra-field: should-be-ignored
+            """;
+
+        SampleRecord result = yamlMapper.readValue(yaml, SampleRecord.class);
+        assertEquals("Alice", result.firstName());
+        assertEquals("123 Main St", result.homeAddress());
+    }
+
+    @Test
+    void jsonMapper_deserializesCamelCaseAndIgnoresUnknownProperties() throws Exception
+    {
+        JsonMapper jsonMapper = this.config.provideJsonMapper(List.of());
+        String json = """
+            {
+                "firstName": "Bob",
+                "homeAddress": "456 Side St",
+                "unknownExtraField": "should-be-ignored"
+            }
+            """;
+
+        SampleRecord result = jsonMapper.readValue(json, SampleRecord.class);
+        assertEquals("Bob", result.firstName());
+        assertEquals("456 Side St", result.homeAddress());
+    }
+
+    @Test
+    void configureQuarkusObjectMapper_ignoresUnknownProperties() throws Exception
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        this.config.configureQuarkusObjectMapper(null, mapper, List.of());
+        String json = """
+            {
+                "firstName": "Charlie",
+                "homeAddress": "789 Broadway",
+                "unknownField": 12345
+            }
+            """;
+
+        SampleRecord result = mapper.readValue(json, SampleRecord.class);
+        assertEquals("Charlie", result.firstName());
+        assertEquals("789 Broadway", result.homeAddress());
+    }
+
+    private record SampleRecord(String firstName, String homeAddress) {}
 
     @Test
     void provideDefaults_createsHandlersForFamilies()

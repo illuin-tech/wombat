@@ -1,7 +1,6 @@
 package tech.illuin.wombat.engine.context.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -13,7 +12,6 @@ import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
 
 @RegisterForReflection
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record UnrecognizedAsset(
     @JsonUnwrapped AssetIdentity identity,
     @JsonProperty("type") String rawType,

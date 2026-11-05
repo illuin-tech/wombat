@@ -1,6 +1,7 @@
 package tech.illuin.wombat.persistence.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import tech.illuin.wombat.core.source.data.MetricData;
@@ -16,7 +17,7 @@ public abstract class MetricDataConverter<T extends MetricData> implements Attri
 {
     private final Class<T> type;
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     protected MetricDataConverter(Class<T> type)
     {
@@ -28,8 +29,7 @@ public abstract class MetricDataConverter<T extends MetricData> implements Attri
     {
         if (attribute == null)
             return null;
-        try
-        {
+        try {
             return MAPPER.writeValueAsString(attribute);
         }
         catch (JsonProcessingException e) {
@@ -42,8 +42,7 @@ public abstract class MetricDataConverter<T extends MetricData> implements Attri
     {
         if (dbData == null || dbData.isBlank())
             return null;
-        try
-        {
+        try {
             return MAPPER.readValue(dbData, this.type);
         }
         catch (JsonProcessingException e) {

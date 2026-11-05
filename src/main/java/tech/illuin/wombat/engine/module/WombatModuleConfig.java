@@ -1,6 +1,8 @@
 package tech.illuin.wombat.engine.module;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
@@ -111,7 +113,10 @@ public class WombatModuleConfig
     @Typed(YAMLMapper.class)
     public YAMLMapper provideYAMLMapper(List<WombatModule> modules)
     {
-        YAMLMapper mapper = YAMLMapper.builder().findAndAddModules().build();
+        YAMLMapper mapper = YAMLMapper.builder()
+            .findAndAddModules()
+            .propertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
+            .build();
         registerSubTypes(modules, mapper);
         return mapper;
     }
@@ -128,6 +133,7 @@ public class WombatModuleConfig
 
     private static <O extends ObjectMapper> void registerSubTypes(List<WombatModule> modules, O mapper)
     {
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         mapper.disable(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS);
         mapper.addHandler(new UnrecognizedAssetProblemHandler());
         modules.forEach(module -> mapper.registerSubtypes(new NamedType(

@@ -40,7 +40,7 @@ class NeverExpiringApiKeyTest
     {
         Caller caller = new Caller("https://idp", UUID.randomUUID().toString(), "admin", null, EnumSet.of(Role.ADMIN), Role.ADMIN.permissions());
         ApiKeyService.Issued issued = this.service.create(caller, "forever", List.of(Permission.Names.API_ENVIRONMENT_READ), null);
-        this.service.revoke(issued.key().id);
+        this.service.revoke(caller, issued.key().id);
 
         given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(401);
     }

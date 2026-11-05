@@ -13,7 +13,7 @@ public record ApiKeyInfo(
     @JsonProperty("id") String id,
     @JsonProperty("name") String name,
     @JsonProperty("permissions") List<String> permissions,
-    @JsonProperty("created-by") String createdBy,
+    @JsonProperty("owner") String owner,
     @JsonProperty("created-at") Instant createdAt,
     @JsonProperty("expires-at") Instant expiresAt,
     @JsonProperty("revoked-at") Instant revokedAt,
@@ -22,15 +22,15 @@ public record ApiKeyInfo(
 ) {
     public static ApiKeyInfo from(ApiKeyService.Listed listed)
     {
-        return from(listed.key(), listed.createdBy(), null);
+        return from(listed.key(), listed.owner(), null);
     }
 
-    public static ApiKeyInfo from(ApiKeyEntity key, String createdBy, String token)
+    public static ApiKeyInfo from(ApiKeyEntity key, String owner, String token)
     {
         return new ApiKeyInfo(
             key.id, key.name,
             key.permissions.stream().map(Permission::value).sorted().toList(),
-            createdBy,
+            owner,
             key.createdAt, key.expiresAt, key.revokedAt, key.lastUsedAt,
             token
         );

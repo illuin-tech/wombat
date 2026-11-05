@@ -36,6 +36,8 @@ import java.util.stream.Collectors;
 @PermissionsAllowed(Permission.Names.API_IMPACT_READ)
 public class ImpactController
 {
+    public static final String NO_DATA_REASON = "no-data";
+
     private final AssetEvaluator assetEvaluator;
     private final WombatContextProvider contextProvider;
 
@@ -118,14 +120,14 @@ public class ImpactController
             List<AssetImpact> assetImpacts = this.calculate(timeRange, scope);
 
             if (assetImpacts.isEmpty())
-                throw new BadRequestException("No assets matched scope " + scope.environments());
+                throw noData("No assets matched scope " + scope.environments(), null);
             return Response.success(assetImpacts);
         }
         catch (WombatEvaluationException e) {
             throw new InternalServerErrorException(e);
         }
         catch (NoCPUUsageException e) {
-            throw new BadRequestException("No CPU Usage Could be found", e);
+            throw noData("No CPU Usage Could be found", e);
         }
     }
 
@@ -155,14 +157,14 @@ public class ImpactController
             List<AssetImpact> impacts = this.calculate(timelineRange, scope);
 
             if (impacts.isEmpty())
-                throw new BadRequestException("No assets matched scope " + scope.environments());
+                throw noData("No assets matched scope " + scope.environments(), null);
             return Response.success(TimelineResponse.from(ImpactTimeline.of(timelineRange, impacts)));
         }
         catch (WombatEvaluationException e) {
             throw new InternalServerErrorException(e);
         }
         catch (NoCPUUsageException e) {
-            throw new BadRequestException("No CPU Usage Could be found", e);
+            throw noData("No CPU Usage Could be found", e);
         }
     }
 
@@ -176,6 +178,17 @@ public class ImpactController
                 throw cause;
             throw e;
         }
+    }
+
+    private static BadRequestException noData(String message, Throwable cause)
+    {
+        return new BadRequestException(
+            jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
+                .type(MediaType.APPLICATION_JSON)
+                .entity(Response.status(message).set("reason", NO_DATA_REASON))
+                .build(),
+            cause
+        );
     }
 
     private static AssetFilter scope(List<ImpactRequest.Environment> environments)

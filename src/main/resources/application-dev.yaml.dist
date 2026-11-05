@@ -71,5 +71,5 @@ compaction:
       user: ["*"]
     # allowed-email-domains: [example.com]
     # api-keys:
-    #   max-lifetime: 90d
+    #   max-lifetime: 365d
     #   allow-never-expiring: false

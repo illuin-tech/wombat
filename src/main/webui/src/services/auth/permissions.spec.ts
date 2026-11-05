@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RouteLocationNormalized } from 'vue-router'
 import { permissionGuard } from '@/services/auth/guard'
-import { menuLinks } from '@/services/auth/permissions'
+import { settingsLinks } from '@/services/auth/permissions'
 
 function route(meta: RouteLocationNormalized['meta'], fullPath = '/users'): RouteLocationNormalized {
   return { meta, fullPath } as RouteLocationNormalized
@@ -29,11 +29,11 @@ describe('permission guard', () => {
   })
 })
 
-describe('user menu links', () => {
-  it('shows the admin links only with their permissions', () => {
-    expect(menuLinks({ permissions: ['ui.dashboard.read'] })).toEqual([])
-    expect(menuLinks({ permissions: ['ui.users.read'] }).map(link => link.label)).toEqual(['Users'])
-    expect(menuLinks({ permissions: ['ui.users.read', 'ui.apikeys.manage'] }).map(link => link.to)).toEqual(['/users', '/api-keys'])
-    expect(menuLinks(null)).toEqual([])
+describe('settings menu links', () => {
+  it('shows each link only with its permission', () => {
+    expect(settingsLinks({ permissions: ['ui.dashboard.read'] })).toEqual([])
+    expect(settingsLinks({ permissions: ['ui.apikeys.manage'] }).map(link => link.label)).toEqual(['API keys'])
+    expect(settingsLinks({ permissions: ['ui.users.read', 'ui.apikeys.manage'] }).map(link => link.to)).toEqual(['/api-keys', '/users'])
+    expect(settingsLinks(null)).toEqual([])
   })
 })

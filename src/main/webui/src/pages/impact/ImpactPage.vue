@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { findUnrecognizedAssets, type EnvironmentInfo, type LiveEnvironment } from '@/domain/environment'
 import type { AssetImpact, TimelineResponse } from '@/domain/impact'
 import { asLocalDateTime } from '@/services/format/formatters'
+import { ApiError } from '@/services/api/client'
+import { NO_DATA_REASON } from '@/services/api/impact'
 import { useAppInfo } from '@/services/auth/session'
 import { filtersFromRoute } from '@/pages/impact/model/useDashboardQuery'
 import { aggregateDashboard, buildDashboardRequests, serviceOptions } from '@/pages/impact/model/dashboard'
@@ -38,6 +40,8 @@ const timelineLoading = computed(() => liveLoading.value || (!!environment.value
 const impactRefreshing = computed(() => impact.value !== null && dashboard.impact.loading.value)
 const timelineRefreshing = computed(() => timeline.value !== null && dashboard.timeline.loading.value)
 const impactError = computed(() => dashboard.impact.error.value)
+const noData = computed(() => impactError.value instanceof ApiError && impactError.value.reason === NO_DATA_REASON)
+const impactErrorMessage = computed(() => impactError.value instanceof Error ? impactError.value.message : 'Unexpected error, try again.')
 const model = computed(() => environment.value && impact.value !== null
   ? aggregateDashboard(impact.value, environment.value.assets, currentFilters.value.services)
   : null)
@@ -100,10 +104,15 @@ function resetFilters(): void {
       :loading="timelineLoading"
       :refreshing="timelineRefreshing"
     />
-    <div v-if="impactError" class="error-card">
+    <div v-if="noData" class="error-card">
       <div class="error-header"><div class="error-dot"/><span class="error-label">No data</span></div>
-      <div class="error-title">No CPU usage found</div>
-      <div class="error-body">No CPU metrics were recorded for the selected time range. Try a wider range or check that the monitoring agent is running.</div>
+      <div class="error-title">No activity found</div>
+      <div class="error-body">No metrics were recorded for this environment in the selected time range. Try a wider range or check that Wombat was running and monitoring it.</div>
+    </div>
+    <div v-else-if="impactError" class="error-card">
+      <div class="error-header"><div class="error-dot"/><span class="error-label">Error</span></div>
+      <div class="error-title">The impact could not be loaded</div>
+      <div class="error-body">{{ impactErrorMessage }}</div>
     </div>
     <template v-else>
       <KpiRow :model="model" :loading="impactLoading" :refreshing="impactRefreshing" />

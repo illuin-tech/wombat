@@ -5,8 +5,10 @@ import { apiKeyStatus, filterApiKeys } from '@/pages/api-keys/apiKeyExpiry'
 import DataTable from '@/components/DataTable.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 
-const props = defineProps<{keys: ApiKeyInfo[]; loading?: boolean}>()
+const props = defineProps<{keys: ApiKeyInfo[]; loading?: boolean; canViewAll?: boolean}>()
 const emit = defineEmits<{ revoke: [key: ApiKeyInfo] }>()
+/** Every user's keys instead of the caller's own, offered with `canViewAll`. */
+const showAll = defineModel<boolean>('showAll', { default: false })
 const skeletonRows = [0, 1, 2, 3, 4]
 const search = ref('')
 const activeOnly = ref(true)
@@ -28,13 +30,14 @@ function requestRevoke(key: ApiKeyInfo): void {
 </script>
 
 <template>
-  <DataTable title="Keys">
+  <DataTable :title="showAll ? 'All keys' : 'Your keys'">
     <template #controls>
-      <input v-model="search" type="search" class="apikey-search" placeholder="Filter by name or creator" aria-label="Filter keys by name or creator" />
+      <input v-model="search" type="search" class="apikey-search" placeholder="Filter by name or owner" aria-label="Filter keys by name or owner" />
       <label class="apikey-check"><input v-model="activeOnly" type="checkbox" /><span>Active only</span></label>
+      <label v-if="canViewAll" class="apikey-check"><input v-model="showAll" type="checkbox" /><span>All users</span></label>
     </template>
     <table>
-      <thead><tr><th>Name</th><th>Permissions</th><th>Created by</th><th>Created</th><th>Expires</th><th>Last used</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Permissions</th><th>Owner</th><th>Created</th><th>Expires</th><th>Last used</th><th>Status</th><th></th></tr></thead>
       <tbody>
         <template v-if="loading">
           <tr v-for="row in skeletonRows" :key="row">
@@ -45,7 +48,7 @@ function requestRevoke(key: ApiKeyInfo): void {
         <tr v-for="key in shown" :key="key.id" :class="{ inactive: apiKeyStatus(key) !== 'active' }">
           <td class="name">{{ key.name }}</td>
           <td><div class="apikey-perms"><span v-for="permission in key.permissions" :key="permission" class="apikey-perm">{{ permission }}</span></div></td>
-          <td>{{ key['created-by'] ?? '—' }}</td>
+          <td>{{ key.owner ?? '—' }}</td>
           <td>{{ formatDate(key['created-at']) }}</td>
           <td>{{ key['expires-at'] ? formatDate(key['expires-at']) : 'Never' }}</td>
           <td>{{ formatDate(key['last-used-at']) }}</td>

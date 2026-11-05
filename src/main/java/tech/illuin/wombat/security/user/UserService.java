@@ -37,7 +37,10 @@ public class UserService
         return user;
     }
 
-    /** The caller's row, created if missing but never overwritten: for recording who created or granted something. */
+    /**
+     * The caller's row, created if missing but never overwritten: for recording who owns, created or granted something. A
+     * new row takes the caller's roles, which can only be mapped ones since nothing can be granted to a user without a row.
+     */
     @Transactional
     public UserEntity ensure(Caller caller)
     {
@@ -46,6 +49,7 @@ public class UserService
         {
             user.name = caller.name();
             user.email = caller.email();
+            user.roles = caller.roles().isEmpty() ? EnumSet.noneOf(Role.class) : EnumSet.copyOf(caller.roles());
             user.persist();
         }
         return user;

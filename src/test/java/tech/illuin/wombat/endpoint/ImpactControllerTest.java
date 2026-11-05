@@ -173,6 +173,24 @@ class ImpactControllerTest
     }
 
     @Test
+    void getImpact_withoutActivityInRange_returnsBadRequestWithItsReason()
+    {
+        String body = """
+            {
+              "source_time_range": { "start": "2000-01-01T00:00:00Z", "end": "2000-01-02T00:00:00Z" },
+              "environments": [ { "id": "test", "assets": [ { "id": "test-cluster" } ] } ]
+            }
+            """;
+
+        given()
+            .contentType("application/json").body(body)
+            .when().post("/api/impact")
+            .then()
+            .statusCode(400)
+            .body("status.metadata.reason", is(ImpactController.NO_DATA_REASON));
+    }
+
+    @Test
     void getTimeline_withNoMatchingAssets_returnsBadRequest()
     {
         String body = """

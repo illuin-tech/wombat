@@ -39,29 +39,33 @@ Every user needs a Wombat role, mapped from the roles or groups their provider p
 ```sh
 AUTH_ROLES_ADMIN=wombat-admins,alice@example.com   # comma-separated provider roles or emails granting "admin"
 AUTH_ROLES_USER=wombat-users                       # "*" grants the role to every authenticated user
+AUTH_ROLES_API_KEY_MANAGER=wombat-key-managers     # sees and revokes every user's API keys
 ```
+
+Each `AUTH_ROLES_<ROLE>` (`auth.roles.<role>`) maps one role, and Wombat refuses to start on an unknown role name, so a typo cannot silently leave a role unmapped. Every role extends `user`: an `api-key-manager` also reads the report and manages their own keys, and `admin` holds every permission.
 
 An entry containing `@` matches the user's email (`AUTH_EMAIL_CLAIM`, case-insensitive) instead of a provider role. This is how to give roles to specific people with providers that send no roles, such as Google. The email only counts when the provider flags it verified (`email_verified`), unless `AUTH_REQUIRE_VERIFIED_EMAIL=false`; Entra ID sends no such claim, so use app roles there.
 
 Endpoints check permissions, and each role grants a fixed set of them:
 
-| Permission             | admin | user |
-|------------------------|-------|------|
-| `ui.dashboard.read`    | ✓    | ✓   |
-| `ui.apikeys.manage`    | ✓    |      |
-| `ui.users.read`        | ✓    |      |
-| `api.impact.read`      | ✓    | ✓   |
-| `api.simulation.read`  | ✓    | ✓   |
-| `api.environment.read` | ✓    | ✓   |
-| `api.apikey.manage`    | ✓    |      |
-| `api.user.manage`      | ✓    |      |
-| `api.user.read`        | ✓    |      |
+| Permission             | admin | user | api-key-manager |
+|------------------------|-------|------|-----------------|
+| `ui.dashboard.read`    | ✓    | ✓   | ✓              |
+| `ui.apikeys.manage`    | ✓    | ✓   | ✓              |
+| `ui.users.read`        | ✓    |      |                 |
+| `api.impact.read`      | ✓    | ✓   | ✓              |
+| `api.simulation.read`  | ✓    | ✓   | ✓              |
+| `api.environment.read` | ✓    | ✓   | ✓              |
+| `api.apikey.manage`    | ✓    | ✓   | ✓              |
+| `api.apikey.admin`     | ✓    |      | ✓              |
+| `api.user.manage`      | ✓    |      |                 |
+| `api.user.read`        | ✓    |      |                 |
 
 `AUTH_ROLES_ALLOWED` is gone: replace `AUTH_ROLES_ALLOWED=wombat-users` with `AUTH_ROLES_USER=wombat-users`, or `AUTH_ROLES_USER=*` if every authenticated user had access.
 
 When authentication is disabled (no `oidc` profile), every caller holds every permission.
 
-Wombat records every signed-in user from their requests (at most every 5 minutes, and whenever their roles change). Admins see them on the **Users** page (`/users`, in the user menu), and can grant them roles there, for example to promote someone to admin. A user holds the roles mapped above plus the ones granted in Wombat, from their next request. Roles from the provider or `AUTH_ROLES_*` show a lock and can only be removed at their source; granted ones can be removed from the page, except an admin's own admin role. The page lists users from `GET /api/users` (`api.user.read`), and changes roles through `PUT` and `DELETE /api/users/{user-id}/roles/{role}` (`api.user.manage`).
+Wombat records every signed-in user from their requests (at most every 5 minutes, and whenever their roles change). Admins see them on the **Users** page (`/users`, in the **Settings** menu), and can grant them roles there, for example to promote someone to admin. A user holds the roles mapped above plus the ones granted in Wombat, from their next request. Roles from the provider or `AUTH_ROLES_*` show a lock and can only be removed at their source; granted ones can be removed from the page, except an admin's own admin role. The page lists users from `GET /api/users` (`api.user.read`), and changes roles through `PUT` and `DELETE /api/users/{user-id}/roles/{role}` (`api.user.manage`).
 
 Granting needs someone to have signed in once, and the first admin must come from the provider or `AUTH_ROLES_ADMIN`.
 
@@ -93,7 +97,7 @@ The app also hides the links and pages the user may not open, from the permissio
 
 ## API keys
 
-Admins create API keys for scripts and CI. A key belongs to no one: it carries its own `api.*` read permissions (never `ui.*` or `api.apikey.manage`), works for whoever holds it until it expires or is revoked, and is sent in the `X-API-Key` header. Only admins can create, list and revoke keys, from the **API keys** page (`/api-keys`, in the user menu) or the API:
+Every user can create API keys for their scripts and CI, from the **API keys** page (`/api-keys`, in the **Settings** menu) or the API. A key belongs to the user who created it, is sent in the `X-API-Key` header, and carries a subset of its owner's own `api.*` read permissions (never `ui.*` nor key or user management): asking for one the creator does not hold is refused with `403`.
 
 ```sh
 curl -X POST https://<wombat-host>/api/keys -H 'Content-Type: application/json' --cookie <session> \
@@ -101,16 +105,16 @@ curl -X POST https://<wombat-host>/api/keys -H 'Content-Type: application/json' 
 curl https://<wombat-host>/api/impact/environments -H 'X-API-Key: <key>'
 ```
 
-The key is returned once: Wombat only stores its SHA-256 hash, so a lost key cannot be recovered, only revoked and replaced. `GET /api/keys` lists every key with the admin who created it, and `DELETE /api/keys/{id}` revokes one.
+The key is returned once: Wombat only stores its SHA-256 hash, so a lost key cannot be recovered, only revoked and replaced. `GET /api/keys` lists the caller's keys and `DELETE /api/keys/{id}` revokes one of them. Admins and API key managers (`api.apikey.admin`) also list every user's keys with `GET /api/keys?all=true`, the **All users** switch on the page, and can revoke any of them.
 
 Keys are opaque random strings starting with `wmb_` (256 random bits), not JWTs: there is no signing key to configure, and keys survive restarts. The prefix lets secret scanners spot leaked keys. A key sent as `Authorization: Bearer` is rejected: that header is left to the identity provider.
 
 ```sh
-AUTH_API_KEYS_MAX_LIFETIME=90d             # longest expiry a key can be given
+AUTH_API_KEYS_MAX_LIFETIME=365d            # longest expiry a key can be given
 AUTH_API_KEYS_ALLOW_NEVER_EXPIRING=false   # true lets keys be created without "expires-at"
 ```
 
-Keys work the same with every provider: Wombat alone decides whether a key is valid, and never calls the provider. A key keeps working when the admin who created it leaves or is demoted, so revoke keys that are no longer needed, and prefer keys that expire.
+A key works until it expires or is revoked, and never grants more than its owner currently holds: on each call, its permissions are narrowed to those of the owner's roles, so a key stops working once its owner loses them. Keys work the same with every provider, because Wombat never calls it: the owner's roles are the ones mapped at their last request (recorded at most every 5 minutes) plus those granted in Wombat. Removing a granted role applies to the owner's keys at once, but a role removed at the provider only applies once the owner signs in again, and someone who left never does: revoke their keys from the **All users** view, and prefer keys that expire.
 
 ## Logout
 

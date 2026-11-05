@@ -16,7 +16,7 @@ import java.util.UUID;
 
 import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
 
-/** A key belongs to no one: it carries its own permissions, and {@code createdBy} only records which admin issued it. */
+/** A key belongs to the user who created it, and never grants more than its owner currently holds. */
 @Entity
 @Table(name = "api_keys")
 public class ApiKeyEntity extends PanacheEntityBase
@@ -35,9 +35,9 @@ public class ApiKeyEntity extends PanacheEntityBase
     @Column(nullable = false)
     public Set<Permission> permissions = EnumSet.noneOf(Permission.class);
 
-    /** {@code users.id} of the admin who created the key. */
-    @Column(name = "created_by", nullable = false)
-    public String createdBy;
+    /** {@code users.id} of the user who created the key. */
+    @Column(name = "owner_id", nullable = false)
+    public String ownerId;
 
     @Column(name = "created_at", nullable = false, columnDefinition = "INTEGER")
     public Instant createdAt;

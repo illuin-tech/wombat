@@ -18,4 +18,9 @@ public class ApiKeyRepository implements PanacheRepositoryBase<ApiKeyEntity, Str
     {
         return this.list("order by createdAt desc");
     }
+
+    public List<ApiKeyEntity> findByOwnerNewestFirst(String ownerId)
+    {
+        return this.list("ownerId = ?1 order by createdAt desc", ownerId);
+    }
 }

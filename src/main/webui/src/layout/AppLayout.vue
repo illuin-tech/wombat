@@ -4,6 +4,9 @@ import AppHeader from '@/layout/AppHeader.vue'
 
 <template>
   <AppHeader>
+    <template #nav>
+      <slot name="nav" />
+    </template>
     <template #headerExtra>
       <slot name="headerExtra" />
     </template>

@@ -5,6 +5,7 @@ import io.smallrye.config.WithDefault;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -16,7 +17,11 @@ public interface AuthProperties
     @WithDefault("false")
     boolean enabled();
 
-    Roles roles();
+    /**
+     * Provider roles or groups, emails, or {@code "*"} granting each Wombat role, keyed by {@link Role#value()}:
+     * {@code auth.roles.admin}, {@code auth.roles.api-key-manager}...
+     */
+    Map<String, List<String>> roles();
 
     /** When set, the caller's email must belong to one of these domains (e.g. {@code example.com}). */
     Optional<List<String>> allowedEmailDomains();
@@ -38,16 +43,9 @@ public interface AuthProperties
 
     ApiKeys apiKeys();
 
-    interface Roles
-    {
-        Optional<List<String>> admin();
-
-        Optional<List<String>> user();
-    }
-
     interface ApiKeys
     {
-        @WithDefault("90d")
+        @WithDefault("365d")
         Duration maxLifetime();
 
         @WithDefault("false")

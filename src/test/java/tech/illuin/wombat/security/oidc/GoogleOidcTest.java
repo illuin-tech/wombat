@@ -58,7 +58,7 @@ class GoogleOidcTest
         Map<String, String> session = this.signIn(idToken(subject, "alice@example.com", true));
 
         given().cookies(session).when().get("/api/environments").then().statusCode(200);
-        given().cookies(session).when().get("/api/keys").then().statusCode(403);
+        given().cookies(session).when().get("/api/keys?all=true").then().statusCode(403);
         given().cookies(session).when().get("/").then().statusCode(not(anyOf(is(401), is(403))));
         given().cookies(session).when().get("/api/app").then()
             .statusCode(200)

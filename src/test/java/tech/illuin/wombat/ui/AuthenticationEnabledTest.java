@@ -119,10 +119,15 @@ public class AuthenticationEnabledTest
     @OidcSecurity(claims = {
         @Claim(key = "email", value = "someone@example.com"),
     })
-    void user_cannotManageApiKeys()
+    void user_listsTheirOwnKeysButNotEveryone()
     {
         given()
             .when().get("/api/keys")
+            .then()
+            .statusCode(200);
+
+        given()
+            .when().get("/api/keys?all=true")
             .then()
             .statusCode(403);
     }
@@ -144,7 +149,7 @@ public class AuthenticationEnabledTest
             .then()
             .statusCode(200)
             .body("payload.grantablePermissions", containsInAnyOrder("api.impact.read", "api.simulation.read", "api.environment.read"))
-            .body("payload.maxLifetimeDays", is(90))
+            .body("payload.maxLifetimeDays", is(365))
             .body("payload.allowNeverExpiring", is(false));
     }
 
@@ -231,6 +236,11 @@ public class AuthenticationEnabledTest
             .when().get("/api-keys")
             .then()
             .statusCode(not(anyOf(is(401), is(403))));
+
+        given()
+            .when().get("/api/keys?all=true")
+            .then()
+            .statusCode(200);
     }
 
     @Test
@@ -238,23 +248,49 @@ public class AuthenticationEnabledTest
     @OidcSecurity(claims = {
         @Claim(key = "email", value = "someone@example.com"),
     })
-    void user_cannotOpenTheApiKeysPage()
+    void user_opensTheApiKeysPageForTheirOwnKeys()
     {
         given()
             .when().get("/api-keys")
             .then()
-            .statusCode(403);
+            .statusCode(not(anyOf(is(401), is(403))));
 
         given()
             .when().get("/api/app")
             .then()
             .statusCode(200)
-            .body("payload.user.permissions", not(hasItems("ui.apikeys.manage")));
+            .body("payload.user.permissions", hasItems("ui.apikeys.manage", "api.apikey.manage"))
+            .body("payload.user.permissions", not(hasItems("api.apikey.admin")));
 
         given()
             .when().get("/api/keys/settings")
             .then()
-            .statusCode(403);
+            .statusCode(200)
+            .body("payload.grantablePermissions", hasItems("api.impact.read"));
+    }
+
+    @Test
+    @TestSecurity(user = "keeper", roles = "wombat-key-managers", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "keeper@example.com"),
+    })
+    void apiKeyManager_isAUserWhoAlsoSeesEveryKey()
+    {
+        given()
+            .when().get("/api-keys")
+            .then()
+            .statusCode(not(anyOf(is(401), is(403))));
+
+        given()
+            .when().get("/api/app")
+            .then()
+            .statusCode(200)
+            .body("payload.user.permissions", hasItems("ui.apikeys.manage", "api.apikey.admin"))
+            .body("payload.user.permissions", not(hasItems("ui.users.read")));
+
+        given().when().get("/api/keys?all=true").then().statusCode(200);
+        given().when().get("/").then().statusCode(not(anyOf(is(401), is(403))));
+        given().when().get("/users").then().statusCode(403);
     }
 
     @Test
@@ -266,7 +302,7 @@ public class AuthenticationEnabledTest
     void verifiedEmailListedForARole_getsThatRole()
     {
         given()
-            .when().get("/api-keys")
+            .when().get("/users")
             .then()
             .statusCode(not(anyOf(is(401), is(403))));
     }
@@ -300,7 +336,8 @@ public class AuthenticationEnabledTest
             return Map.of(
                 "quarkus.oidc.tenant-enabled", "false",
                 "auth.roles.admin", "wombat-admins,chief@example.com",
-                "auth.roles.user", "wombat-users"
+                "auth.roles.user", "wombat-users",
+                "auth.roles.api-key-manager", "wombat-key-managers"
             );
         }
     }

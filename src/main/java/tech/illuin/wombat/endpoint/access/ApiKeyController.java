@@ -35,6 +35,36 @@ public class ApiKeyController
     }
 
     @GET
+    @Path("settings")
+    @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(
+        responseCode = "200",
+        content = @Content(
+            mediaType = MediaType.APPLICATION_JSON,
+            schema = @Schema(
+                properties = {
+                    @SchemaProperty(name = "status", implementation = Status.class),
+                    @SchemaProperty(name = "payload", implementation = ApiKeySettings.class)
+                }
+            )
+        )
+    )
+    public Response<ApiKeySettings> settings()
+    {
+        this.requireAuthentication();
+        List<String> grantable = Caller.permissions(this.identity).stream()
+            .filter(Permission::grantableToApiKeys)
+            .map(Permission::value)
+            .sorted()
+            .toList();
+        return Response.success(new ApiKeySettings(
+            grantable,
+            this.properties.apiKeys().maxLifetime().toDays(),
+            this.properties.apiKeys().allowNeverExpiring()
+        ));
+    }
+
+    @GET
     @Produces(MediaType.APPLICATION_JSON)
     @APIResponse(
         responseCode = "200",

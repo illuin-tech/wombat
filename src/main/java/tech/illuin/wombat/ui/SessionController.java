@@ -3,14 +3,11 @@ package tech.illuin.wombat.ui;
 import io.quarkus.oidc.IdTokenCredential;
 import io.quarkus.oidc.OidcConfigurationMetadata;
 import io.quarkus.oidc.OidcSession;
-import io.quarkus.qute.TemplateInstance;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
@@ -26,6 +23,8 @@ public class SessionController
     /** {@code io.quarkus.oidc.runtime.OidcUtils#CONFIG_METADATA_ATTRIBUTE} */
     private static final String CONFIG_METADATA_ATTRIBUTE = "configuration-metadata";
     private static final String POST_LOGOUT_PATH = "logout/done";
+    static final URI SIGNED_OUT = URI.create("/signed-out?idp=false");
+    static final URI SIGNED_OUT_OF_IDP = URI.create("/signed-out?idp=true");
 
     private final OidcSession oidcSession;
     private final SecurityIdentity identity;
@@ -46,30 +45,29 @@ public class SessionController
 
     /**
      * Clears the local session, then ends the identity provider session (RP-initiated logout) when the provider supports it.
-     * Providers without an {@code end_session_endpoint} (e.g. Google) only get the local session cleared.
+     * Providers without an {@code end_session_endpoint} (e.g. Google) only get the local session cleared, and land on the
+     * SPA signed-out page.
      */
     @GET
-    @Produces(MediaType.TEXT_HTML)
     public Uni<Response> logout(@Context UriInfo uriInfo)
     {
         IdTokenCredential idToken = this.identity.getCredential(IdTokenCredential.class);
         if (idToken == null)
-            return Uni.createFrom().item(Response.ok(Templates.loggedOut(false)).build());
+            return Uni.createFrom().item(Response.seeOther(SIGNED_OUT).build());
 
         Optional<URI> endSession = this.properties.idpLogout() ? this.endSessionUri(idToken, uriInfo) : Optional.empty();
         return this.oidcSession.logout().map(ignored -> endSession
             .map(uri -> Response.seeOther(uri).build())
-            .orElseGet(() -> Response.ok(Templates.loggedOut(false)).build())
+            .orElseGet(() -> Response.seeOther(SIGNED_OUT).build())
         );
     }
 
-    /** Landing page the identity provider redirects to once its session is ended. */
+    /** The registered post-logout redirect URI: the identity provider lands here once its session is ended. */
     @GET
     @Path("done")
-    @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance loggedOut()
+    public Response loggedOut()
     {
-        return Templates.loggedOut(true);
+        return Response.seeOther(SIGNED_OUT_OF_IDP).build();
     }
 
     private Optional<URI> endSessionUri(IdTokenCredential idToken, UriInfo uriInfo)

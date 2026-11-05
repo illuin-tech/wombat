@@ -20,7 +20,11 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.matcher.RestAssuredMatchers.detailedCookie;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -55,10 +59,11 @@ class GoogleOidcTest
 
         given().cookies(session).when().get("/api/environments").then().statusCode(200);
         given().cookies(session).when().get("/api/keys").then().statusCode(403);
-        given().cookies(session).when().get("/").then()
+        given().cookies(session).when().get("/").then().statusCode(not(anyOf(is(401), is(403))));
+        given().cookies(session).when().get("/api/app").then()
             .statusCode(200)
-            .body(containsString("alice@example.com"))
-            .body(containsString("<span class=\"header-user-role\">user</span>"));
+            .body("payload.user.name", is("alice@example.com"))
+            .body("payload.user.roles", hasItems("user"));
 
         UserEntity user = MockProvider.awaitUser(this.users, ISSUER, subject);
         assertEquals(EnumSet.of(Role.USER), user.roles);
@@ -71,7 +76,8 @@ class GoogleOidcTest
         Map<String, String> session = this.signIn(idToken("108019999999999999999", "Boss@Example.com", true));
 
         given().cookies(session).when().get("/api/keys").then().statusCode(200);
-        given().cookies(session).when().get("/users").then().statusCode(200);
+        given().cookies(session).when().get("/users").then().statusCode(not(anyOf(is(401), is(403))));
+        given().cookies(session).when().get("/api/users").then().statusCode(200);
     }
 
     @Test
@@ -112,8 +118,8 @@ class GoogleOidcTest
         given().cookies(session).redirects().follow(false)
             .when().get("/logout")
             .then()
-            .statusCode(200)
-            .body(containsString("Signed out"))
+            .statusCode(303)
+            .header("Location", endsWith("/signed-out?idp=false"))
             .cookie("q_session", detailedCookie().maxAge(0));
     }
 

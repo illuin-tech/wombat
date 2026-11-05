@@ -126,6 +126,70 @@ class ImpactControllerTest
     }
 
     @Test
+    void getImpact_serializesKubernetesAndLlmSpecificFields()
+    {
+        String body = """
+            {
+              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-02T00:00:00Z" },
+              "environments": [ { "id": "test" } ]
+            }
+            """;
+
+        given()
+            .contentType("application/json").body(body)
+            .when().post("/api/impact")
+            .then()
+            .statusCode(200)
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].profile", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].serverSpecification", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].location.namespace", is("test-ns"))
+            .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].estimation", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].requestCount", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].outputTokenCount", notNullValue());
+    }
+
+    @Test
+    void getTimeline_rescalesAndReturnsSeriesBuckets()
+    {
+        String body = """
+            {
+              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
+              "environments": [ { "id": "test" } ]
+            }
+            """;
+
+        given()
+            .contentType("application/json").body(body)
+            .when().post("/api/impact/timeline")
+            .then()
+            .statusCode(200)
+            .body("payload.stepMs", is(86_400_000))
+            .body("payload.stepLabel", is("daily"))
+            .body("payload.stepPlural", is("days"))
+            .body("payload.bucketStarts.size()", is(8))
+            .body("payload.series.size()", is(3))
+            .body("payload.series.key", containsInAnyOrder("gwp", "pe", "adp"))
+            .body("payload.series[0].buckets.size()", is(8));
+    }
+
+    @Test
+    void getTimeline_withNoMatchingAssets_returnsBadRequest()
+    {
+        String body = """
+            {
+              "source_time_range": { "start": "1970-01-01T00:00:00Z", "end": "1970-01-09T00:00:00Z" },
+              "environments": [ { "id": "test", "assets": [ { "id": "unknown-asset" } ] } ]
+            }
+            """;
+
+        given()
+            .contentType("application/json").body(body)
+            .when().post("/api/impact/timeline")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
     void getImpact_withUnknownEnvironmentId_returns400()
     {
         String body = """

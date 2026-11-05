@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.EnumSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class RoleTest
 {
@@ -12,6 +13,7 @@ class RoleTest
     void admin_holdsEveryPermission()
     {
         assertEquals(EnumSet.allOf(Permission.class), Role.ADMIN.permissions());
+        assertFalse(Permission.API_USER_READ.grantableToApiKeys());
     }
 
     @Test

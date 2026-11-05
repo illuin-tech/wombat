@@ -4,6 +4,33 @@ quarkus:
   http:
     limits:
       max-initial-line-length: 32768
+    auth:
+      permission:
+        ui-pages:
+          policy: wombat-ui-page
+          paths:
+            - /
+            - /impact
+            - /impact/*
+            - /users
+            - /users/*
+            - /api-keys
+            - /api-keys/*
+  quinoa:
+    ui-dir: src/main/webui
+    build-dir: dist
+    enable-spa-routing: true
+    run-tests: true
+    ignored-path-prefixes:
+      - /api/
+      - /q/
+      - /logout
+      - /auth/
+    package-manager-install:
+      ~: true
+      node-version: 22.14.0
+    dev-server:
+      port: 5173
   rest-client:
     logging:
       scope: none
@@ -58,6 +85,11 @@ quarkus:
         enabled: false
       http-client:
         enabled: false
+
+"%test":
+  quarkus:
+    quinoa:
+      enabled: false
 
 module:
   kubernetes-api:

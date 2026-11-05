@@ -18,13 +18,13 @@ In dev mode, [`application-dev.yaml.dist`](../src/main/resources/application-dev
 Any property of `application-oidc.yaml` can be overridden the usual way, e.g. `QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`.
 The profile trusts `X-Forwarded-*` headers, so redirect URIs use the external `https` URL behind a TLS-terminating proxy or ingress. If Wombat is directly reachable by clients, disable this with `QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING=false`.
 
-| Provider | `auth-server-url` | Notes |
-|---|---|---|
-| Keycloak | `https://<host>/realms/<realm>` | Roles: `QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=realm_access/roles` and `QUARKUS_OIDC_ROLES_SOURCE=accesstoken` (realm roles are not in the ID token by default) |
-| AWS Cognito | `https://cognito-idp.<region>.amazonaws.com/<user-pool-id>` | Roles: `QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=cognito:groups` |
-| Microsoft Entra ID | `https://login.microsoftonline.com/<tenant-id>/v2.0` | Roles: `roles` (app roles) or `groups` |
-| Okta | `https://<org>.okta.com/oauth2/default` | Roles: `groups` (add a groups claim to the authorization server) |
-| Google | `https://accounts.google.com` | No roles and no logout endpoint: map roles with emails or `"*"` and restrict with `AUTH_ALLOWED_EMAIL_DOMAINS`, set `QUARKUS_OIDC_AUTHENTICATION_USER_INFO_REQUIRED=true`. |
+| Provider           | `auth-server-url`                                           | Notes                                                                                                                                                                      |
+|--------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Keycloak           | `https://<host>/realms/<realm>`                             | Roles: `QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=realm_access/roles` and `QUARKUS_OIDC_ROLES_SOURCE=accesstoken` (realm roles are not in the ID token by default)                |
+| AWS Cognito        | `https://cognito-idp.<region>.amazonaws.com/<user-pool-id>` | Roles: `QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=cognito:groups`                                                                                                                 |
+| Microsoft Entra ID | `https://login.microsoftonline.com/<tenant-id>/v2.0`        | Roles: `roles` (app roles) or `groups`                                                                                                                                     |
+| Okta               | `https://<org>.okta.com/oauth2/default`                     | Roles: `groups` (add a groups claim to the authorization server)                                                                                                           |
+| Google             | `https://accounts.google.com`                               | No roles and no logout endpoint: map roles with emails or `"*"` and restrict with `AUTH_ALLOWED_EMAIL_DOMAINS`, set `QUARKUS_OIDC_AUTHENTICATION_USER_INFO_REQUIRED=true`. |
 
 Register these URLs with your provider:
 - redirect URI: `https://<wombat-host>/auth/callback`
@@ -45,17 +45,17 @@ An entry containing `@` matches the user's email (`AUTH_EMAIL_CLAIM`, case-insen
 
 Endpoints check permissions, and each role grants a fixed set of them:
 
-| Permission | admin | user |
-|---|---|---|
-| `ui.dashboard.read` | ✓ | ✓ |
-| `ui.apikeys.manage` | ✓ | |
-| `ui.users.read` | ✓ | |
-| `api.impact.read` | ✓ | ✓ |
-| `api.simulation.read` | ✓ | ✓ |
-| `api.environment.read` | ✓ | ✓ |
-| `api.apikey.manage` | ✓ | |
-| `api.user.manage` | ✓ | |
-| `api.user.read` | ✓ | |
+| Permission             | admin | user |
+|------------------------|-------|------|
+| `ui.dashboard.read`    | ✓    | ✓   |
+| `ui.apikeys.manage`    | ✓    |      |
+| `ui.users.read`        | ✓    |      |
+| `api.impact.read`      | ✓    | ✓   |
+| `api.simulation.read`  | ✓    | ✓   |
+| `api.environment.read` | ✓    | ✓   |
+| `api.apikey.manage`    | ✓    |      |
+| `api.user.manage`      | ✓    |      |
+| `api.user.read`        | ✓    |      |
 
 `AUTH_ROLES_ALLOWED` is gone: replace `AUTH_ROLES_ALLOWED=wombat-users` with `AUTH_ROLES_USER=wombat-users`, or `AUTH_ROLES_USER=*` if every authenticated user had access.
 
@@ -83,11 +83,11 @@ Unauthenticated browsers are redirected to the provider, and unauthenticated RES
 
 The UI is a single-page app, but its page paths are still checked on the server before it is served (`wombat-ui-page` policy, bound in [`application.yaml`](../src/main/resources/application.yaml)), after the rules above:
 
-| Page | Permission |
-|---|---|
+| Page             | Permission          |
+|------------------|---------------------|
 | `/`, `/impact/*` | `ui.dashboard.read` |
-| `/users` | `ui.users.read` |
-| `/api-keys` | `ui.apikeys.manage` |
+| `/users`         | `ui.users.read`     |
+| `/api-keys`      | `ui.apikeys.manage` |
 
 The app also hides the links and pages the user may not open, from the permissions returned by `GET /api/app`. Requests sent by the app carry `X-Requested-With: JavaScript`, so an expired session answers `499` instead of a redirect to the provider, and the app reloads the page to sign in again.
 

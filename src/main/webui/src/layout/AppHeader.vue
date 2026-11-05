@@ -10,6 +10,7 @@ const { isDark, toggleTheme } = useTheme()
       <img src="/icons/wombat-large-mask.png" alt="Wombat" class="header-logo" />
       <h1>Wombat — <span>Environmental Impact</span></h1>
     </a>
+    <slot name="nav" />
     <slot name="headerExtra" />
     <slot name="userMenu" />
     <button

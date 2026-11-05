@@ -15,12 +15,12 @@ export interface MenuLink {
   permission: Permission
 }
 
-const MENU_LINKS: MenuLink[] = [
-  { label: 'Users', to: '/users', permission: 'ui.users.read' },
+const SETTINGS_LINKS: MenuLink[] = [
   { label: 'API keys', to: '/api-keys', permission: 'ui.apikeys.manage' },
+  { label: 'Users', to: '/users', permission: 'ui.users.read' },
 ]
 
-/** The admin links of the user menu the user may follow. */
-export function menuLinks(user: PermissionHolder | null | undefined): MenuLink[] {
-  return MENU_LINKS.filter(link => can(user, link.permission))
+/** The links of the header Settings menu the user may follow. */
+export function settingsLinks(user: PermissionHolder | null | undefined): MenuLink[] {
+  return SETTINGS_LINKS.filter(link => can(user, link.permission))
 }

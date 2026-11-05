@@ -1,33 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { menuLinks } from '@/services/auth/permissions'
+import { computed } from 'vue'
 import { useAppInfo } from '@/services/auth/session'
+import { useDropdown } from '@/layout/useDropdown'
 
 const { appInfo } = useAppInfo()
 const user = computed(() => appInfo.value?.user ?? null)
-const links = computed(() => menuLinks(user.value))
-const open = ref(false)
-const root = ref<HTMLElement | null>(null)
-
-function onDocumentClick(event: MouseEvent): void {
-  if (root.value && !root.value.contains(event.target as Node))
-    open.value = false
-}
-
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape')
-    open.value = false
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick)
-  document.addEventListener('keydown', onKeydown)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick)
-  document.removeEventListener('keydown', onKeydown)
-})
+const { open, root } = useDropdown()
 </script>
 
 <template>
@@ -57,20 +35,6 @@ onBeforeUnmount(() => {
           <span v-for="role in user.roles" :key="role" class="header-user-role">{{ role }}</span>
         </span>
       </div>
-      <RouterLink v-for="link in links" :key="link.to" class="header-menu-link" :to="link.to" role="menuitem" @click="open = false">
-        <svg v-if="link.to === '/users'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="7.5" cy="15.5" r="5.5" />
-          <path d="M21 2l-9.6 9.6" />
-          <path d="M15.5 7.5l3 3L22 7l-3-3" />
-        </svg>
-        {{ link.label }}
-      </RouterLink>
       <a class="header-logout" href="/logout" role="menuitem">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

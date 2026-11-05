@@ -8,6 +8,8 @@ import jakarta.ws.rs.NotFoundException;
 import tech.illuin.wombat.security.AuthProperties;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
+import tech.illuin.wombat.security.Role;
+import tech.illuin.wombat.security.user.RoleGrantService;
 import tech.illuin.wombat.security.user.UserEntity;
 import tech.illuin.wombat.security.user.UserRepository;
 import tech.illuin.wombat.security.user.UserService;
@@ -18,7 +20,6 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 
 import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
 
-/** API keys are managed by admins and belong to no one: a key is valid until it expires or is revoked, whoever created it. */
+/** Every user manages their own API keys, admins see and revoke everyone's; a key never grants more than its owner holds. */
 @ApplicationScoped
 public class ApiKeyService
 {
@@ -36,17 +37,20 @@ public class ApiKeyService
     private final ApiKeyRepository keys;
     private final UserRepository users;
     private final UserService userService;
+    private final RoleGrantService roleGrants;
     private final AuthProperties properties;
 
     public ApiKeyService(
         ApiKeyRepository keys,
         UserRepository users,
         UserService userService,
+        RoleGrantService roleGrants,
         AuthProperties properties
     ) {
         this.keys = keys;
         this.users = users;
         this.userService = userService;
+        this.roleGrants = roleGrants;
         this.properties = properties;
     }
 
@@ -61,45 +65,82 @@ public class ApiKeyService
         if (key == null || !key.isActive(now))
             return Optional.empty();
 
+        Set<Permission> effective = grantableOnly(key.permissions);
+        effective.retainAll(this.ownerPermissions(key.ownerId));
+        if (effective.isEmpty())
+            return Optional.empty();
+
         if (key.lastUsedAt == null || key.lastUsedAt.plus(LAST_USED_RESOLUTION).isBefore(now))
             key.lastUsedAt = now;
-        return Optional.of(new Grant(key.id, PRINCIPAL_PREFIX + key.name, grantableOnly(key.permissions)));
+        return Optional.of(new Grant(key.id, PRINCIPAL_PREFIX + key.name, effective));
     }
 
     @Transactional
     public Issued create(Caller caller, String name, Collection<String> permissions, Instant expiresAt)
     {
         Set<Permission> granted = grantable(permissions, caller.permissions());
-        UserEntity creator = this.userService.ensure(caller);
+        UserEntity owner = this.userService.ensure(caller);
 
         String token = ApiKeyTokens.generate();
-        ApiKeyEntity key = this.newKey(creator, name, granted, expiresAt);
+        ApiKeyEntity key = this.newKey(owner, name, granted, expiresAt);
         key.keyHash = ApiKeyTokens.hash(token);
         key.persist();
         return new Issued(key, token);
     }
 
-    /** Every key, newest first, with the name of the admin who created it. */
+    /** The caller's keys, or every user's keys when {@code all} is set (admins only), newest first with their owner's name. */
     @Transactional
-    public List<Listed> list()
+    public List<Listed> list(Caller caller, boolean all)
     {
-        List<ApiKeyEntity> all = this.keys.findAllNewestFirst();
-        List<String> creatorIds = all.stream().map(key -> key.createdBy).filter(Objects::nonNull).distinct().toList();
-        Map<String, UserEntity> creators = creatorIds.isEmpty()
-            ? Map.of()
-            : this.users.list("id in ?1", creatorIds).stream().collect(Collectors.toMap(user -> user.id, Function.identity()));
+        List<ApiKeyEntity> listed;
+        if (all)
+        {
+            if (!caller.permissions().contains(Permission.API_APIKEY_ADMIN))
+                throw new ForbiddenException("Only admins can list every API key");
+            listed = this.keys.findAllNewestFirst();
+        }
+        else
+            listed = this.users.findByIdentity(caller.issuer(), caller.subject())
+                .map(user -> this.keys.findByOwnerNewestFirst(user.id))
+                .orElse(List.of());
 
-        return all.stream()
-            .map(key -> new Listed(key, displayName(creators.get(key.createdBy), key.createdBy)))
+        List<String> ownerIds = listed.stream().map(key -> key.ownerId).distinct().toList();
+        Map<String, UserEntity> owners = ownerIds.isEmpty()
+            ? Map.of()
+            : this.users.list("id in ?1", ownerIds).stream().collect(Collectors.toMap(user -> user.id, Function.identity()));
+
+        return listed.stream()
+            .map(key -> new Listed(key, displayName(owners.get(key.ownerId), key.ownerId)))
             .toList();
     }
 
+    /** Owners revoke their own keys, admins any key; someone else's key answers 404 so its existence is not disclosed. */
     @Transactional
-    public void revoke(String keyId)
+    public void revoke(Caller caller, String keyId)
     {
         ApiKeyEntity key = this.keys.findByIdOptional(keyId).orElseThrow(NotFoundException::new);
+        if (!caller.permissions().contains(Permission.API_APIKEY_ADMIN) && !this.isOwner(caller, key))
+            throw new NotFoundException();
         if (key.revokedAt == null)
             key.revokedAt = now();
+    }
+
+    private boolean isOwner(Caller caller, ApiKeyEntity key)
+    {
+        return this.users.findByIdentity(caller.issuer(), caller.subject())
+            .map(user -> user.id.equals(key.ownerId))
+            .orElse(false);
+    }
+
+    private Set<Permission> ownerPermissions(String ownerId)
+    {
+        UserEntity owner = this.users.findById(ownerId);
+        if (owner == null)
+            return Set.of();
+        Set<Role> roles = EnumSet.noneOf(Role.class);
+        roles.addAll(owner.roles);
+        roles.addAll(this.roleGrants.of(owner.issuer, owner.subject));
+        return Role.permissionsOf(roles);
     }
 
     static Set<Permission> grantable(Collection<String> requested, Set<Permission> held)
@@ -120,7 +161,7 @@ public class ApiKeyService
         return permissions;
     }
 
-    private ApiKeyEntity newKey(UserEntity creator, String name, Set<Permission> permissions, Instant expiresAt)
+    private ApiKeyEntity newKey(UserEntity owner, String name, Set<Permission> permissions, Instant expiresAt)
     {
         if (name == null || name.isBlank())
             throw new BadRequestException("An API key needs a name");
@@ -138,7 +179,7 @@ public class ApiKeyService
         ApiKeyEntity key = new ApiKeyEntity();
         key.name = name.strip();
         key.permissions = permissions;
-        key.createdBy = creator.id;
+        key.ownerId = owner.id;
         key.expiresAt = expiresAt;
         return key;
     }
@@ -162,5 +203,5 @@ public class ApiKeyService
 
     public record Issued(ApiKeyEntity key, String token) {}
 
-    public record Listed(ApiKeyEntity key, String createdBy) {}
+    public record Listed(ApiKeyEntity key, String owner) {}
 }

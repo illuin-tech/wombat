@@ -18,7 +18,7 @@ import tech.illuin.wombat.security.apikey.ApiKeyService;
 
 import java.util.List;
 
-/** Admin-only: API keys belong to no one, so whoever may manage keys sees and manages all of them. */
+/** Users manage their own API keys; admins also list ({@code ?all=true}) and revoke everyone's. */
 @Path("api/keys")
 @PermissionsAllowed(Permission.Names.API_APIKEY_MANAGE)
 public class ApiKeyController
@@ -78,10 +78,10 @@ public class ApiKeyController
             )
         )
     )
-    public Response<List<ApiKeyInfo>> list()
+    public Response<List<ApiKeyInfo>> list(@QueryParam("all") @DefaultValue("false") boolean all)
     {
         this.requireAuthentication();
-        return Response.success(this.service.list().stream().map(ApiKeyInfo::from).toList());
+        return Response.success(this.service.list(this.caller(), all).stream().map(ApiKeyInfo::from).toList());
     }
 
     @POST
@@ -105,7 +105,7 @@ public class ApiKeyController
             throw new BadRequestException("Missing API key request");
 
         this.requireAuthentication();
-        Caller caller = Caller.from(this.identity, this.properties);
+        Caller caller = this.caller();
         ApiKeyService.Issued issued = this.service.create(caller, request.name(), request.permissions(), request.expiresAt());
         return Response.success("The token is only shown once", ApiKeyInfo.from(issued.key(), caller.name(), issued.token()));
     }
@@ -127,8 +127,13 @@ public class ApiKeyController
     public Response<Void> revoke(@PathParam("id") String id)
     {
         this.requireAuthentication();
-        this.service.revoke(id);
+        this.service.revoke(this.caller(), id);
         return Response.status("Revoked");
+    }
+
+    private Caller caller()
+    {
+        return Caller.from(this.identity, this.properties);
     }
 
     private void requireAuthentication()

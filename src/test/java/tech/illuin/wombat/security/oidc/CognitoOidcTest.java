@@ -54,7 +54,7 @@ class CognitoOidcTest
         Map<String, String> session = this.signIn(subject, "alice@example.com", List.of("wombat-users"));
 
         given().cookies(session).when().get("/api/environments").then().statusCode(200);
-        given().cookies(session).when().get("/api/keys").then().statusCode(403);
+        given().cookies(session).when().get("/api/keys?all=true").then().statusCode(403);
         given().cookies(session).when().get("/").then().statusCode(not(anyOf(is(401), is(403))));
         given().cookies(session).when().get("/api/app").then()
             .statusCode(200)
@@ -92,7 +92,7 @@ class CognitoOidcTest
         String token = MockProvider.sign(accessToken(UUID.randomUUID().toString(), List.of("wombat-users")));
 
         given().auth().oauth2(token).when().get("/api/environments").then().statusCode(200);
-        given().auth().oauth2(token).when().get("/api/keys").then().statusCode(403);
+        given().auth().oauth2(token).when().get("/api/keys?all=true").then().statusCode(403);
     }
 
     @Test

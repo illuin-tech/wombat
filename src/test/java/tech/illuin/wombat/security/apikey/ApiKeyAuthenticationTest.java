@@ -26,8 +26,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -65,20 +68,23 @@ class ApiKeyAuthenticationTest
     }
 
     @Test
-    void key_doesNotDependOnItsCreator()
+    void key_stopsWorkingWhenItsOwnerLosesTheirRoles()
     {
-        Caller creator = admin();
-        String token = this.issue(creator, List.of(Permission.Names.API_ENVIRONMENT_READ)).token();
-        QuarkusTransaction.requiringNew().run(() -> this.users.findByIdentity(creator.issuer(), creator.subject()).orElseThrow().roles = EnumSet.noneOf(Role.class));
-
+        Caller owner = admin();
+        String token = this.issue(owner, List.of(Permission.Names.API_ENVIRONMENT_READ)).token();
         given().header(ApiKeyAuthenticationMechanism.HEADER, token).when().get("/api/environments").then().statusCode(200);
+
+        QuarkusTransaction.requiringNew().run(() -> this.users.findByIdentity(owner.issuer(), owner.subject()).orElseThrow().roles = EnumSet.noneOf(Role.class));
+
+        given().header(ApiKeyAuthenticationMechanism.HEADER, token).when().get("/api/environments").then().statusCode(401);
     }
+
 
     @Test
     void revokedKey_isRejected()
     {
         ApiKeyService.Issued issued = this.issue(admin(), List.of(Permission.Names.API_ENVIRONMENT_READ));
-        this.service.revoke(issued.key().id);
+        this.service.revoke(admin(), issued.key().id);
 
         given().header(ApiKeyAuthenticationMechanism.HEADER, issued.token()).when().get("/api/environments").then().statusCode(401);
     }
@@ -141,7 +147,7 @@ class ApiKeyAuthenticationTest
     @Test
     void keys_cannotOutliveTheMaximumLifetime()
     {
-        assertThrows(BadRequestException.class, () -> this.service.create(admin(), "too-long", List.of(Permission.Names.API_ENVIRONMENT_READ), Instant.now().plus(Duration.ofDays(365))));
+        assertThrows(BadRequestException.class, () -> this.service.create(admin(), "too-long", List.of(Permission.Names.API_ENVIRONMENT_READ), Instant.now().plus(Duration.ofDays(366))));
         assertThrows(BadRequestException.class, () -> this.service.create(admin(), "past", List.of(Permission.Names.API_ENVIRONMENT_READ), Instant.now().minusSeconds(1)));
     }
 
@@ -167,7 +173,7 @@ class ApiKeyAuthenticationTest
             .then()
             .statusCode(200)
             .body("payload.token", notNullValue())
-            .body("payload.created-by", is("boss@example.com"))
+            .body("payload.owner", is("boss@example.com"))
             .extract().path("payload.id");
 
         ApiKeyService.Issued other = this.issue(admin(), List.of(Permission.Names.API_IMPACT_READ));
@@ -176,11 +182,98 @@ class ApiKeyAuthenticationTest
             .when().get("/api/keys")
             .then()
             .statusCode(200)
-            .body("payload.find { it.id == '" + id + "' }.created-by", is("boss@example.com"))
-            .body("payload.find { it.id == '" + other.key().id + "' }.name", is("test"));
+            .body("payload.find { it.id == '" + id + "' }.owner", is("boss@example.com"))
+            .body("payload.find { it.id == '" + other.key().id + "' }", nullValue());
+
+        given()
+            .when().get("/api/keys?all=true")
+            .then()
+            .statusCode(200)
+            .body("payload.find { it.id == '" + other.key().id + "' }.owner", is("admin"));
 
         given().when().delete("/api/keys/" + other.key().id).then().statusCode(200);
         given().header(ApiKeyAuthenticationMechanism.HEADER, other.token()).when().get("/api/impact/environments").then().statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "iss", value = "https://idp"),
+        @Claim(key = "sub", value = "alice"),
+        @Claim(key = "email", value = "alice@example.com"),
+    })
+    void user_managesOnlyTheirOwnKeys()
+    {
+        String id = given()
+            .contentType(ContentType.JSON)
+            .body(Map.of("name", "script", "permissions", List.of(Permission.Names.API_IMPACT_READ), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .when().post("/api/keys")
+            .then()
+            .statusCode(200)
+            .body("payload.owner", is("alice@example.com"))
+            .extract().path("payload.id");
+        ApiKeyService.Issued other = this.issue(admin(), List.of(Permission.Names.API_IMPACT_READ));
+
+        given().when().get("/api/keys").then()
+            .statusCode(200)
+            .body("payload.id", hasItem(id))
+            .body("payload.id", not(hasItem(other.key().id)));
+        given().when().get("/api/keys?all=true").then().statusCode(403);
+
+        given().when().delete("/api/keys/" + other.key().id).then().statusCode(404);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, other.token()).when().get("/api/impact/environments").then().statusCode(200);
+
+        given().when().delete("/api/keys/" + id).then().statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "iss", value = "https://idp"),
+        @Claim(key = "sub", value = "alice"),
+    })
+    void user_cannotGiveAKeyMoreThanTheyHold()
+    {
+        given()
+            .contentType(ContentType.JSON)
+            .body(Map.of("name", "admin-key", "permissions", List.of(Permission.Names.API_APIKEY_ADMIN), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .when().post("/api/keys")
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "keeper", roles = "wombat-key-managers", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "iss", value = "https://idp"),
+        @Claim(key = "sub", value = "keeper"),
+    })
+    void apiKeyManager_listsAndRevokesEveryKey()
+    {
+        ApiKeyService.Issued other = this.issue(admin(), List.of(Permission.Names.API_IMPACT_READ));
+
+        given().when().get("/api/keys?all=true").then()
+            .statusCode(200)
+            .body("payload.id", hasItem(other.key().id));
+
+        given().when().delete("/api/keys/" + other.key().id).then().statusCode(200);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, other.token()).when().get("/api/impact/environments").then().statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "keeper", roles = "wombat-key-managers", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "iss", value = "https://idp"),
+        @Claim(key = "sub", value = "keeper"),
+    })
+    void apiKeyManager_createsKeysWithTheUserReads()
+    {
+        given()
+            .contentType(ContentType.JSON)
+            .body(Map.of("name", "reader", "permissions", List.of(Permission.Names.API_IMPACT_READ), "expires-at", Instant.now().plus(Duration.ofDays(1)).toString()))
+            .when().post("/api/keys")
+            .then()
+            .statusCode(200);
     }
 
     private ApiKeyService.Issued issue(Caller caller, List<String> permissions)

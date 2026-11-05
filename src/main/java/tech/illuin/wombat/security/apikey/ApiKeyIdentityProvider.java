@@ -11,6 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
 import tech.illuin.wombat.security.Role;
+import tech.illuin.wombat.security.user.RoleGrantService;
 
 import java.util.EnumSet;
 import java.util.stream.Collectors;
@@ -20,10 +21,12 @@ import java.util.stream.Collectors;
 public class ApiKeyIdentityProvider implements IdentityProvider<ApiKeyAuthenticationRequest>
 {
     private final ApiKeyService apiKeyService;
+    private final RoleGrantService roleGrants;
 
-    public ApiKeyIdentityProvider(ApiKeyService apiKeyService)
+    public ApiKeyIdentityProvider(ApiKeyService apiKeyService, RoleGrantService roleGrants)
     {
         this.apiKeyService = apiKeyService;
+        this.roleGrants = roleGrants;
     }
 
     @Override
@@ -36,8 +39,9 @@ public class ApiKeyIdentityProvider implements IdentityProvider<ApiKeyAuthentica
     public Uni<SecurityIdentity> authenticate(ApiKeyAuthenticationRequest request, AuthenticationRequestContext context)
     {
         return context.runBlocking(() -> {
+            this.roleGrants.reloadIfStale();
             ApiKeyService.Grant grant = this.apiKeyService.authenticate(request.token())
-                .orElseThrow(() -> new AuthenticationFailedException("Unknown, revoked or expired API key"));
+                .orElseThrow(() -> new AuthenticationFailedException("Unknown, revoked or expired API key, or its owner lost the roles behind it"));
 
             return QuarkusSecurityIdentity.builder()
                 .setPrincipal(new QuarkusPrincipal(grant.principal()))

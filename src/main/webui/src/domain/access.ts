@@ -6,6 +6,7 @@ export type Permission =
   | 'api.simulation.read'
   | 'api.environment.read'
   | 'api.apikey.manage'
+  | 'api.apikey.admin'
   | 'api.user.manage'
   | 'api.user.read'
 
@@ -13,7 +14,7 @@ export interface ApiKeyInfo {
   id: string
   name: string
   permissions: string[]
-  'created-by': string | null
+  owner: string | null
   'created-at': string | null
   'expires-at': string | null
   'revoked-at': string | null

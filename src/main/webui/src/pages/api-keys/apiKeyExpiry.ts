@@ -45,6 +45,6 @@ export function filterApiKeys(keys: ApiKeyInfo[], query: string, activeOnly: boo
   return keys.filter((key) => {
     if (activeOnly && apiKeyStatus(key, now) !== 'active') return false
     if (!normalized) return true
-    return key.name.toLowerCase().includes(normalized) || (key['created-by'] ?? '').toLowerCase().includes(normalized)
+    return key.name.toLowerCase().includes(normalized) || (key.owner ?? '').toLowerCase().includes(normalized)
   })
 }

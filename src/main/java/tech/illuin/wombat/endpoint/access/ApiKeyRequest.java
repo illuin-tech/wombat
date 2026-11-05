@@ -8,5 +8,5 @@ import java.util.List;
 public record ApiKeyRequest(
     @JsonProperty("name") String name,
     @JsonProperty("permissions") List<String> permissions,
-    @JsonProperty("expires-at") Instant expiresAt
+    @JsonProperty("expiresAt") Instant expiresAt
 ) {}

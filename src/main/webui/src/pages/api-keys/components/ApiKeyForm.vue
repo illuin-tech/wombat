@@ -27,7 +27,7 @@ async function submit(): Promise<void> {
   saving.value = true
   try {
     const expiry = neverExpires.value ? null : `${clampApiKeyExpiry(expiresOn.value, bounds.value)}T00:00:00Z`
-    const key = await createApiKey({ name: name.value.trim(), permissions: permissions.value, 'expires-at': expiry })
+    const key = await createApiKey({ name: name.value.trim(), permissions: permissions.value, expiresAt: expiry })
     name.value = ''
     emit('created', key)
   } catch (caught) {

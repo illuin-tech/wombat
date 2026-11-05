@@ -22,7 +22,7 @@ function llm(serviceId: string, fp: Footprint, tokens: number, requests: number,
 function k8s(serviceId: string, fp: Footprint): KubernetesImpact {
   return {
     serviceId, assetType: K8S_TYPE, footprint: fp, share: 0.5,
-    profile: { provider: 'aws', 'instance-type': 'c5.large', location: 'FRA', lifespan: '5y' },
+    profile: { provider: 'aws', instanceType: 'c5.large', location: 'FRA', lifespan: '5y' },
     location: { id: 'test-cluster', namespace: 'test-ns' },
     serverSpecification: { vcpu: 8, memory: 16, ssdStorage: null, hddStorage: null, gpuUnits: null, platform: null },
     loadPercent: 25, nodeCount: 1,
@@ -82,6 +82,15 @@ describe('aggregate (EnvironmentImpact)', () => {
     expect(panel.clusters).toEqual([{ id: 'test-cluster', namespace: 'test-ns' }])
     expect(panel.load).toEqual({ cpuUsageCores: 2, loadPercent: 25, nodeCount: 1 })
     expect(panel.energyTotal.value).toBe(0)
+  })
+
+  it('does not read a kebab-case instance type from a server profile', () => {
+    const impact = asset('cluster', [{
+      ...k8s('api', footprint(1, 1, 1)),
+      profile: { provider: 'aws', 'instance-type': 'legacy-c5.large' },
+    }])
+
+    expect(aggregate([impact], assets).kubernetesPanels[0].instanceType).toBeNull()
   })
 
   it('narrows to the requested services while keeping every service in the picker', () => {

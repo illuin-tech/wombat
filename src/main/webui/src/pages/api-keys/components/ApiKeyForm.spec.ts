@@ -16,11 +16,11 @@ const createdKey: ApiKeyInfo = {
   id: 'created',
   name: 'nightly build',
   permissions: ['api.impact.read'],
-  'created-by': 'Alice',
-  'created-at': '2026-01-10T12:00:00Z',
-  'expires-at': '2026-02-14T00:00:00Z',
-  'revoked-at': null,
-  'last-used-at': null,
+  owner: 'Alice',
+  createdAt: '2026-01-10T12:00:00Z',
+  expiresAt: '2026-02-14T00:00:00Z',
+  revokedAt: null,
+  lastUsedAt: null,
   token: 'secret-token',
 }
 
@@ -55,7 +55,7 @@ describe('ApiKeyForm', () => {
     expect(createApiKeyMock).toHaveBeenCalledWith({
       name: 'nightly build',
       permissions: ['api.impact.read'],
-      'expires-at': '2026-02-14T00:00:00Z',
+      expiresAt: '2026-02-14T00:00:00Z',
     })
     expect(wrapper.emitted('created')).toEqual([[createdKey]])
     expect(wrapper.get('input[type="text"]').element).toHaveProperty('value', '')

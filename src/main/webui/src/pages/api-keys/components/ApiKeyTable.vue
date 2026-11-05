@@ -49,9 +49,9 @@ function requestRevoke(key: ApiKeyInfo): void {
           <td class="name">{{ key.name }}</td>
           <td><div class="apikey-perms"><span v-for="permission in key.permissions" :key="permission" class="apikey-perm">{{ permission }}</span></div></td>
           <td>{{ key.owner ?? '—' }}</td>
-          <td>{{ formatDate(key['created-at']) }}</td>
-          <td>{{ key['expires-at'] ? formatDate(key['expires-at']) : 'Never' }}</td>
-          <td>{{ formatDate(key['last-used-at']) }}</td>
+          <td>{{ formatDate(key.createdAt) }}</td>
+          <td>{{ key.expiresAt ? formatDate(key.expiresAt) : 'Never' }}</td>
+          <td>{{ formatDate(key.lastUsedAt) }}</td>
           <td><span class="apikey-status" :class="apiKeyStatus(key)">{{ statusLabel(key) }}</span></td>
           <td><button v-if="apiKeyStatus(key) === 'active'" class="btn-danger" type="button" @click="requestRevoke(key)">Revoke</button></td>
         </tr>

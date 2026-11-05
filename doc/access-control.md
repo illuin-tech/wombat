@@ -101,7 +101,7 @@ Every user can create API keys for their scripts and CI, from the **API keys** p
 
 ```sh
 curl -X POST https://<wombat-host>/api/keys -H 'Content-Type: application/json' --cookie <session> \
-  -d '{"name": "ci", "permissions": ["api.impact.read"], "expires-at": "2027-01-30T00:00:00Z"}'
+  -d '{"name": "ci", "permissions": ["api.impact.read"], "expiresAt": "2027-01-30T00:00:00Z"}'
 curl https://<wombat-host>/api/impact/environments -H 'X-API-Key: <key>'
 ```
 
@@ -111,7 +111,7 @@ Keys are opaque random strings starting with `wmb_` (256 random bits), not JWTs:
 
 ```sh
 AUTH_API_KEYS_MAX_LIFETIME=365d            # longest expiry a key can be given
-AUTH_API_KEYS_ALLOW_NEVER_EXPIRING=false   # true lets keys be created without "expires-at"
+AUTH_API_KEYS_ALLOW_NEVER_EXPIRING=false   # true lets keys be created without "expiresAt"
 ```
 
 A key works until it expires or is revoked, and never grants more than its owner currently holds: on each call, its permissions are narrowed to those of the owner's roles, so a key stops working once its owner loses them. Keys work the same with every provider, because Wombat never calls it: the owner's roles are the ones mapped at their last request (recorded at most every 5 minutes) plus those granted in Wombat. Removing a granted role applies to the owner's keys at once, but a role removed at the provider only applies once the owner signs in again, and someone who left never does: revoke their keys from the **All users** view, and prefer keys that expire.

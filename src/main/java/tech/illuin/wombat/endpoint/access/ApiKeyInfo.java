@@ -14,10 +14,10 @@ public record ApiKeyInfo(
     @JsonProperty("name") String name,
     @JsonProperty("permissions") List<String> permissions,
     @JsonProperty("owner") String owner,
-    @JsonProperty("created-at") Instant createdAt,
-    @JsonProperty("expires-at") Instant expiresAt,
-    @JsonProperty("revoked-at") Instant revokedAt,
-    @JsonProperty("last-used-at") Instant lastUsedAt,
+    @JsonProperty("createdAt") Instant createdAt,
+    @JsonProperty("expiresAt") Instant expiresAt,
+    @JsonProperty("revokedAt") Instant revokedAt,
+    @JsonProperty("lastUsedAt") Instant lastUsedAt,
     @JsonProperty("token") @JsonInclude(JsonInclude.Include.NON_NULL) String token
 ) {
     public static ApiKeyInfo from(ApiKeyService.Listed listed)

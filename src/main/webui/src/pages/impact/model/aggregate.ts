@@ -261,7 +261,7 @@ function kubernetesPanel(name: string, footprint: Footprint, impacts: Kubernetes
     peTotal: footprintAmount(footprint.pe, UNIT.mj),
     adpeTotal: footprintAmount(footprint.adp, UNIT.kgSbeq),
     provider: (profile.provider as string | undefined) ?? null,
-    instanceType: (profile.instanceType ?? profile['instance-type'] ?? null) as string | null,
+    instanceType: profile.instanceType ?? null,
     location: (profile.location as string | undefined) ?? null,
     lifespan: lifetimeHours(profile.lifespan),
     clusters,

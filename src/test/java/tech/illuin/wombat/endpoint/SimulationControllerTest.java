@@ -61,7 +61,7 @@ class SimulationControllerTest
           },
           "profile": {
             "provider": "aws",
-            "instance-type": "c5.large",
+            "instanceType": "c5.large",
             "location": "FRA",
             "lifespan": 43800
           }
@@ -111,7 +111,8 @@ class SimulationControllerTest
             .body("payload[0].provider", is("BOAVIZTA"))
             .body("payload[0].footprint.gwp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
-            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-simulated"));
+            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-simulated"))
+            .body("payload[0].serviceImpacts[0].profile.instanceType", is("c5.large"));
     }
 
     @Test
@@ -196,7 +197,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               }
@@ -238,7 +239,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               },
@@ -280,7 +281,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               },
@@ -300,7 +301,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               },
@@ -368,7 +369,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               },
@@ -387,7 +388,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               },
@@ -494,7 +495,7 @@ class SimulationControllerTest
               "type": "KUBERNETES",
               "profile": {
                 "provider": "aws",
-                "instance-type": "c5.large",
+                "instanceType": "c5.large",
                 "location": "FRA",
                 "lifespan": 43800
               },

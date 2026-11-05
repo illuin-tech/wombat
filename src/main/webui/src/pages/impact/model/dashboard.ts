@@ -44,13 +44,13 @@ export function buildDashboardRequests(
     const impactAssets = assetIds.map(id => ({id}))
     const timelineAssets = assetIds.map((id) => {
         const services = selection.get(id)
-        return services && services.length > 0 ? {id, service_ids: services} : {id}
+        return services && services.length > 0 ? {id, serviceIds: services} : {id}
     })
 
     return {
         assetIds,
-        impact: {source_time_range: range, environments: [{id: environmentId, assets: impactAssets}]},
-        timeline: {source_time_range: range, environments: [{id: environmentId, assets: timelineAssets}]},
+        impact: {sourceTimeRange: range, environments: [{id: environmentId, assets: impactAssets}]},
+        timeline: {sourceTimeRange: range, environments: [{id: environmentId, assets: timelineAssets}]},
     }
 }
 

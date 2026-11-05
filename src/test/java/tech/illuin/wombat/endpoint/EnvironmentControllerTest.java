@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @QuarkusTest
 class EnvironmentControllerTest
@@ -15,7 +16,7 @@ class EnvironmentControllerTest
     @Test
     void list_returnsReconciledEnvironments()
     {
-        given()
+        String response = given()
             .when().get("/api/environments")
             .then()
             .statusCode(200)
@@ -27,8 +28,12 @@ class EnvironmentControllerTest
             .body("payload.find { it.id == 'test' }.assets.id", hasItem("test-cluster"))
             .body("payload.find { it.id == 'test' }.assets.id", hasItem("test-llm"))
             .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.namespace", is("test-ns"))
+            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.environmentId", is("test"))
             .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.profile.'instanceType'", is("c5.large"))
-            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.'createdAt'", notNullValue());
+            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.'createdAt'", notNullValue())
+            .extract().asString();
+        assertFalse(response.contains("\"environment-id\""));
+        assertFalse(response.contains("\"instance-type\""));
     }
 
     @Test

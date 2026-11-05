@@ -8,24 +8,24 @@ const activeKey: ApiKeyInfo = {
   name: 'My pipeline',
   permissions: ['api.impact.read'],
   owner: 'Alice',
-  'created-at': '2026-01-01T00:00:00Z',
-  'expires-at': '2099-01-01T00:00:00Z',
-  'revoked-at': null,
-  'last-used-at': null,
+  createdAt: '2026-01-01T00:00:00Z',
+  expiresAt: '2099-01-01T00:00:00Z',
+  revokedAt: null,
+  lastUsedAt: null,
 }
 const expiredKey: ApiKeyInfo = {
   ...activeKey,
   id: 'expired',
   name: 'Read-only key',
   owner: 'Richard',
-  'expires-at': '2000-01-01T00:00:00Z',
+  expiresAt: '2000-01-01T00:00:00Z',
 }
 const revokedKey: ApiKeyInfo = {
   ...activeKey,
   id: 'revoked',
   name: 'Legacy automation',
   owner: 'Lena',
-  'revoked-at': '2026-01-02T00:00:00Z',
+  revokedAt: '2026-01-02T00:00:00Z',
 }
 
 afterEach(() => {
@@ -60,6 +60,15 @@ describe('ApiKeyTable scope', () => {
 })
 
 describe('ApiKeyTable interactions', () => {
+  it('renders timestamps from camelCase API fields', () => {
+    const wrapper = mount(ApiKeyTable, { props: { keys: [activeKey] } })
+    const cells = wrapper.get('tbody tr').findAll('td')
+
+    expect(cells[3].text()).not.toBe('—')
+    expect(cells[4].text()).not.toBe('Never')
+    wrapper.unmount()
+  })
+
   it('filters inactive keys and shows an empty-search message', async () => {
     const wrapper = mount(ApiKeyTable, { props: { keys: [activeKey, expiredKey, revokedKey] } })
 

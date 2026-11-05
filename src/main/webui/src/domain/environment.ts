@@ -13,7 +13,6 @@ export interface AssetType {
 export interface AssetInfo {
   id: string
   name: string
-  'environment-id'?: string
   environmentId?: string
   type?: string | AssetType
   namespace?: string | null

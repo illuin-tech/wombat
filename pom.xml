@@ -80,7 +80,7 @@
         <!-- Maven deps -->
         <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
         <!-- UI deps -->
-        <quarkus-quinoa.version>2.9.2</quarkus-quinoa.version>
+        <quarkus-quinoa.version>2.9.3</quarkus-quinoa.version>
     </properties>
 
     <dependencyManagement>

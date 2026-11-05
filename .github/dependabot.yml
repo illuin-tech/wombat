@@ -13,3 +13,8 @@ updates:
     open-pull-requests-limit: 25
     schedule:
       interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/src/main/webui"
+    open-pull-requests-limit: 25
+    schedule:
+      interval: "weekly"

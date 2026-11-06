@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.engine.context.EnvironmentReconciler;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.persistence.*;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
@@ -23,7 +22,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -158,6 +159,128 @@ class EnvironmentReconcilerTest
 
         assertNull(returning.disabledAt);
         assertNotNull(orphan.disabledAt);
+    }
+
+    /* Ownership: a worker's declaration and the YAML each manage their own assets of a shared environment. */
+
+    @Test
+    void worker_createsItsAssetsAsTheirOwner()
+    {
+        AssetEntity created = this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
+
+        assertEquals("east", created.owner);
+    }
+
+    @Test
+    void worker_cannotDeclareAnAssetOwnedByTheYaml()
+    {
+        AssetEntity local = AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5)));
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(local));
+
+        assertThrows(EnvironmentConflictException.class, () -> this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
+        assertNull(local.owner);
+    }
+
+    @Test
+    void worker_cannotDeclareAnAssetOwnedByAnotherWorker()
+    {
+        AssetEntity other = owned("west", AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5))));
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(other));
+
+        assertThrows(EnvironmentConflictException.class, () -> this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
+    }
+
+    @Test
+    void worker_takesOverADeletedAsset()
+    {
+        AssetEntity deleted = AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5)));
+        deleted.deletedAt = EnvironmentEntity.now();
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(deleted));
+
+        this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
+
+        assertEquals("east", deleted.owner);
+        assertNull(deleted.deletedAt);
+    }
+
+    @Test
+    void worker_onlyDeletesItsOwnAssets()
+    {
+        AssetEntity local = AssetEntity.from("e1", k8s("local", Lifetime.ofYears(5)));
+        AssetEntity mine = owned("east", AssetEntity.from("e1", k8s("mine", Lifetime.ofYears(5))));
+        AssetEntity theirs = owned("west", AssetEntity.from("e1", k8s("theirs", Lifetime.ofYears(5))));
+        when(this.assets.list("deletedAt is null")).thenReturn(List.of(local, mine, theirs));
+
+        this.reconciler().reconcile("east", Map.of());
+
+        assertNull(local.deletedAt);
+        assertNotNull(mine.deletedAt);
+        assertNull(theirs.deletedAt);
+    }
+
+    @Test
+    void yaml_keepsTheAssetsOfWorkers_andTheEnvironmentsHoldingThem()
+    {
+        AssetEntity pushed = owned("east", AssetEntity.from("pushed-env", k8s("pushed", Lifetime.ofYears(5))));
+        EnvironmentEntity pushedEnvironment = new EnvironmentEntity();
+        pushedEnvironment.id = "pushed-env";
+        when(this.assets.list("deletedAt is null")).thenReturn(List.of(pushed));
+        when(this.environments.findActive()).thenReturn(List.of(pushedEnvironment));
+
+        this.reconcile(desired("e1", "Env 1"));
+
+        assertNull(pushed.deletedAt);
+        assertNull(pushedEnvironment.disabledAt);
+    }
+
+    @Test
+    void yaml_takesOverTheAssetsItDeclares()
+    {
+        AssetEntity pushed = owned("east", AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5))));
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(pushed));
+
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
+
+        assertNull(pushed.owner);
+    }
+
+    @Test
+    void worker_disablesTheEnvironmentItEmptied_unlessTheYamlDeclaresIt()
+    {
+        AssetEntity gone = owned("east", AssetEntity.from("pushed-env", k8s("gone", Lifetime.ofYears(5))));
+        AssetEntity alsoGone = owned("east", AssetEntity.from("e1", k8s("also-gone", Lifetime.ofYears(5))));
+        EnvironmentEntity pushedEnvironment = new EnvironmentEntity();
+        pushedEnvironment.id = "pushed-env";
+        EnvironmentEntity yamlEnvironment = new EnvironmentEntity();
+        yamlEnvironment.id = "e1";
+        when(this.assets.list("deletedAt is null")).thenReturn(List.of(gone, alsoGone));
+        when(this.environments.findActive()).thenReturn(List.of(pushedEnvironment, yamlEnvironment));
+
+        new EnvironmentReconciler(this.environments, this.assets, this.history, new MonitoredEnvironments(desired("e1", "Env 1")))
+            .reconcile("east", Map.of());
+
+        assertNotNull(pushedEnvironment.disabledAt);
+        assertNull(yamlEnvironment.disabledAt);
+    }
+
+    private AssetEntity reconcileAsWorker(String worker, Map<String, Environment> desired)
+    {
+        this.reconciler().reconcile(worker, desired);
+        ArgumentCaptor<AssetEntity> captor = ArgumentCaptor.forClass(AssetEntity.class);
+        verify(this.assets, atMost(1)).persist(captor.capture());
+        return captor.getAllValues().isEmpty() ? null : captor.getValue();
+    }
+
+    /* A reconciler whose YAML declares nothing, so only the worker's declaration is at play. */
+    private EnvironmentReconciler reconciler()
+    {
+        return new EnvironmentReconciler(this.environments, this.assets, this.history, new MonitoredEnvironments(Map.of()));
+    }
+
+    private static AssetEntity owned(String owner, AssetEntity entity)
+    {
+        entity.owner = owner;
+        return entity;
     }
 
     private void reconcile(Map<String, Environment> desired)

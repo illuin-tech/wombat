@@ -10,6 +10,10 @@ src/**/monitored-environments-dev.yaml
 /compose/data
 /compose/application.yaml
 /compose/monitored-environments.yaml
+/compose/distributed/*/config/application.yaml
+/compose/distributed/*/monitored-environments.yaml
+/compose/distributed/*/data
+/compose/distributed/*/kubeconfig
 
 /data/
 /secrets/

@@ -4,7 +4,7 @@ import io.quarkus.arc.All;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
 import jakarta.inject.Singleton;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
@@ -29,12 +29,13 @@ import java.util.Optional;
 public class WombatCoreConfig
 {
     @Singleton
-    public SecretResolver provideSecretResolver(
-        @ConfigProperty(name = "wombat.secret.directory.path") Optional<String> directoryPath,
-        @ConfigProperty(name = "wombat.secret.keystore.path") Optional<String> keyStorePath,
-        @ConfigProperty(name = "wombat.secret.keystore.password") Optional<String> keyStorePassword,
-        @ConfigProperty(name = "wombat.secret.keystore.type", defaultValue = "PKCS12") String keyStoreType
-    ) {
+    public SecretResolver provideSecretResolver(WombatProperties properties)
+    {
+        Optional<String> directoryPath = properties.secret().directory().path();
+        Optional<String> keyStorePath = properties.secret().keystore().path();
+        Optional<String> keyStorePassword = properties.secret().keystore().password();
+        String keyStoreType = properties.secret().keystore().type();
+
         List<SecretResolver> resolvers = new ArrayList<>();
         if (keyStorePath.isPresent() && !keyStorePath.get().isBlank())
         {

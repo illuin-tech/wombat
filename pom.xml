@@ -74,7 +74,7 @@
         <surefire-plugin.version>3.6.1</surefire-plugin.version>
         <junit4.version>4.13.2</junit4.version>
         <jacoco.version>0.8.16</jacoco.version>
-        <checkstyle.version>14.3.0</checkstyle.version>
+        <checkstyle.version>14.4.0</checkstyle.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <testcontainers.version>1.21.4</testcontainers.version>
         <!-- Maven deps -->

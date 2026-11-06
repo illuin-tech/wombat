@@ -1,0 +1,17 @@
+# Sampled by this worker, and declared to the aggregator, which evaluates the assets as owned by this worker.
+environments:
+  west:
+    id: west
+    assets:
+      # Reads the cluster's metrics API with the kubeconfig at compose/distributed/worker-west/kubeconfig/west.config.yaml
+      - type: tech.illuin.wombat-module.kubernetes-api
+        id: west-cluster
+        environment-id: west
+        name: West Cluster
+        config-path: kubeconfig/west.config.yaml
+        namespace: default
+        profile:
+          provider: aws
+          instance-type: c5.xlarge
+          location: FRA
+          lifespan: 43800  # hours

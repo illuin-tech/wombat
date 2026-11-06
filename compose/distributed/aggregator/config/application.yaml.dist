@@ -1,0 +1,32 @@
+# Aggregator of the local distributed setup, see doc/distributed.md
+# Run from compose/distributed/aggregator: its database lands in ./data and its environments are read from ./
+wombat:
+  mode: aggregator
+
+quarkus:
+  http:
+    port: 8080
+
+monitor:
+  # Declares the environments of both workers, so their assets are evaluated here. The aggregator samples none of them.
+  environments-file: monitored-environments.yaml
+
+# Fold sampling rows every 5 minutes instead of every hour, so pushed activity reaches the UI within minutes
+compaction:
+  cron: "0 1/5 * * * ?"
+  window: 5m
+  delay: 30s
+
+# The Anthropic asset is evaluated here, so its admin key must be resolvable: either as an ANTHROPIC_ADMIN_KEY
+# environment variable, or as a file named ANTHROPIC_ADMIN_KEY in a secrets directory:
+# wombat:
+#   secret:
+#     directory:
+#       path: /path/to/secrets
+
+# Impact estimations call the public Boavizta and Ecologits APIs by default. To use the local ones of compose.yaml:
+# connector:
+#   boavizta:
+#     uri: "http://localhost:5001/v1/"
+#   ecologits:
+#     uri: "http://localhost:5002/"

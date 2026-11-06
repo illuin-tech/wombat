@@ -148,7 +148,7 @@ public class AuthenticationEnabledTest
             .when().get("/api/keys/settings")
             .then()
             .statusCode(200)
-            .body("payload.grantablePermissions", containsInAnyOrder("api.impact.read", "api.simulation.read", "api.environment.read"))
+            .body("payload.grantablePermissions", containsInAnyOrder("api.impact.read", "api.simulation.read", "api.environment.read", "api.environment.write", "api.metric.write"))
             .body("payload.maxLifetimeDays", is(365))
             .body("payload.allowNeverExpiring", is(false));
     }

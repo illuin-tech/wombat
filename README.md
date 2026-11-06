@@ -36,6 +36,7 @@ Currently, there are two API hubs:
 * `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary
 * `api/environments` is for getting information about active environments
+* `api/metrics` is for pushing sampled metrics from worker instances to an aggregator, see [distributed setup](doc/distributed.md)
 
 Wombat exposes an OpenAPI and Swagger at the following paths:
 
@@ -214,6 +215,7 @@ More information on each of these modules can be found [in the `wombat-core` doc
 
 * [Access control (OpenID Connect)](doc/access-control.md)
 * [Metric compaction](doc/compaction.md): how sourced metrics are folded before being served, and the effects of tuning the compaction window
+* [Distributed setup](doc/distributed.md): the standalone, aggregator and worker modes, for workers sampling remote environments and pushing their metrics to an aggregator
 
 ## How to run
 
@@ -228,6 +230,8 @@ You will also find [`application.yaml.dist`](compose/application.yaml.dist) and 
 The `application.yaml` template can be used as is, it's a basic setup that will simply override the connectors to use local Boavizta and Ecologits APIs, and enable the SQLite backend.
 
 The `monitored-environments.yaml` template however needs to be tweaked, you will find comments on the parts requiring your input.
+
+For a distributed setup (an aggregator and two workers), see [running it locally](doc/distributed.md#running-it-locally).
 
 And a valid kubeconfig in `k8s/`, in the configuration above we've named it `my-kube.config`.
 

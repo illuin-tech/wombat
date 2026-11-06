@@ -47,6 +47,13 @@ public class AssetEntity extends PanacheEntityBase
     @Column(name = "deleted_at", columnDefinition = "INTEGER")
     public Instant deletedAt;
 
+    /**
+     * Who declares this asset: {@code null} for the monitored-environments file, else the id of the worker which
+     * pushed it. Each reconciliation only creates, updates and deletes the assets of its own owner.
+     */
+    @Column(name = "owner")
+    public String owner;
+
     @PrePersist
     void onPersist()
     {

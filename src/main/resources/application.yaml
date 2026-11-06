@@ -124,8 +124,34 @@ ui:
 connector:
   boavizta:
     uri: "https://api.boavizta.org/v1/"
+    #proxy-url: "http://proxy.example.com:3128"
   ecologits:
     uri: "https://api.ecologits.ai/"
+    #proxy-url: "http://proxy.example.com:3128"
+
+wombat:
+  # standalone: samples its environments into its own database (single-instance setup)
+  # aggregator: stores and serves the metrics pushed by workers on POST /api/metrics, samples nothing itself
+  # worker:     samples its environments and pushes the metrics to an aggregator, see doc/distributed.md
+  mode: standalone
+
+  ## Worker mode Configuration
+  #worker:
+  #  id: "east"  # owner of the environments this worker declares to the aggregator, unique among its workers
+  #  aggregator:
+  #    url: "https://wombat-aggregator.example.com"
+  #    api-key: "<key holding api.metric.write and api.environment.write on the aggregator>"
+  #    proxy-url: "http://proxy.example.com:3128"  # optional, HTTP proxy to reach the aggregator through
+  #    timeout: 30s
+
+## Secret Resolution Configuration (Directory / Keystore), under the wombat key above
+#  secret:
+#    directory:
+#      path: "/secrets"
+#    keystore:
+#      path: "/secrets/keystore.p12"
+#      password: "secretpassword"
+#      type: "PKCS12"
 
 backup:
   enabled: false
@@ -143,13 +169,3 @@ backup:
   #  key-prefix: "backups/"
   #  access-key: "your-access-key"
   #  secret-key: "your-secret-key"
-
-## Secret Resolution Configuration (Directory / Keystore)
-# wombat:
-#   secret:
-#     directory:
-#       path: "/secrets"
-#     keystore:
-#       path: "/secrets/keystore.p12"
-#       password: "secretpassword"
-#       type: "PKCS12"

@@ -1,0 +1,38 @@
+# Aggregator of the local distributed setup, see doc/distributed.md
+# Run from compose/distributed/aggregator: its database lands in ./data and its environments are read from ./
+wombat:
+  mode: aggregator
+
+  # Assets without a source, from this file or declared by workers, use their secrets when evaluated here, so these
+  # must be resolvable here, e.g. ANTHROPIC_ADMIN_KEY: as an environment variable, as a file named after the key in a
+  # secrets directory, or in the database secret store, written with PUT /api/secrets (KEK from
+  # `openssl rand -base64 32`, see doc/secret-management.md).
+  #secret:
+  #  directory:
+  #    path: /path/to/secrets
+  #  write-mode: database
+  #  database:
+  #    active-kek-id: "local"
+  #    kek:
+  #      local: "${WOMBAT_SECRET_KEK_LOCAL}"
+
+quarkus:
+  http:
+    port: 8080
+
+monitor:
+  # Only what no worker declares, such as the Anthropic asset, which has no source. The aggregator samples nothing.
+  environments-file: monitored-environments.yaml
+
+# Fold sampling rows every 5 minutes instead of every hour, so pushed activity reaches the UI within minutes
+compaction:
+  cron: "0 1/5 * * * ?"
+  window: 5m
+  delay: 30s
+
+# Impact estimations call the public Boavizta and Ecologits APIs by default. To use the local ones of compose.yaml:
+# connector:
+#   boavizta:
+#     uri: "http://localhost:5001/v1/"
+#   ecologits:
+#     uri: "http://localhost:5002/"

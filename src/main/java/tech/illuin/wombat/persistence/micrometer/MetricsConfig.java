@@ -12,8 +12,12 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
-import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import tech.illuin.wombat.commons.NodeMode;
+import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.persistence.backend.PersistenceEngine;
+import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
+import tech.illuin.wombat.persistence.store.MetricStores;
 
 import java.time.Duration;
 import java.util.concurrent.Executors;
@@ -26,9 +30,15 @@ public class MetricsConfig
 
     @Singleton
     public WombatStepMeterRegistry provideStepRegistry(
-        KubernetesMetricRepository kubernetesMetricRepository,
-        LLMModelMetricRepository llmModelMetricRepository
+        PersistenceEngine engine,
+        WombatProperties wombat,
+        @ConfigProperty(name = "quarkus.datasource.db-kind") String dbKind
     ) {
+        NodeMode mode = wombat.mode();
+        String backend = mode == NodeMode.WORKER ? PushBackendConfig.BACKEND_PUSH : dbKind;
+        MetricStores stores = engine.stores(backend);
+        logger.info("Running in {} mode, sampled metrics are written to the {} backend", mode, backend);
+
         StepRegistryConfig stepConfig = new StepRegistryConfig()
         {
             @Override
@@ -49,7 +59,7 @@ public class MetricsConfig
                 return null;
             }
         };
-        return new WombatStepMeterRegistry(stepConfig, Clock.SYSTEM, kubernetesMetricRepository, llmModelMetricRepository);
+        return new WombatStepMeterRegistry(stepConfig, Clock.SYSTEM, stores);
     }
 
     void onStart(

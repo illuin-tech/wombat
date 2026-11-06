@@ -132,8 +132,42 @@ ui:
 connector:
   boavizta:
     uri: "https://api.boavizta.org/v1/"
+    #proxy-url: "http://proxy.example.com:3128"
   ecologits:
     uri: "https://api.ecologits.ai/"
+    #proxy-url: "http://proxy.example.com:3128"
+
+wombat:
+  # standalone: samples its environments into its own database (single-instance setup)
+  # aggregator: stores and serves the metrics pushed by workers on POST /api/metrics, samples nothing itself
+  # worker:     samples its environments and pushes the metrics to an aggregator, see doc/distributed.md
+  mode: standalone
+
+  ## Worker mode Configuration
+  #worker:
+  #  id: "east"  # owner of the environments this worker declares to the aggregator, unique among its workers
+  #  aggregator:
+  #    url: "https://wombat-aggregator.example.com"
+  #    api-key: "<key holding api.metric.write and api.environment.write on the aggregator>"
+  #    proxy-url: "http://proxy.example.com:3128"  # optional, HTTP proxy to reach the aggregator through
+  #    timeout: 30s
+
+  ## Secret Resolution Configuration
+  # Write mode defaults to DISABLED; DATABASE is selected at startup and requires a restart to change.
+  # Supply KEKs through external configuration (e.g. environment-variable
+  # interpolation); each value must be Base64 for a 32-byte AES key. Never commit actual KEK material.
+  #secret:
+  #  write-mode: database
+  #  directory:
+  #    path: "/secrets"
+  #  keystore:
+  #    path: "/secrets/keystore.p12"
+  #    password: "secretpassword"
+  #    type: "PKCS12"
+  #  database:
+  #    active-kek-id: "current"
+  #    kek:
+  #      current: "${WOMBAT_SECRET_DATABASE_KEK_CURRENT}"
 
 backup:
   enabled: false
@@ -151,22 +185,3 @@ backup:
   #  key-prefix: "backups/"
   #  access-key: "your-access-key"
   #  secret-key: "your-secret-key"
-
-## Secret Resolution Configuration
-# Supply KEKs through external configuration (e.g. environment-variable
-# interpolation); each value must be Base64 for a 32-byte AES key. Never commit actual KEK material.
-# wombat:
-#   secret:
-#     write-mode: database
-#     directory:
-#       path: "/secrets"
-#     keystore:
-#       path: "/secrets/keystore.p12"
-#       password: "secretpassword"
-#       type: "PKCS12"
-#     database:
-#       active-kek-id: "current"
-#       kek:
-#         current: "${WOMBAT_SECRET_DATABASE_KEK_CURRENT}"
-#     vault:
-#       path-prefix: wombat

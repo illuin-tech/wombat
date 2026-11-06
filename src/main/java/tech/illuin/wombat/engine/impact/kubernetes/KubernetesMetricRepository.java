@@ -38,6 +38,12 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         persist(entity);
     }
 
+    @Transactional
+    public void save(Collection<KubernetesMetricEntity> entities)
+    {
+        persist(entities);
+    }
+
     public List<KubernetesMetricEntity> findByRange(long startMs, long endMs)
     {
         return find("instantMs >= ?1 AND instantMs <= ?2", startMs, endMs).list();

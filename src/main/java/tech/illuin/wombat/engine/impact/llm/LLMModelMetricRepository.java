@@ -17,6 +17,7 @@ import tech.illuin.wombat.engine.impact.commons.MetricBuckets;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,12 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     public void save(LLMMetricEntity entity)
     {
         this.persist(entity);
+    }
+
+    @Transactional
+    public void save(Collection<LLMMetricEntity> entities)
+    {
+        this.persist(entities);
     }
 
     @Override @Transactional

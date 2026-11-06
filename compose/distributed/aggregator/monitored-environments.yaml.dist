@@ -1,0 +1,15 @@
+# What the aggregator declares itself. The workers declare their own environments and assets to it (see
+# doc/distributed.md), so only the assets no worker samples belong here: those without a source, like Anthropic, whose
+# activity is queried from its usage API when evaluated, here, with the admin key.
+environments:
+  east:
+    id: east
+    assets:
+      - type: tech.illuin.wombat-module.llm-anthropic
+        id: east-anthropic
+        environment-id: east
+        name: East Anthropic
+        admin-key: ANTHROPIC_ADMIN_KEY  # name of the secret holding the Anthropic admin key, see application.yaml
+        profile:
+          location: USA
+          output-tokens-per-request: 500

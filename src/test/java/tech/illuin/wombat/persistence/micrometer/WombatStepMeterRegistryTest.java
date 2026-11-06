@@ -9,12 +9,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
-import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
-import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
-import tech.illuin.wombat.persistence.model.LLMMetricEntity;
+import tech.illuin.wombat.core.source.data.KubernetesData;
+import tech.illuin.wombat.core.source.data.LLMData;
+import tech.illuin.wombat.core.source.data.MetricData;
+import tech.illuin.wombat.persistence.store.MetricSample;
+import tech.illuin.wombat.persistence.store.MetricStore;
+import tech.illuin.wombat.persistence.store.MetricStores;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,17 +37,18 @@ class WombatStepMeterRegistryTest
     private static final long HOUR_MS = 3_600_000L;
 
     private MockClock clock;
-    private KubernetesMetricRepository kubernetesRepository;
-    private LLMModelMetricRepository llmRepository;
+    private MetricStore<KubernetesData> kubernetesStore;
+    private MetricStore<LLMData> llmStore;
     private WombatStepMeterRegistry registry;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp()
     {
         this.clock = new MockClock();
-        this.kubernetesRepository = mock(KubernetesMetricRepository.class);
-        this.llmRepository = mock(LLMModelMetricRepository.class);
-        this.registry = new WombatStepMeterRegistry(hourlyConfig(), this.clock, this.kubernetesRepository, this.llmRepository);
+        this.kubernetesStore = mock(MetricStore.class);
+        this.llmStore = mock(MetricStore.class);
+        this.registry = new WombatStepMeterRegistry(hourlyConfig(), this.clock, new MetricStores(this.kubernetesStore, this.llmStore));
     }
 
     @AfterEach
@@ -62,9 +66,9 @@ class WombatStepMeterRegistryTest
 
         this.closeWindow();
 
-        KubernetesMetricEntity row = this.captureKubernetesRow();
-        assertEquals(200.0, row.cpuNanocores, 1e-9);
-        assertEquals(2048.0, row.ramBytes, 1e-9);
+        MetricSample<KubernetesData> row = this.captureKubernetesRow();
+        assertEquals(200.0, row.data().cpuNanocores(), 1e-9);
+        assertEquals(2048.0, row.data().ramBytes(), 1e-9);
     }
 
     /** Each sample is the tokens produced since the previous one, so the window holds their total. */
@@ -76,9 +80,7 @@ class WombatStepMeterRegistryTest
 
         this.closeWindow();
 
-        ArgumentCaptor<LLMMetricEntity> captor = ArgumentCaptor.forClass(LLMMetricEntity.class);
-        verify(this.llmRepository).save(captor.capture());
-        assertEquals(200L, captor.getValue().outputTokens);
+        assertEquals(200L, this.captureLLMRow().data().outputTokens());
     }
 
     /**
@@ -94,18 +96,17 @@ class WombatStepMeterRegistryTest
 
         this.closeWindow();
 
-        KubernetesMetricEntity kubernetesRow = this.captureKubernetesRow();
-        assertEquals("asset", kubernetesRow.assetId);
-        assertEquals("env", kubernetesRow.environmentId);
-        assertEquals("Asset", kubernetesRow.assetName);
-        assertEquals("tech.illuin.wombat-module.kubernetes-api", kubernetesRow.assetType);
+        MetricSample<KubernetesData> kubernetesRow = this.captureKubernetesRow();
+        assertEquals("asset", kubernetesRow.asset().id());
+        assertEquals("env", kubernetesRow.asset().environmentId());
+        assertEquals("Asset", kubernetesRow.asset().name());
+        assertEquals("tech.illuin.wombat-module.kubernetes-api", kubernetesRow.assetType());
 
-        ArgumentCaptor<LLMMetricEntity> captor = ArgumentCaptor.forClass(LLMMetricEntity.class);
-        verify(this.llmRepository).save(captor.capture());
-        assertEquals("asset", captor.getValue().assetId);
-        assertEquals("env", captor.getValue().environmentId);
-        assertEquals("Asset", captor.getValue().assetName);
-        assertEquals("tech.illuin.wombat-module.llm-prometheus", captor.getValue().assetType);
+        MetricSample<LLMData> llmRow = this.captureLLMRow();
+        assertEquals("asset", llmRow.asset().id());
+        assertEquals("env", llmRow.asset().environmentId());
+        assertEquals("Asset", llmRow.asset().name());
+        assertEquals("tech.illuin.wombat-module.llm-prometheus", llmRow.assetType());
     }
 
     @Test
@@ -116,9 +117,9 @@ class WombatStepMeterRegistryTest
 
         this.closeWindow();
 
-        KubernetesMetricEntity row = this.captureKubernetesRow();
-        assertEquals(0L, row.instantMs);
-        assertEquals(HOUR_MS, row.windowMs);
+        MetricSample<KubernetesData> row = this.captureKubernetesRow();
+        assertEquals(0L, row.instantMs());
+        assertEquals(HOUR_MS, row.windowMs());
     }
 
     /**
@@ -135,9 +136,9 @@ class WombatStepMeterRegistryTest
         this.clock.add(Duration.ofHours(1).plusMinutes(47));
         this.registry.flush();
 
-        KubernetesMetricEntity row = this.captureKubernetesRow();
-        assertEquals(HOUR_MS, row.instantMs);
-        assertEquals(500.0, row.cpuNanocores, 1e-9);
+        MetricSample<KubernetesData> row = this.captureKubernetesRow();
+        assertEquals(HOUR_MS, row.instantMs());
+        assertEquals(500.0, row.data().cpuNanocores(), 1e-9);
     }
 
     /**
@@ -155,7 +156,7 @@ class WombatStepMeterRegistryTest
         this.clock.add(Duration.ofMinutes(30));
         this.registry.flush();
 
-        verify(this.kubernetesRepository, times(1)).save(any());
+        verify(this.kubernetesStore, times(1)).save(any());
     }
 
     @Test
@@ -163,8 +164,8 @@ class WombatStepMeterRegistryTest
     {
         this.closeWindow();
 
-        verify(this.kubernetesRepository, never()).save(any());
-        verify(this.llmRepository, never()).save(any());
+        verify(this.kubernetesStore, never()).save(any());
+        verify(this.llmStore, never()).save(any());
     }
 
     /** Lets the window holding the recorded samples close, then drains it. */
@@ -174,11 +175,23 @@ class WombatStepMeterRegistryTest
         this.registry.flush();
     }
 
-    private KubernetesMetricEntity captureKubernetesRow()
+    private MetricSample<KubernetesData> captureKubernetesRow()
     {
-        ArgumentCaptor<KubernetesMetricEntity> captor = ArgumentCaptor.forClass(KubernetesMetricEntity.class);
-        verify(this.kubernetesRepository).save(captor.capture());
-        return captor.getValue();
+        return captureSingle(this.kubernetesStore);
+    }
+
+    private MetricSample<LLMData> captureLLMRow()
+    {
+        return captureSingle(this.llmStore);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends MetricData> MetricSample<T> captureSingle(MetricStore<T> store)
+    {
+        ArgumentCaptor<Collection<MetricSample<T>>> captor = ArgumentCaptor.forClass(Collection.class);
+        verify(store).save(captor.capture());
+        assertEquals(1, captor.getValue().size());
+        return captor.getValue().iterator().next();
     }
 
     private void recordCpu(double nanocores)

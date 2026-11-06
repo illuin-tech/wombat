@@ -1,0 +1,19 @@
+# Worker "east" of the local distributed setup, see doc/distributed.md
+# Run from compose/distributed/worker-east: its database lands in ./data and its environments are read from ./
+wombat:
+  mode: worker
+  worker:
+    # Owner of the environments this worker declares to the aggregator, unique among its workers
+    id: east
+    aggregator:
+      url: "http://localhost:8080"
+      # Any value works while the aggregator runs without authentication (no oidc profile). With authentication on,
+      # use a key holding api.metric.write and api.environment.write, created on the aggregator's API keys page.
+      api-key: "local-worker-east"
+
+quarkus:
+  http:
+    port: 8081
+
+monitor:
+  environments-file: monitored-environments.yaml

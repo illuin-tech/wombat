@@ -2,6 +2,7 @@ package tech.illuin.wombat.engine.evaluation;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import tech.illuin.wombat.core.activity.WombatActivityException;
 import tech.illuin.wombat.core.activity.WombatActivityResolver;
 import tech.illuin.wombat.core.activity.commons.ActivityData;
@@ -16,6 +17,7 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -24,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -46,7 +49,7 @@ class CachedAssetEvaluatorTest
     void setUp()
     {
         this.delegate = mock(AssetEvaluator.class);
-        this.properties = new TestCachedAssetEvaluatorProperties(true, 1000L, Duration.ofMinutes(10));
+        this.properties = new TestCachedAssetEvaluatorProperties(true, 1000L, Duration.ofMinutes(10), List.of());
         this.evaluator = new CachedAssetEvaluator(this.delegate, this.properties);
 
         Instant start = Instant.parse("2026-01-01T00:00:00Z");
@@ -297,6 +300,30 @@ class CachedAssetEvaluatorTest
     }
 
     @Test
+    void onlyConfiguredActivityResolverModulesAreCached()
+    {
+        AssetType matchingType = mock(AssetType.class);
+        when(matchingType.name()).thenReturn("configured-module");
+        AssetType otherType = mock(AssetType.class);
+        when(otherType.name()).thenReturn("other-module");
+        WombatActivityResolver matchingResolver = mock(WombatActivityResolver.class);
+        WombatActivityResolver otherResolver = mock(WombatActivityResolver.class);
+        ResolverCacheProperties resolverCache = new TestResolverCacheProperties("configured-module", 100, Duration.ofMinutes(10));
+        CachedAssetEvaluator evaluator = new CachedAssetEvaluator(
+            this.delegate,
+            new TestCachedAssetEvaluatorProperties(true, 1000L, Duration.ofMinutes(10), List.of(resolverCache))
+        );
+
+        evaluator.registerActivityResolver(matchingType, matchingResolver);
+        evaluator.registerActivityResolver(otherType, otherResolver);
+
+        ArgumentCaptor<WombatActivityResolver> resolverCaptor = ArgumentCaptor.forClass(WombatActivityResolver.class);
+        verify(this.delegate, times(2)).registerActivityResolver(org.mockito.ArgumentMatchers.any(), resolverCaptor.capture());
+        assertInstanceOf(CachedActivityResolver.class, resolverCaptor.getAllValues().getFirst());
+        assertSame(otherResolver, resolverCaptor.getAllValues().getLast());
+    }
+
+    @Test
     void resolverRegistrationsAndCloseAreForwarded() throws Exception
     {
         AssetType assetType = mock(AssetType.class);
@@ -328,6 +355,9 @@ class CachedAssetEvaluatorTest
     private record TestCachedAssetEvaluatorProperties(
         boolean enabled,
         long maximumSize,
-        Duration expireAfterWrite
+        Duration expireAfterWrite,
+        List<ResolverCacheProperties> activityResolverCaches
     ) implements CachedAssetEvaluatorProperties {}
+
+    private record TestResolverCacheProperties(String module, long maximumSize, Duration expireAfterWrite) implements ResolverCacheProperties {}
 }

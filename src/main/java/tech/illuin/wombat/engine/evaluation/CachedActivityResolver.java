@@ -9,7 +9,7 @@ import tech.illuin.wombat.core.activity.commons.AssetFilter;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
-import tech.illuin.wombat.engine.module.extension.WombatModuleProperties.CacheProperties;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
 import java.util.Optional;
 import java.util.Set;
@@ -21,7 +21,7 @@ public class CachedActivityResolver implements WombatActivityResolver
     private final WombatActivityResolver delegate;
     private final Cache<ActivityCacheKey, Optional<AssetActivity>> cache;
 
-    public CachedActivityResolver(WombatActivityResolver delegate, CacheProperties properties)
+    public CachedActivityResolver(WombatActivityResolver delegate, ResolverCacheProperties properties)
     {
         this.delegate = delegate;
         this.cache = Caffeine.newBuilder()

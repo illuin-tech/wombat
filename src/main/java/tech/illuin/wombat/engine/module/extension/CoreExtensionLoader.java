@@ -37,9 +37,7 @@ public class CoreExtensionLoader implements ExtensionLoader
         if (this.properties.kubernetesApi().enabled())
             modules.add(new KubernetesAPIModule());
         if (this.properties.llmAnthropic().enabled())
-            modules.add(this.properties.llmAnthropic().cache().enabled()
-                ? new CachedLLMAnthropicModule(this.properties.llmAnthropic().cache())
-                : new LLMAnthropicModule());
+            modules.add(new LLMAnthropicModule());
         if (this.properties.llmVertexAi().enabled())
             modules.add(new LLMVertexAIModule());
 

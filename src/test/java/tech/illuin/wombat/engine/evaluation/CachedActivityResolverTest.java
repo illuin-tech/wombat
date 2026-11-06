@@ -9,7 +9,7 @@ import tech.illuin.wombat.core.activity.commons.AssetFilter;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
-import tech.illuin.wombat.engine.module.extension.WombatModuleProperties.CacheProperties;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -102,12 +102,12 @@ class CachedActivityResolverTest
         verify(this.delegate, times(2)).resolve(this.asset, this.timeRange, filter);
     }
 
-    private record TestCacheProperties() implements CacheProperties
+    private record TestCacheProperties() implements ResolverCacheProperties
     {
         @Override
-        public boolean enabled()
+        public String module()
         {
-            return true;
+            return "anthropic";
         }
 
         @Override

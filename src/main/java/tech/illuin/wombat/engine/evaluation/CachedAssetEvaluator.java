@@ -15,6 +15,7 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import static tech.illuin.wombat.commons.ExceptionHelper.uncheck;
 public class CachedAssetEvaluator extends AssetEvaluator
 {
     private final AssetEvaluator delegate;
+    private final CachedAssetEvaluatorProperties properties;
     private final Cache<EvaluateCacheKey, List<AssetEvaluation>> evaluateCache;
     private final Cache<ActivityCacheKey, Optional<AssetActivity>> activityCache;
     private final Cache<ImpactCacheKey, Optional<AssetEvaluation>> impactCache;
@@ -33,6 +35,7 @@ public class CachedAssetEvaluator extends AssetEvaluator
     {
         super(null);
         this.delegate = delegate;
+        this.properties = properties;
         this.evaluateCache = createCache(properties);
         this.activityCache = createCache(properties);
         this.impactCache = createCache(properties);
@@ -95,7 +98,10 @@ public class CachedAssetEvaluator extends AssetEvaluator
     @Override
     public AssetEvaluator registerActivityResolver(AssetType type, WombatActivityResolver resolver)
     {
-        this.delegate.registerActivityResolver(type, resolver);
+        this.hasModuleCache(type).ifPresentOrElse(
+            cache -> this.delegate.registerActivityResolver(type, new CachedActivityResolver(resolver, cache)),
+            () -> this.delegate.registerActivityResolver(type, resolver)
+        );
         return this;
     }
 
@@ -111,6 +117,13 @@ public class CachedAssetEvaluator extends AssetEvaluator
     {
         this.delegate.registerImpactResolver(type, resolver);
         return this;
+    }
+
+    private Optional<ResolverCacheProperties> hasModuleCache(AssetType type)
+    {
+        return this.properties.activityResolverCaches().stream()
+            .filter(cache -> cache.module().equals(type.name()))
+            .findFirst();
     }
 
     @Override

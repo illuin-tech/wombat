@@ -167,20 +167,7 @@ class WombatModuleConfigTest
             @Override
             public LlmAnthropicProperties llmAnthropic()
             {
-                return new LlmAnthropicProperties()
-                {
-                    @Override
-                    public boolean enabled()
-                    {
-                        return false;
-                    }
-
-                    @Override
-                    public CacheProperties cache()
-                    {
-                        return null;
-                    }
-                };
+                return () -> false;
             }
 
             @Override
@@ -192,13 +179,7 @@ class WombatModuleConfigTest
             @Override
             public ExtensionProperties extension()
             {
-                return new ExtensionProperties() {
-                    @Override
-                    public Path path()
-                    {
-                        return Path.of("extensions");
-                    }
-                };
+                return () -> Path.of("extensions");
             }
         };
     }

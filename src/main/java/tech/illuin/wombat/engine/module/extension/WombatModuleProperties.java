@@ -5,6 +5,7 @@ import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 
 import java.nio.file.Path;
+import java.time.Duration;
 
 @ConfigMapping(prefix = "module")
 public interface WombatModuleProperties
@@ -40,6 +41,22 @@ public interface WombatModuleProperties
     {
         @WithDefault("true")
         boolean enabled();
+
+        CacheProperties cache();
+    }
+
+    interface CacheProperties
+    {
+        @WithDefault("true")
+        boolean enabled();
+
+        @WithName("maximum-size")
+        @WithDefault("1000")
+        long maximumSize();
+
+        @WithName("expire-after-write")
+        @WithDefault("30m")
+        Duration expireAfterWrite();
     }
 
     interface LlmVertexAIProperties

@@ -98,6 +98,10 @@ module:
     enabled: true
   llm-anthropic:
     enabled: true
+    cache:
+      enabled: true
+      maximum-size: 1000
+      expire-after-write: 1m
   extension:
     path: "extensions"
 

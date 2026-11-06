@@ -167,7 +167,20 @@ class WombatModuleConfigTest
             @Override
             public LlmAnthropicProperties llmAnthropic()
             {
-                return () -> false;
+                return new LlmAnthropicProperties()
+                {
+                    @Override
+                    public boolean enabled()
+                    {
+                        return false;
+                    }
+
+                    @Override
+                    public CacheProperties cache()
+                    {
+                        return null;
+                    }
+                };
             }
 
             @Override

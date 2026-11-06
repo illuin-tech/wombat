@@ -2,8 +2,6 @@ package tech.illuin.wombat.engine.module.extension;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
-import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;

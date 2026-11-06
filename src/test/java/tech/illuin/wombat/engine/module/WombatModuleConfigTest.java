@@ -179,13 +179,7 @@ class WombatModuleConfigTest
             @Override
             public ExtensionProperties extension()
             {
-                return new ExtensionProperties() {
-                    @Override
-                    public Path path()
-                    {
-                        return Path.of("extensions");
-                    }
-                };
+                return () -> Path.of("extensions");
             }
         };
     }

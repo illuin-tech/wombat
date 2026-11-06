@@ -11,8 +11,8 @@ import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.context.persistence.AssetConverter;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
@@ -39,7 +39,7 @@ class AssetConverterTest
     void kubernetesAsset_survivesARoundTrip()
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K"),
+            AssetIdentity.of("k", "env", "K", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
@@ -51,7 +51,7 @@ class AssetConverterTest
     void llmStaticAsset_survivesARoundTrip()
     {
         LLMStaticAsset asset = new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S"),
+            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000, null)
             ))
@@ -63,7 +63,7 @@ class AssetConverterTest
     void llmPrometheusAsset_survivesARoundTrip()
     {
         LLMPrometheusAsset asset = new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P"),
+            AssetIdentity.of("p", "env", "P", LLMPrometheusModule.TYPE),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", Period.ofSeconds(7),
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
@@ -74,7 +74,7 @@ class AssetConverterTest
     void storedJson_carriesTheAssetTypeDiscriminator()
     {
         LLMStaticAsset asset = new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S"),
+            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000, null)
             ))
@@ -124,7 +124,7 @@ class AssetConverterTest
     private static AssetConverter converter()
     {
         AssetConverter converter = new AssetConverter();
-        converter.mapper = new WombatModuleConfig().provideJsonMapper(modules());
+        converter.mapper = new WombatModuleConfig().provideJsonMapper(ModuleRegistries.enabled(modules()));
         return converter;
     }
 

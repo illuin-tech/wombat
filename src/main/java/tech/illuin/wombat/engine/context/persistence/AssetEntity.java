@@ -8,7 +8,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.Asset;
 
 import java.time.Instant;
@@ -47,6 +46,13 @@ public class AssetEntity extends PanacheEntityBase
     @Column(name = "deleted_at", columnDefinition = "INTEGER")
     public Instant deletedAt;
 
+    /**
+     * Who declares this asset: {@code null} for the monitored-environments file, else the id of the worker which
+     * pushed it. Each reconciliation only creates, updates and deletes the assets of its own owner.
+     */
+    @Column(name = "owner")
+    public String owner;
+
     @PrePersist
     void onPersist()
     {
@@ -64,8 +70,6 @@ public class AssetEntity extends PanacheEntityBase
 
     public Asset toProperties()
     {
-        if (this.properties instanceof UnrecognizedAsset unrecognized && unrecognized.rawType() == null)
-            return new UnrecognizedAsset(unrecognized.identity(), this.type, unrecognized.rawJson());
         return this.properties;
     }
 
@@ -75,10 +79,7 @@ public class AssetEntity extends PanacheEntityBase
         entity.id = asset.identity().id();
         entity.environmentId = environmentId;
         entity.name = asset.identity().name();
-        entity.type = asset instanceof UnrecognizedAsset unrecognized
-            ? unrecognized.rawType()
-            : asset.type().name()
-        ;
+        entity.type = asset.identity().assetType();
         entity.properties = asset;
         return entity;
     }

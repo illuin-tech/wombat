@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.persistence.AssetEntity;
@@ -65,7 +66,7 @@ class AssetInfoTest
     {
         KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5));
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K"),
+            AssetIdentity.of("k", "env", "K", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
         )));
 
@@ -104,7 +105,7 @@ class AssetInfoTest
         LLMPrometheusProfile profile = new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE,
             new LLMPrometheusProfile.DynamicProfile("q"));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P"),
+            AssetIdentity.of("p", "env", "P", LLMPrometheusModule.TYPE),
             "http://prometheus", null, "user", "PROM_PASSWORD", Period.ofSeconds(5), profile
         )));
 
@@ -133,7 +134,7 @@ class AssetInfoTest
             List.of(new ConstantScenario(500, 1000, null))
         );
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S"),
+            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
             profile
         )));
 
@@ -156,7 +157,7 @@ class AssetInfoTest
     {
         mapper.registerSubtypes(new NamedType(DynamicAsset.class, "tech.illuin.custom"));
 
-        AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset(AssetIdentity.of("dyn1", "env", "Dynamic"), new DynamicProfile("prof-1", "test-val"), "custom-value")));
+        AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset(AssetIdentity.of("dyn1", "env", "Dynamic", "tech.illuin.custom"), new DynamicProfile("prof-1", "test-val"), "custom-value")));
         AssetInfo info = AssetInfo.from(entity);
 
         JsonNode json = mapper.readTree(mapper.writeValueAsString(info));
@@ -189,7 +190,7 @@ class AssetInfoTest
     void serializesUnrecognizedAssetSafely() throws Exception
     {
         String rawJson = "{\"id\":\"unrec-1\",\"environment-id\":\"env\",\"name\":\"Unknown Asset\",\"type\":\"tech.illuin.unknown\",\"custom\":\"value\"}";
-        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("unrec-1", "env", "Unknown Asset"), "tech.illuin.unknown", rawJson);
+        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("unrec-1", "env", "Unknown Asset", "tech.illuin.unknown"), rawJson);
         AssetEntity entity = new AssetEntity();
         entity.id = "unrec-1";
         entity.environmentId = "env";
@@ -211,6 +212,21 @@ class AssetInfoTest
         assertEquals("Unknown Asset", json.get("name").asText());
         assertEquals("tech.illuin.unknown", json.get("type").asText());
         assertEquals("uuid", json.get("uuid").asText());
+    }
+
+    @Test
+    void exposesTheWorkerOwningTheAsset_onlyForAWorkerAsset() throws Exception
+    {
+        LLMStaticAsset asset = new LLMStaticAsset(
+            AssetIdentity.of("east.s", "env", "S", LLMStaticModule.TYPE),
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000, null)))
+        );
+        AssetEntity declared = stamp(AssetEntity.from("env", asset));
+        declared.owner = "east";
+        AssetEntity local = stamp(AssetEntity.from("env", asset));
+
+        assertEquals("east", mapper.readTree(mapper.writeValueAsString(AssetInfo.from(declared))).get("owner").asText());
+        assertFalse(mapper.readTree(mapper.writeValueAsString(AssetInfo.from(local))).has("owner"));
     }
 
     private static AssetEntity stamp(AssetEntity entity)

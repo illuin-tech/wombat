@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.DiscriminatorMapping;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import tech.illuin.wombat.endpoint.validation.ValidTimeRange;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMActivityData;
@@ -62,7 +61,7 @@ public record SimulationRequest(
         }
 
         public record Activity(
-            @NotNull @ValidTimeRange @JsonProperty("range") TimeRange range,
+            @NotNull @Valid @JsonProperty("range") TimeRange range,
             @JsonProperty("outputTokenPerRequest") long outputTokenPerRequest,
             @JsonProperty("requestCount") int requestCount
         ) {
@@ -97,7 +96,7 @@ public record SimulationRequest(
         }
 
         public record Activity(
-            @NotNull @ValidTimeRange @JsonProperty("range") TimeRange range,
+            @NotNull @Valid @JsonProperty("range") TimeRange range,
             @JsonProperty("cpuUsage") double cpuUsage,
             @NotNull @JsonProperty("containerShares") Map<String, @NotNull Double> containerShares
         ) {

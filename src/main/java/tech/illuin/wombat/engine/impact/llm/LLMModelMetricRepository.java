@@ -17,6 +17,7 @@ import tech.illuin.wombat.engine.impact.commons.MetricBuckets;
 import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,12 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     public void save(LLMMetricEntity entity)
     {
         this.persist(entity);
+    }
+
+    @Transactional
+    public void save(Collection<LLMMetricEntity> entities)
+    {
+        this.persist(entities);
     }
 
     @Override @Transactional
@@ -71,7 +78,6 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
             row.outputTokens = samples.stream().mapToLong(sample -> sample.outputTokens).sum();
             row.requestCount = samples.stream().mapToLong(sample -> sample.requestCount).sum();
             row.assign(key.asset());
-            row.assetType = key.assetType();
             row.data = key.toData(row.outputTokens, row.requestCount);
             row.compacted = true;
             folded.add(row);
@@ -84,8 +90,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         return folded.size();
     }
 
-    @Override
-    @Transactional
+    @Override @Transactional
     public Map<Long, Map<String, LLMServiceActivity>> serviceActivitiesPerBucket(TimeRange range, String assetId)
     {
         List<TimeRange> slots = range.split();
@@ -147,7 +152,6 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
 
     private record ModelKey(
         AssetIdentity asset,
-        String assetType,
         String serviceId,
         LLMProvider provider,
         String model,
@@ -156,7 +160,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
         private static ModelKey of(LLMMetricEntity row)
         {
             LLMData data = row.data;
-            return new ModelKey(row.identity(), row.assetType, data.serviceId(), data.provider(), data.model(), data.location());
+            return new ModelKey(row.identity(), data.serviceId(), data.provider(), data.model(), data.location());
         }
 
         private LLMData toData(long outputTokens, long requests)

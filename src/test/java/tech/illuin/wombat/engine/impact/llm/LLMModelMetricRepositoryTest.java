@@ -271,8 +271,7 @@ class LLMModelMetricRepositoryTest
     {
         LLMMetricEntity row = new LLMMetricEntity();
         row.instantMs = instantMs;
-        row.assign(new AssetIdentity(assetId, "env", assetId + " name"));
-        row.assetType = "tech.illuin.wombat-module.llm-prometheus";
+        row.assign(new AssetIdentity(assetId, "env", assetId + " name", "tech.illuin.wombat-module.llm-prometheus"));
         row.data = new LLMData(model, LLMProvider.mistralai, model, FRANCE, outputTokens, requestCount);
         row.outputTokens = outputTokens;
         row.requestCount = requestCount;

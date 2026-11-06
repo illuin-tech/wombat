@@ -16,6 +16,7 @@ import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
 import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
@@ -107,17 +108,17 @@ class WombatModuleConfigTest
             new LLMStaticModule()
         );
 
-        JsonMapper jsonMapper = this.config.provideJsonMapper(modules);
+        JsonMapper jsonMapper = this.config.provideJsonMapper(ModuleRegistries.enabled(modules));
         assertNotNull(jsonMapper);
 
-        YAMLMapper yamlMapper = this.config.provideYAMLMapper(modules);
+        YAMLMapper yamlMapper = this.config.provideYAMLMapper(ModuleRegistries.enabled(modules));
         assertNotNull(yamlMapper);
     }
 
     @Test
     void yamlMapper_deserializesKebabCaseAndIgnoresUnknownProperties() throws Exception
     {
-        YAMLMapper yamlMapper = this.config.provideYAMLMapper(List.of());
+        YAMLMapper yamlMapper = this.config.provideYAMLMapper(ModuleRegistries.enabled(List.of()));
         String yaml = """
             first-name: Alice
             home-address: 123 Main St
@@ -132,7 +133,7 @@ class WombatModuleConfigTest
     @Test
     void jsonMapper_deserializesCamelCaseAndIgnoresUnknownProperties() throws Exception
     {
-        JsonMapper jsonMapper = this.config.provideJsonMapper(List.of());
+        JsonMapper jsonMapper = this.config.provideJsonMapper(ModuleRegistries.enabled(List.of()));
         String json = """
             {
                 "firstName": "Bob",
@@ -150,7 +151,7 @@ class WombatModuleConfigTest
     void configureQuarkusObjectMapper_ignoresUnknownProperties() throws Exception
     {
         ObjectMapper mapper = new ObjectMapper();
-        this.config.configureQuarkusObjectMapper(null, mapper, List.of());
+        this.config.configureQuarkusObjectMapper(null, mapper, ModuleRegistries.enabled(List.of()));
         String json = """
             {
                 "firstName": "Charlie",

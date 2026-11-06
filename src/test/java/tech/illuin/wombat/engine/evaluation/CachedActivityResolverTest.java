@@ -44,7 +44,7 @@ class CachedActivityResolverTest
         Instant start = Instant.parse("2026-01-01T00:00:00Z");
         this.timeRange = new TimeRange(start, start.plus(Duration.ofDays(1)), Duration.ofHours(1));
 
-        AssetIdentity identity = new AssetIdentity("anthropic.org", "env1", "Anthropic");
+        AssetIdentity identity = new AssetIdentity("anthropic.org", "env1", "Anthropic", "tech.illuin.wombat-module.llm-anthropic");
         this.asset = mock(Asset.class);
         when(this.asset.identity()).thenReturn(identity);
 

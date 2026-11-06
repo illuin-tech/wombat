@@ -16,6 +16,7 @@ import tech.illuin.wombat.persistence.backend.api.HookSupplier;
 import tech.illuin.wombat.persistence.backend.api.HookPhase;
 import tech.illuin.wombat.persistence.backend.api.ProcessSupplier;
 import tech.illuin.wombat.persistence.backend.api.PersistenceBackend;
+import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,6 +98,14 @@ public class PersistenceEngine implements AutoCloseable
         return this.backends.containsKey(backendId);
     }
 
+    public MetricStoreContainer stores(String backendId)
+    {
+        PersistenceBackend backend = this.backends.get(backendId);
+        if (backend == null)
+            throw new IllegalStateException("Metrics backend " + backendId + " is not mounted, mounted backends are " + this.backends.keySet());
+        return backend.stores().orElseThrow(() -> new IllegalStateException("Backend " + backendId + " provides no metric stores"));
+    }
+
     public void onStartupResourceInit(@Observes @Priority(PRIORITY_RESOURCE_INIT) StartupEvent event)
     {
         this.runHooks(HookPhase.RESOURCE_INIT);
@@ -126,6 +135,12 @@ public class PersistenceEngine implements AutoCloseable
 
     private void scheduleProcesses(String backendId)
     {
+        if (!this.scheduler.isStarted())
+        {
+            logger.warn("Scheduler is not started, skipping scheduled processes for backend {}", backendId);
+            return;
+        }
+
         logger.info("Registering scheduled processes for backend {}", backendId);
         this.processes.stream()
             .filter(mounted -> mounted.backendId().equals(backendId))
@@ -142,6 +157,9 @@ public class PersistenceEngine implements AutoCloseable
 
     private void unscheduleProcesses(String backendId)
     {
+        if (!this.scheduler.isStarted())
+            return;
+
         logger.info("Unregistering scheduled processes for backend {}", backendId);
         this.processes.stream()
             .filter(mounted -> mounted.backendId().equals(backendId))

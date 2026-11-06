@@ -55,8 +55,7 @@ class ImpactControllerTest
         row.instantMs = instantMs;
         row.windowMs = 3_600_000L;
         row.compacted = true;
-        row.assign(new AssetIdentity("test-cluster", "test", "Test Cluster"));
-        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
+        row.assign(new AssetIdentity("test-cluster", "test", "Test Cluster", "tech.illuin.wombat-module.kubernetes-api"));
         row.data = new KubernetesData(container, "test-cluster", "test-ns", pod, cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;

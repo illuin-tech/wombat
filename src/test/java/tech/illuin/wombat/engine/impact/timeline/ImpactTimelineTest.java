@@ -160,7 +160,7 @@ class ImpactTimelineTest
     private static AssetImpact impact(String assetId, long bucketStartMs, Footprint footprint)
     {
         return new AssetImpact(
-            AssetIdentity.of(assetId, "env", "name"),
+            AssetIdentity.of(assetId, "env", "name", "tech.illuin.wombat-module.kubernetes-api"),
             footprint,
             List.of(),
             ImpactProvider.BOAVIZTA,

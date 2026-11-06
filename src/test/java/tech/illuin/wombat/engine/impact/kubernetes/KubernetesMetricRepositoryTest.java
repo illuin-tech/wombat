@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.KubernetesData;
-import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
 
 import java.time.Duration;
@@ -311,7 +310,6 @@ class KubernetesMetricRepositoryTest
         row.instantMs = instantMs;
         row.windowMs = windowMs;
         row.assign(identityOf(assetId));
-        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
         row.data = new KubernetesData(container, assetId, "ns", "pod", cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
@@ -323,7 +321,7 @@ class KubernetesMetricRepositoryTest
      */
     private static AssetIdentity identityOf(String assetId)
     {
-        return new AssetIdentity(assetId, "env", assetId + " name");
+        return new AssetIdentity(assetId, "env", assetId + " name", "tech.illuin.wombat-module.kubernetes-api");
     }
 
     /**

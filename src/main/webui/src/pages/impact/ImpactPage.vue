@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { findUnrecognizedAssets, type EnvironmentInfo, type LiveEnvironment } from '@/domain/environment'
+import { findUnrecognizedAssets, withOwners } from '@/domain/environment'
 import type { AssetImpact, TimelineResponse } from '@/domain/impact'
 import { asLocalDateTime } from '@/services/format/formatters'
 import { ApiError } from '@/services/api/client'
@@ -47,10 +47,9 @@ const model = computed(() => environment.value && impact.value !== null
   : null)
 const allServices = computed(() => serviceOptions(impact.value ?? []))
 const persistedEnvironments = computed(() => dashboard.persistedEnvironments.data.value ?? [])
-const unrecognizedAssets = computed(() => {
-  const persisted = persistedEnvironments.value.find(candidate => candidate.id === environment.value?.id)
-  return findUnrecognizedAssets(persisted?.assets ?? [], environment.value?.assets ?? [])
-})
+const persistedEnvironment = computed(() => persistedEnvironments.value.find(candidate => candidate.id === environment.value?.id))
+const unrecognizedAssets = computed(() => findUnrecognizedAssets(persistedEnvironment.value?.assets ?? [], environment.value?.assets ?? []))
+const pickerAssets = computed(() => withOwners(environment.value?.assets ?? [], persistedEnvironment.value?.assets ?? []))
 
 watch(() => [
   route.params.environment,
@@ -86,7 +85,7 @@ function resetFilters(): void {
   <FilterBar
     :environments="environments"
     :environment-id="requestedEnvironmentId"
-    :assets="environment?.assets ?? []"
+    :assets="pickerAssets"
     :services="allServices"
     :selection="currentFilters.services"
     :from="from"

@@ -14,6 +14,7 @@ export interface AssetInfo {
   id: string
   name: string
   environmentId?: string
+  owner?: string | null
   type?: string | AssetType
   namespace?: string | null
   profile?: unknown
@@ -39,4 +40,10 @@ export interface LiveEnvironment {
 export function findUnrecognizedAssets(databaseAssets: readonly AssetInfo[], liveAssets: readonly AssetInfo[]): AssetInfo[] {
   const liveIds = new Set(liveAssets.map(asset => asset.id))
   return databaseAssets.filter(asset => asset.deletedAt == null && !liveIds.has(asset.id))
+}
+
+/** The live assets with the worker owning each one, which only the database records know. */
+export function withOwners(liveAssets: readonly AssetInfo[], databaseAssets: readonly AssetInfo[]): AssetInfo[] {
+  const owners = new Map(databaseAssets.filter(asset => asset.owner).map(asset => [asset.id, asset.owner]))
+  return liveAssets.map(asset => owners.has(asset.id) ? {...asset, owner: owners.get(asset.id)} : asset)
 }

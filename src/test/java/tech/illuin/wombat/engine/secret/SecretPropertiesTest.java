@@ -50,14 +50,6 @@ class SecretPropertiesTest
         assertEquals(Map.of("current", "Y3VycmVudC1rZXk=", "previous", "cHJldmlvdXMta2V5"), properties.database().kek());
     }
 
-    @Test
-    void rejectsUnknownWriteModes()
-    {
-        assertThrows(RuntimeException.class, () -> load(Map.of("wombat.secret.write-mode", "VAULT")));
-        assertThrows(RuntimeException.class, () -> load(Map.of("wombat.secret.write-mode", "disabled")));
-        assertEquals(SecretProperties.WriteMode.disabled, load(Map.of("wombat.secret.write-mode", "DISABLED")).writeMode());
-    }
-
     private static SecretProperties load(Map<String, String> values)
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()

@@ -7,7 +7,9 @@ For this purpose, Wombat uses a `SecretResolver` abstraction for providing crede
 
 ## Secret Resolver Chain
 
-The `SecretResolver` is a composite that checks the elected providers in priority order. The first provider that returns a value for a key supplies it; a missing key falls through to the next provider. In `database` write mode the database resolver is first, followed by the configured keystore, the configured directory, and the environment. The database resolver is omitted when database mode is not enabled.
+The `SecretResolver` is a composite structure that checks the elected providers in priority order. The first provider that returns a value for a key supplies it; a missing key falls through to the next provider. In `database` write-mode the database resolver is first, followed by the configured keystore, the configured directory, and the environment.
+
+The database resolver is omitted when database mode is not enabled.
 
 ```mermaid
 graph LR
@@ -110,9 +112,9 @@ When database mode is enabled, `wombat.secret.database.active-kek-id` (default: 
 ```yaml
 wombat:
   secret:
-    write-mode: DATABASE # optional (default: DISABLED) - set to DATABASE to enable database-backed writes and resolution.
+    write-mode: database # optional (default: DISABLED) - set to `database` to enable database-backed writes and resolution.
     database:
-      active-kek-id: "new" # required in DATABASE mode - must match one of the configured KEK IDs.
+      active-kek-id: "new" # required in `database` mode - must match one of the configured KEK IDs.
       kek:
         new: "${WOMBAT_SECRET_KEK_NEW}" # required active key - Base64 for 32 bytes, provided externally.
         old: "${WOMBAT_SECRET_KEK_OLD}" # required only while stored rows or retained backups depend on this key.

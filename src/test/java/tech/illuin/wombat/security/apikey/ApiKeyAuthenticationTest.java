@@ -145,6 +145,7 @@ class ApiKeyAuthenticationTest
     {
         assertThrows(BadRequestException.class, () -> this.issue(admin(), List.of(Permission.Names.API_APIKEY_MANAGE)));
         assertThrows(BadRequestException.class, () -> this.issue(admin(), List.of(Permission.Names.UI_DASHBOARD_READ)));
+        assertThrows(BadRequestException.class, () -> this.issue(admin(), List.of(Permission.Names.API_SECRET_MANAGE)));
     }
 
     @Test

@@ -32,7 +32,7 @@ class PostgresSchemaTest
 {
     private static final Set<String> EXPECTED_TABLES = Set.of(
         "server_metrics", "model_metrics", "environments", "assets", "asset_config_history",
-        "users", "api_keys", "role_grants"
+        "users", "api_keys", "role_grants", "secrets"
     );
 
     private static String jdbcUrl;
@@ -89,6 +89,17 @@ class PostgresSchemaTest
         assertEquals("timestamp with time zone", postgresColumnTypes("environments").get("disabled_at"));
         assertEquals("timestamp with time zone", postgresColumnTypes("assets").get("deleted_at"));
         assertEquals("timestamp with time zone", postgresColumnTypes("asset_config_history").get("changed_at"));
+    }
+
+    @Test
+    void secrets_useBinaryColumnsAndTimestampMetadata() throws SQLException
+    {
+        Map<String, String> types = postgresColumnTypes("secrets");
+        for (String column : List.of("payload_ciphertext", "payload_nonce", "wrapped_dek", "wrapping_nonce"))
+            assertEquals("bytea", types.get(column), column);
+        assertEquals("timestamp with time zone", types.get("created_at"));
+        assertEquals("timestamp with time zone", types.get("updated_at"));
+        assertEquals("bigint", types.get("revision"));
     }
 
     @Test

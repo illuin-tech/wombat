@@ -60,10 +60,11 @@ Endpoints check permissions, and each role grants a fixed set of them:
 | `api.apikey.admin`     | ✓    |      | ✓              |
 | `api.user.manage`      | ✓    |      |                 |
 | `api.user.read`        | ✓    |      |                 |
+| `api.secret.manage`    | ✓    |      |                 |
 
 `AUTH_ROLES_ALLOWED` is gone: replace `AUTH_ROLES_ALLOWED=wombat-users` with `AUTH_ROLES_USER=wombat-users`, or `AUTH_ROLES_USER=*` if every authenticated user had access.
 
-When authentication is disabled (no `oidc` profile), every caller holds every permission.
+When authentication is disabled (no `oidc` profile), every caller, including anonymous callers, holds every permission. If the secret write mode is `DATABASE`, secret-management endpoints are available to anonymous callers; enabling database writes therefore exposes secret management to anyone who can reach the service. Keep authentication enabled on reachable deployments; see [secret management](secret-management.md).
 
 Wombat records every signed-in user from their requests (at most every 5 minutes, and whenever their roles change). Admins see them on the **Users** page (`/users`, in the **Settings** menu), and can grant them roles there, for example to promote someone to admin. A user holds the roles mapped above plus the ones granted in Wombat, from their next request. Roles from the provider or `AUTH_ROLES_*` show a lock and can only be removed at their source; granted ones can be removed from the page, except an admin's own admin role. The page lists users from `GET /api/users` (`api.user.read`), and changes roles through `PUT` and `DELETE /api/users/{user-id}/roles/{role}` (`api.user.manage`).
 
@@ -97,7 +98,7 @@ The app also hides the links and pages the user may not open, from the permissio
 
 ## API keys
 
-Every user can create API keys for their scripts and CI, from the **API keys** page (`/api-keys`, in the **Settings** menu) or the API. A key belongs to the user who created it, is sent in the `X-API-Key` header, and carries a subset of its owner's own `api.*` read permissions (never `ui.*` nor key or user management): asking for one the creator does not hold is refused with `403`.
+Every user can create API keys for their scripts and CI, from the **API keys** page (`/api-keys`, in the **Settings** menu) or the API. A key belongs to the user who created it, is sent in the `X-API-Key` header, and carries a subset of its owner's own `api.*` read permissions (never `ui.*` nor key, user, or secret management): asking for one the creator does not hold is refused with `403`.
 
 ```sh
 curl -X POST https://<wombat-host>/api/keys -H 'Content-Type: application/json' --cookie <session> \

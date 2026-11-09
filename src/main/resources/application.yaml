@@ -144,12 +144,20 @@ backup:
   #  access-key: "your-access-key"
   #  secret-key: "your-secret-key"
 
-## Secret Resolution Configuration (Directory / Keystore)
+## Secret Resolution Configuration
+# Write mode defaults to DISABLED; DATABASE is selected at startup and requires a restart to change.
+# Supply KEKs through external configuration (e.g. environment-variable
+# interpolation); each value must be Base64 for a 32-byte AES key. Never commit actual KEK material.
 # wombat:
 #   secret:
+#     write-mode: database
 #     directory:
 #       path: "/secrets"
 #     keystore:
 #       path: "/secrets/keystore.p12"
 #       password: "secretpassword"
 #       type: "PKCS12"
+#     database:
+#       active-kek-id: "current"
+#       kek:
+#         current: "${WOMBAT_SECRET_DATABASE_KEK_CURRENT}"

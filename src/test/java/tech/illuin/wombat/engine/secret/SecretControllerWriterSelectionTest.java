@@ -1,14 +1,8 @@
-package tech.illuin.wombat.endpoint.secret;
+package tech.illuin.wombat.engine.secret;
 
-import io.quarkus.security.identity.SecurityIdentity;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.secret.SecretMetadata;
 import tech.illuin.wombat.core.secret.SecretWriter;
-import tech.illuin.wombat.engine.secret.SecretController;
-import tech.illuin.wombat.engine.secret.SecretWriteRequest;
-import tech.illuin.wombat.engine.secret.audit.LogAuditService;
-
-import java.security.Principal;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -18,8 +12,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class SecretControllerWriterSelectionTest
 {
@@ -27,11 +19,7 @@ class SecretControllerWriterSelectionTest
     void managesSecretsThroughABackendNeutralWriter()
     {
         InMemorySecretWriter writer = new InMemorySecretWriter();
-        SecurityIdentity identity = mock(SecurityIdentity.class);
-        Principal principal = mock(Principal.class);
-        when(principal.getName()).thenReturn("test-admin");
-        when(identity.getPrincipal()).thenReturn(principal);
-        SecretController controller = new SecretController(writer, identity, new LogAuditService());
+        SecretController controller = new SecretController(writer);
 
         SecretWriteRequest request = new SecretWriteRequest("token", "private-value");
         assertFalse(request.toString().contains("private-value"));

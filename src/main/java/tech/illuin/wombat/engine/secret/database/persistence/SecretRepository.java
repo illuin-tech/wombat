@@ -13,7 +13,7 @@ public class SecretRepository implements PanacheRepositoryBase<SecretEntity, Str
     public List<SecretMetadata> listMetadata()
     {
         return getEntityManager().createQuery(
-            "SELECT new tech.illuin.wombat.engine.secret.SecretMetadata(s.key, s.createdAt, s.updatedAt) "
+            "SELECT new tech.illuin.wombat.core.secret.SecretMetadata(s.key, s.createdAt, s.updatedAt) "
                 + "FROM SecretEntity s ORDER BY s.key",
             SecretMetadata.class
         ).getResultList();

@@ -1,4 +1,4 @@
-package tech.illuin.wombat.endpoint.secret;
+package tech.illuin.wombat.engine.secret;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

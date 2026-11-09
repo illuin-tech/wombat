@@ -1,4 +1,4 @@
-package tech.illuin.wombat.endpoint.secret;
+package tech.illuin.wombat.engine.secret;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +15,6 @@ import jakarta.inject.Inject;
 import org.jboss.logmanager.ExtLogRecord;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.secret.SecretResolver;
-import tech.illuin.wombat.engine.secret.SecretStore;
 import tech.illuin.wombat.engine.secret.database.crypto.KeyEncryptionKeyProvider;
 import tech.illuin.wombat.engine.secret.database.crypto.SecretCryptography;
 import tech.illuin.wombat.engine.secret.database.persistence.SecretEntity;
@@ -138,10 +137,6 @@ class SecretControllerTest
             this.store.deleteSecret(key);
         }
 
-        assertTrue(logs.stream().anyMatch(message -> message.contains("actor=secret-admin") && message.contains("operation=put") && message.contains("outcome=success")));
-        assertTrue(logs.stream().anyMatch(message -> message.contains("operation=put") && message.contains("outcome=invalid")));
-        assertTrue(logs.stream().anyMatch(message -> message.contains("actor=secret-admin")
-            && message.contains("operation=rewrap") && message.contains("outcome=success")));
         assertTrue(logs.stream().noneMatch(message -> message.contains(value) || message.contains(replacement) || message.contains(TEST_KEK) || message.contains(request)));
     }
 

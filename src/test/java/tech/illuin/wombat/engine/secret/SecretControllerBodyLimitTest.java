@@ -1,4 +1,4 @@
-package tech.illuin.wombat.endpoint.secret;
+package tech.illuin.wombat.engine.secret;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

@@ -2,7 +2,6 @@ package tech.illuin.wombat.engine.secret.database;
 
 import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
-import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.POST;
@@ -15,14 +14,9 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
-import tech.illuin.wombat.engine.secret.audit.AuditableOutcome;
-import tech.illuin.wombat.engine.secret.audit.SecretAuditService;
 import tech.illuin.wombat.engine.secret.database.crypto.SecretRewrap;
 import tech.illuin.wombat.engine.secret.database.crypto.SecretRewrapService;
 import tech.illuin.wombat.security.Permission;
-
-import static tech.illuin.wombat.engine.secret.audit.AuditableOperation.rewrap;
-import static tech.illuin.wombat.engine.secret.audit.AuditableOutcome.*;
 
 @ApplicationScoped
 @Path("api/secrets/database")
@@ -32,14 +26,10 @@ import static tech.illuin.wombat.engine.secret.audit.AuditableOutcome.*;
 public class DatabaseSecretController
 {
     private final SecretRewrapService rewrapService;
-    private final SecurityIdentity identity;
-    private final SecretAuditService auditService;
 
-    public DatabaseSecretController(SecretRewrapService rewrapService, SecurityIdentity identity, SecretAuditService auditService)
+    public DatabaseSecretController(SecretRewrapService rewrapService)
     {
         this.rewrapService = rewrapService;
-        this.identity = identity;
-        this.auditService = auditService;
     }
 
     @POST @Path("rewrap")
@@ -50,14 +40,7 @@ public class DatabaseSecretController
     })))
     public Response<SecretRewrap> rewrap()
     {
-        AuditableOutcome outcome = failure;
-        try {
-            SecretRewrap result = this.rewrapService.rewrapBatch();
-            outcome = result.complete() && result.failures() == 0 && result.conflicts() == 0 ? success : partial_success;
-            return Response.success(result);
-        }
-        finally {
-            this.auditService.audit(this.identity, rewrap, outcome);
-        }
+        SecretRewrap result = this.rewrapService.rewrapBatch();
+        return Response.success(result);
     }
 }

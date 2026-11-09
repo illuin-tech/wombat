@@ -1,4 +1,4 @@
-package tech.illuin.wombat.endpoint.secret;
+package tech.illuin.wombat.engine.secret;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,19 +8,11 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
-import org.jboss.logmanager.ExtLogRecord;
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.engine.secret.SecretStore;
-import tech.illuin.wombat.engine.secret.audit.LogAuditService;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -33,31 +25,10 @@ class SecretControllerDisabledAuthenticationTest
     @Inject SecretStore store;
 
     @Test
-    void anonymousCallersCanManageSecretsAndAreAuditedWhenAuthenticationIsDisabled() throws Exception
+    void anonymousCallersCanManageSecretsWhenAuthenticationIsDisabled() throws Exception
     {
         String key = "anonymous-secret-" + System.nanoTime();
         String value = "anonymous-private-value-" + System.nanoTime();
-        List<String> audits = new CopyOnWriteArrayList<>();
-        Logger root = Logger.getLogger("");
-        Handler handler = new Handler() {
-            @Override
-            public void publish(LogRecord record)
-            {
-                if (LogAuditService.class.getName().equals(record.getLoggerName()))
-                {
-                    String message = record instanceof ExtLogRecord ext ? ext.getFormattedMessage() : record.getMessage();
-                    if (message != null)
-                        audits.add(message);
-                }
-            }
-
-            @Override
-            public void flush() {}
-
-            @Override
-            public void close() {}
-        };
-        root.addHandler(handler);
         try {
             String putResponse = given().contentType(ContentType.JSON).body(Map.of("key", key, "value", value))
                 .when().put("/api/secrets").then().statusCode(200).extract().asString();
@@ -78,19 +49,8 @@ class SecretControllerDisabledAuthenticationTest
             assertTrue(openApi.path("paths").has("/api/secrets/database/rewrap"));
         }
         finally {
-            root.removeHandler(handler);
             QuarkusTransaction.requiringNew().run(() -> this.store.deleteSecret(key));
         }
-
-        assertTrue(audits.stream().anyMatch(message -> message.contains("actor=anonymous")
-            && message.contains("operation=put") && message.contains("outcome=success")));
-        assertTrue(audits.stream().anyMatch(message -> message.contains("actor=anonymous")
-            && message.contains("operation=list") && message.contains("outcome=success")));
-        assertTrue(audits.stream().anyMatch(message -> message.contains("actor=anonymous")
-            && message.contains("operation=rewrap") && message.contains("outcome=success")));
-        assertTrue(audits.stream().anyMatch(message -> message.contains("actor=anonymous")
-            && message.contains("operation=delete") && message.contains("outcome=success")));
-        assertTrue(audits.stream().noneMatch(message -> message.contains(value) || message.contains(key)));
     }
 
     public static class Profile implements QuarkusTestProfile

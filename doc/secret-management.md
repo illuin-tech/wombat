@@ -19,7 +19,7 @@ graph LR
 
 The arrows indicate trying the next source when a key is missing, not when a resolver fails. In particular, database errors (such as an unavailable database or a secret-integrity error) propagate; they do not silently fall back to another source.
 
-- **Database:** Included only when `wombat.secret.write-mode` is `DATABASE`. It has the highest lookup priority.
+- **Database:** Included only when `wombat.secret.write-mode` is `database`. It has the highest lookup priority.
 - **Keystore:** Optional; configure `wombat.secret.keystore.path`. The optional `wombat.secret.keystore.password` is used to load the keystore and as the default key password. `wombat.secret.keystore.type` selects the Java keystore type and defaults to `PKCS12`. An absent or blank path disables this resolver. Entry support depends on the selected keystore type and provider; not every type supports secret-key entries.
 - **Directory:** Optional; configure `wombat.secret.directory.path` to a directory containing one UTF-8 file per secret, named with the requested key. An absent or blank path disables this resolver. A missing file or blank file content is treated as a missing key.
 - **Environment:** Resolves from the process environment and requires no provider-specific `wombat.secret.*` configuration.
@@ -34,7 +34,7 @@ The secret-management API uses the selected `SecretWriter`. These operations aff
 | `PUT /api/secrets` | Create or replace a value with JSON `{"key":"...","value":"..."}`. Keys and values must not be blank. |
 | `DELETE /api/secrets?key=...` | Delete the key from the selected writer. A blank key is rejected; a key that is not found returns `404`. |
 
-Use TLS for clients and protect any connection between a TLS-terminating proxy and Wombat. With authentication enabled, only an authenticated `ADMIN` has `api.secret.manage`; API keys cannot be granted that permission. In `DISABLED` mode the endpoints are disabled. When authentication is disabled and a writable backend is selected, anonymous callers receive the same permissions as other callers and can manage secrets. This exposes secret management to anyone who can reach the service, so keep authentication enabled on reachable deployments. OpenAPI shows the operations when the write mode is `DATABASE`, regardless of authentication state, and omits them when writes are disabled.
+Use TLS for clients and protect any connection between a TLS-terminating proxy and Wombat. With authentication enabled, only an authenticated `ADMIN` has `api.secret.manage`; API keys cannot be granted that permission. In `DISABLED` mode the endpoints are disabled. When authentication is disabled and a writable backend is selected, anonymous callers receive the same permissions as other callers and can manage secrets. This exposes secret management to anyone who can reach the service, so keep authentication enabled on reachable deployments. OpenAPI shows the operations when the write mode is `database`, regardless of authentication state, and omits them when writes are disabled.
 
 No management endpoint returns plaintext values. Send write bodies using a trusted client without exposing them in shell history, process arguments, proxy request-body logs, or other telemetry. The application audit records actor, operation, and outcome without the value or cryptographic material.
 
@@ -54,18 +54,18 @@ Set `wombat.secret.keystore.path` to the keystore file. The optional `wombat.sec
 
 ## Database-backed `SecretResolver`
 
-`DATABASE` is the currently supported write mode. The default `wombat.secret.write-mode` is `DISABLED`, in which secret-management writes are unavailable and configured environment, directory, and keystore resolvers remain read-only. When `DATABASE` is selected, the database resolver is enabled and is consulted before the keystore, directory, and environment resolvers.
+`database` is the currently supported write mode. The default `wombat.secret.write-mode` is `DISABLED`, in which secret-management writes are unavailable and configured environment, directory, and keystore resolvers remain read-only. When `database` is selected, the database resolver is enabled and is consulted before the keystore, directory, and environment resolvers.
 
-Required secrets are checked early in `DISABLED` mode, and after database restore and migration but before environment reconciliation in `DATABASE` mode. An initially empty database cannot supply credentials needed to start its own configured assets: first provide them through a lower-priority source, or start with no assets requiring them, then populate the database before enabling those assets. Database resolution still works when authentication is disabled.
+Required secrets are checked early in `DISABLED` mode, and after database restore and migration but before environment reconciliation in `database` mode. An initially empty database cannot supply credentials needed to start its own configured assets: first provide them through a lower-priority source, or start with no assets requiring them, then populate the database before enabling those assets. Database resolution still works when authentication is disabled.
 
 Wombat stores secrets in the database using envelope encryption. The database contains ciphertext and wrapped data-encryption keys, not plaintext values or key-encryption keys (KEKs). Each write uses a fresh AES-256-GCM data key and independent nonces. Deleting a key removes its live database row, but ciphertext for that row can remain in database backups until those backups expire; backups do not contain the KEKs needed to decrypt the stored data.
 
-Select `DATABASE` and supply each KEK as Base64-encoded 32-byte key material from an external secret manager or environment variable. The active identifier must name one of the configured keys. For example, with the values supplied outside the configuration file:
+Select `database` and supply each KEK as Base64-encoded 32-byte key material from an external secret manager or environment variable. The active identifier must name one of the configured keys. For example, with the values supplied outside the configuration file:
 
 ```yaml
 wombat:
   secret:
-    write-mode: DATABASE
+    write-mode: database
     database:
       active-kek-id: "new"
       kek:

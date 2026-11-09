@@ -57,7 +57,7 @@ The secret-management API uses the selected `SecretWriter`. These operations aff
 
 Use TLS for clients and protect any connection between a TLS-terminating proxy and Wombat. With authentication enabled, only an authenticated `ADMIN` has `api.secret.manage`; API keys cannot be granted that permission. In `disabled` mode the endpoints are disabled. When authentication is disabled and a writable backend is selected, anonymous callers receive the same permissions as other callers and can manage secrets. This exposes secret management to anyone who can reach the service, so keep authentication enabled on reachable deployments. OpenAPI shows the operations when the write mode is `database`, regardless of authentication state, and omits them when writes are disabled.
 
-No management endpoint returns plaintext values. Send write bodies using a trusted client without exposing them in shell history, process arguments, proxy request-body logs, or other telemetry. The application audit records actor, operation, and outcome without the value or cryptographic material.
+No management endpoint returns plaintext values. Send write bodies using a trusted client without exposing them in shell history, process arguments, proxy request-body logs, or other telemetry.
 
 Quarkus does not support runtime changes to `@EndpointDisabled` in native builds. Use the JVM distribution when selecting write mode at startup; do not rely on native images to switch secret-controller availability at runtime.
 

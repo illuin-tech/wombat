@@ -13,6 +13,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +44,7 @@ class SchemaParityTest
      */
     private static final Map<String, Set<String>> TYPE_EQUIVALENCES = Map.of(
         "TEXT", Set.of("text"),
+        "BLOB", Set.of("bytea"),
         "REAL", Set.of("double precision"),
         "INTEGER", Set.of("bigint", "timestamp with time zone")
     );
@@ -111,6 +114,24 @@ class SchemaParityTest
     }
 
     @Test
+    void secretsTable_supportsBinaryCrudOnBothDatabases() throws SQLException
+    {
+        byte[] ciphertext = new byte[] {1, 3, 5, 7};
+        byte[] updatedCiphertext = new byte[] {2, 4, 6, 8};
+        byte[] nonce = new byte[12];
+        Instant now = Instant.now();
+
+        try (Connection sqlite = DriverManager.getConnection(sqliteUrl))
+        {
+            assertSecretCrud(sqlite, false, "sqlite-secret", ciphertext, updatedCiphertext, nonce, now);
+        }
+        try (Connection postgres = PostgresTestContainer.connect(postgresUrl))
+        {
+            assertSecretCrud(postgres, true, "postgres-secret", ciphertext, updatedCiphertext, nonce, now);
+        }
+    }
+
+    @Test
     void everyColumn_hasTheSameNullability() throws SQLException
     {
         for (String table : sqliteTables())
@@ -158,6 +179,63 @@ class SchemaParityTest
         Map<String, Boolean> nullability = new TreeMap<>();
         columns.forEach((name, column) -> nullability.put(name, column.nullable()));
         return nullability;
+    }
+
+    private static void assertSecretCrud(
+        Connection connection,
+        boolean postgres,
+        String key,
+        byte[] ciphertext,
+        byte[] updatedCiphertext,
+        byte[] nonce,
+        Instant now
+    ) throws SQLException
+    {
+        String insert = "INSERT INTO secrets (secret_key, payload_ciphertext, payload_nonce, wrapped_dek, wrapping_nonce, kek_id, created_at, updated_at, revision)"
+            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement statement = connection.prepareStatement(insert))
+        {
+            statement.setString(1, key);
+            statement.setBytes(2, ciphertext);
+            statement.setBytes(3, nonce);
+            statement.setBytes(4, new byte[48]);
+            statement.setBytes(5, nonce);
+            statement.setString(6, "parity-test");
+            if (postgres)
+            {
+                statement.setTimestamp(7, Timestamp.from(now));
+                statement.setTimestamp(8, Timestamp.from(now));
+            }
+            else
+            {
+                statement.setLong(7, now.toEpochMilli());
+                statement.setLong(8, now.toEpochMilli());
+            }
+            statement.setLong(9, 0);
+            assertEquals(1, statement.executeUpdate());
+        }
+
+        try (PreparedStatement statement = connection.prepareStatement("SELECT payload_ciphertext FROM secrets WHERE secret_key = ?"))
+        {
+            statement.setString(1, key);
+            try (ResultSet result = statement.executeQuery())
+            {
+                assertTrue(result.next());
+                assertTrue(java.util.Arrays.equals(ciphertext, result.getBytes(1)));
+            }
+        }
+
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE secrets SET payload_ciphertext = ?, revision = 1 WHERE secret_key = ?"))
+        {
+            statement.setBytes(1, updatedCiphertext);
+            statement.setString(2, key);
+            assertEquals(1, statement.executeUpdate());
+        }
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM secrets WHERE secret_key = ?"))
+        {
+            statement.setString(1, key);
+            assertEquals(1, statement.executeUpdate());
+        }
     }
 
     private static Set<String> sqliteTables() throws SQLException

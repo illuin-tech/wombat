@@ -16,6 +16,10 @@ class RoleTest
     {
         assertEquals(EnumSet.allOf(Permission.class), Role.ADMIN.permissions());
         assertFalse(Permission.API_USER_READ.grantableToApiKeys());
+        assertTrue(Role.ADMIN.permissions().contains(Permission.API_SECRET_MANAGE));
+        assertFalse(Role.USER.permissions().contains(Permission.API_SECRET_MANAGE));
+        assertFalse(Role.API_KEY_MANAGER.permissions().contains(Permission.API_SECRET_MANAGE));
+        assertFalse(Permission.API_SECRET_MANAGE.grantableToApiKeys());
     }
 
     @Test

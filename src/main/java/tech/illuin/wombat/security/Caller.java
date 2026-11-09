@@ -2,6 +2,7 @@ package tech.illuin.wombat.security;
 
 import io.quarkus.security.identity.SecurityIdentity;
 
+import java.security.Principal;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
@@ -61,7 +62,10 @@ public record Caller(
 
     public static String subject(SecurityIdentity identity)
     {
-        return IdentityClaims.string(identity, "sub").orElseGet(() -> identity.getPrincipal().getName());
+        return IdentityClaims.string(identity, "sub").orElseGet(() -> Optional.ofNullable(identity.getPrincipal())
+            .map(Principal::getName)
+            .filter(name -> !name.isBlank())
+            .orElse("anonymous"));
     }
 
     public static Set<Role> roles(SecurityIdentity identity)

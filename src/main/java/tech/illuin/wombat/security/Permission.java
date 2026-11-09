@@ -15,6 +15,7 @@ public enum Permission
     API_APIKEY_ADMIN(Names.API_APIKEY_ADMIN, false),
     API_USER_MANAGE(Names.API_USER_MANAGE, false),
     API_USER_READ(Names.API_USER_READ, false),
+    API_SECRET_MANAGE(Names.API_SECRET_MANAGE, false),
     ;
 
     private final String value;
@@ -55,6 +56,7 @@ public enum Permission
         public static final String API_APIKEY_ADMIN = "api.apikey.admin";
         public static final String API_USER_MANAGE = "api.user.manage";
         public static final String API_USER_READ = "api.user.read";
+        public static final String API_SECRET_MANAGE = "api.secret.manage";
 
         private Names() {}
     }

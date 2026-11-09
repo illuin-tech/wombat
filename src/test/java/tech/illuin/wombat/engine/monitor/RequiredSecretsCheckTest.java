@@ -1,6 +1,9 @@
 package tech.illuin.wombat.engine.monitor;
 
 import io.quarkus.runtime.StartupEvent;
+import io.smallrye.config.PropertiesConfigSource;
+import io.smallrye.config.SmallRyeConfig;
+import io.smallrye.config.SmallRyeConfigBuilder;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
@@ -13,6 +16,7 @@ import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.engine.monitor.RequiredSecretsCheck;
+import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
@@ -24,7 +28,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,7 +52,7 @@ class RequiredSecretsCheckTest
             Map.of("PROM_PASSWORD", "s3cret"),
             prometheusAsset("p", "user", "PROM_PASSWORD"));
 
-        assertDoesNotThrow(() -> check.onStart(new StartupEvent()));
+        assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
     }
 
     @Test
@@ -64,9 +73,9 @@ class RequiredSecretsCheckTest
         MonitoredEnvironments environments = new MonitoredEnvironments(Map.of(
             "env", new Environment("env", List.of(prometheusAsset("p", "user", "PROM_PASSWORD")))
         ));
-        RequiredSecretsCheck check = new RequiredSecretsCheck(environments, composite);
+        RequiredSecretsCheck check = new RequiredSecretsCheck(environments, composite, secretProperties(false));
 
-        assertDoesNotThrow(() -> check.onStart(new StartupEvent()));
+        assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
     }
 
     @Test
@@ -74,7 +83,7 @@ class RequiredSecretsCheckTest
     {
         RequiredSecretsCheck check = check(Map.of(), prometheusAsset("p", null, null), staticAsset());
 
-        assertDoesNotThrow(() -> check.onStart(new StartupEvent()));
+        assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
     }
 
     @Test
@@ -82,7 +91,7 @@ class RequiredSecretsCheckTest
     {
         RequiredSecretsCheck check = check(Map.of(), prometheusAsset("p", "user", "PROM_PASSWORD"));
 
-        IllegalStateException e = assertThrows(IllegalStateException.class, () -> check.onStart(new StartupEvent()));
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> check.onStartEarly(new StartupEvent()));
 
         assertTrue(e.getMessage().contains("PROM_PASSWORD"), e.getMessage());
     }
@@ -92,7 +101,7 @@ class RequiredSecretsCheckTest
     {
         RequiredSecretsCheck check = check(Map.of("PROM_PASSWORD", ""), prometheusAsset("p", "user", "PROM_PASSWORD"));
 
-        assertThrows(IllegalStateException.class, () -> check.onStart(new StartupEvent()));
+        assertThrows(IllegalStateException.class, () -> check.onStartEarly(new StartupEvent()));
     }
 
     @Test
@@ -105,18 +114,79 @@ class RequiredSecretsCheckTest
             prometheusAsset("second", "user", "SECOND_PASSWORD"),
             prometheusAsset("third", "user", "THIRD_PASSWORD"));
 
-        IllegalStateException e = assertThrows(IllegalStateException.class, () -> check.onStart(new StartupEvent()));
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> check.onStartEarly(new StartupEvent()));
 
         assertTrue(e.getMessage().contains("FIRST_PASSWORD"), e.getMessage());
         assertTrue(e.getMessage().contains("THIRD_PASSWORD"), e.getMessage());
     }
 
+    @Test
+    void checksDatabaseSecretsAfterPersistenceSetup()
+    {
+        AtomicInteger lookups = new AtomicInteger();
+        SecretResolver resolver = resolver(key -> {
+            lookups.incrementAndGet();
+            return Optional.empty();
+        });
+        RequiredSecretsCheck check = check(
+            resolver,
+            true,
+            prometheusAsset("p", "user", "PROM_PASSWORD")
+        );
+
+        assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
+        assertEquals(0, lookups.get());
+
+        IllegalStateException e = assertThrows(
+            IllegalStateException.class,
+            () -> check.onStartAfterPersistenceSetup(new StartupEvent())
+        );
+        assertTrue(e.getMessage().contains("PROM_PASSWORD"), e.getMessage());
+        assertEquals(1, lookups.get());
+        assertTrue(RequiredSecretsCheck.STARTUP_PRIORITY_SECRETS_DATABASE > 1000);
+        assertTrue(RequiredSecretsCheck.STARTUP_PRIORITY_SECRETS_DATABASE < 2000);
+    }
+
     private static RequiredSecretsCheck check(Map<String, String> environment, Asset... assets)
+    {
+        return check(new EnvironmentSecretResolver(environment::get), false, assets);
+    }
+
+    private static RequiredSecretsCheck check(SecretResolver secrets, boolean databaseEnabled, Asset... assets)
     {
         MonitoredEnvironments environments = new MonitoredEnvironments(
             Map.of("env", new Environment("env", List.of(assets))));
-        SecretResolver secrets = new EnvironmentSecretResolver(environment::get);
-        return new RequiredSecretsCheck(environments, secrets);
+        SecretProperties properties = secretProperties(databaseEnabled);
+        return new RequiredSecretsCheck(environments, secrets, properties);
+    }
+
+    private static SecretProperties secretProperties(boolean databaseEnabled)
+    {
+        SmallRyeConfig config = new SmallRyeConfigBuilder()
+            .withMapping(SecretProperties.class)
+            .withSources(new PropertiesConfigSource(Map.of(
+                "wombat.secret.write-mode", databaseEnabled ? "DATABASE" : "DISABLED"
+            ), "test", 100))
+            .build();
+        return config.getConfigMapping(SecretProperties.class);
+    }
+
+    private static SecretResolver resolver(Function<String, Optional<String>> finder)
+    {
+        return new SecretResolver()
+        {
+            @Override
+            public Optional<String> find(String key)
+            {
+                return finder.apply(key);
+            }
+
+            @Override
+            public String require(String key)
+            {
+                return finder.apply(key).orElseThrow(() -> new NoSuchElementException(key));
+            }
+        };
     }
 
     private static LLMPrometheusAsset prometheusAsset(String id, String username, String passwordEnv)

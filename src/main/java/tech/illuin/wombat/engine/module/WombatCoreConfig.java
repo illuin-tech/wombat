@@ -4,21 +4,16 @@ import io.quarkus.arc.All;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
 import jakarta.inject.Singleton;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties;
 import tech.illuin.wombat.engine.module.WombatModuleConfig.DefaultHandlers;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Assembles the SDK entry point out of the beans the app provides: the context to resolve, the impact-resolvers the
@@ -28,31 +23,6 @@ import java.util.Optional;
 @ApplicationScoped
 public class WombatCoreConfig
 {
-    @Singleton
-    public SecretResolver provideSecretResolver(
-        @ConfigProperty(name = "wombat.secret.directory.path") Optional<String> directoryPath,
-        @ConfigProperty(name = "wombat.secret.keystore.path") Optional<String> keyStorePath,
-        @ConfigProperty(name = "wombat.secret.keystore.password") Optional<String> keyStorePassword,
-        @ConfigProperty(name = "wombat.secret.keystore.type", defaultValue = "PKCS12") String keyStoreType
-    ) {
-        List<SecretResolver> resolvers = new ArrayList<>();
-        if (keyStorePath.isPresent() && !keyStorePath.get().isBlank())
-        {
-            var builder = SecretResolver.keyStoreBuilder()
-                .type(keyStoreType);
-            keyStorePassword.ifPresent(builder::defaultKeyPassword);
-            SecretResolver keyStoreResolver = builder
-                .load(Path.of(keyStorePath.get()), keyStorePassword.orElse(null))
-                .build();
-            resolvers.add(keyStoreResolver);
-        }
-        if (directoryPath.isPresent() && !directoryPath.get().isBlank())
-            resolvers.add(SecretResolver.directory(Path.of(directoryPath.get())));
-        resolvers.add(SecretResolver.environment());
-
-        return resolvers.size() == 1 ? resolvers.getFirst() : SecretResolver.composite(resolvers);
-    }
-
     @Singleton
     public WombatCore provideWombatCore(
         WombatContextProvider contextProvider,

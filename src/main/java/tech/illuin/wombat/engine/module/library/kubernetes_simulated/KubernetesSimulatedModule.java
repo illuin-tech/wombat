@@ -5,7 +5,6 @@ import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedAsset;
 
 public class KubernetesSimulatedModule implements WombatModule
 {

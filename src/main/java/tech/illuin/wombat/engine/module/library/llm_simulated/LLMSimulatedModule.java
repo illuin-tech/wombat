@@ -5,7 +5,6 @@ import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedAsset;
 
 public class LLMSimulatedModule implements WombatModule
 {

@@ -11,6 +11,15 @@ quarkus:
   #   password: wombat
   #   jdbc:
   #     url: "jdbc:postgresql://localhost:5432/wombat"
+  vault:
+    devservices:
+      enabled: true
+      url: "localhost:8200"
+      kv-secret-engine-mount-path: secret
+      #    authentication:
+      #      app-role:
+      #        role-id: "${VAULT_ROLE_ID}"
+      #        secret-id: "${VAULT_SECRET_ID}"
 
 # Connector endpoints for local mock / stub services
 connector:

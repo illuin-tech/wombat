@@ -35,6 +35,7 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
@@ -73,7 +74,11 @@ class RequiredSecretsCheckTest
         MonitoredEnvironments environments = new MonitoredEnvironments(Map.of(
             "env", new Environment("env", List.of(prometheusAsset("p", "user", "PROM_PASSWORD")))
         ));
-        RequiredSecretsCheck check = new RequiredSecretsCheck(environments, composite, secretProperties(false));
+        RequiredSecretsCheck check = new RequiredSecretsCheck(
+            environments,
+            composite,
+            secretProperties(SecretProperties.WriteMode.disabled)
+        );
 
         assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
     }
@@ -130,7 +135,7 @@ class RequiredSecretsCheckTest
         });
         RequiredSecretsCheck check = check(
             resolver,
-            true,
+            SecretProperties.WriteMode.database,
             prometheusAsset("p", "user", "PROM_PASSWORD")
         );
 
@@ -143,29 +148,91 @@ class RequiredSecretsCheckTest
         );
         assertTrue(e.getMessage().contains("PROM_PASSWORD"), e.getMessage());
         assertEquals(1, lookups.get());
-        assertTrue(RequiredSecretsCheck.STARTUP_PRIORITY_SECRETS_DATABASE > 1000);
-        assertTrue(RequiredSecretsCheck.STARTUP_PRIORITY_SECRETS_DATABASE < 2000);
+        assertTrue(RequiredSecretsCheck.STARTUP_PRIORITY_SECRETS_WRITABLE_BACKEND > 1000);
+        assertTrue(RequiredSecretsCheck.STARTUP_PRIORITY_SECRETS_WRITABLE_BACKEND < 2000);
+    }
+
+    @Test
+    void checksVaultSecretsAfterPersistenceSetup()
+    {
+        AtomicInteger lookups = new AtomicInteger();
+        SecretResolver resolver = resolver(key -> {
+            lookups.incrementAndGet();
+            return Optional.of("s3cret");
+        });
+        RequiredSecretsCheck check = check(
+            resolver,
+            SecretProperties.WriteMode.vault,
+            prometheusAsset("p", "user", "PROM_PASSWORD")
+        );
+
+        assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
+        assertEquals(0, lookups.get());
+
+        assertDoesNotThrow(() -> check.onStartAfterPersistenceSetup(new StartupEvent()));
+        assertEquals(1, lookups.get());
+    }
+
+    @Test
+    void refusesToStartWhenAVaultRequiredSecretIsMissing()
+    {
+        AtomicInteger lookups = new AtomicInteger();
+        RequiredSecretsCheck check = check(
+            resolver(key -> {
+                lookups.incrementAndGet();
+                return Optional.empty();
+            }),
+            SecretProperties.WriteMode.vault,
+            prometheusAsset("p", "user", "PROM_PASSWORD")
+        );
+
+        assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> check.onStartAfterPersistenceSetup(new StartupEvent())
+        );
+        assertTrue(exception.getMessage().contains("PROM_PASSWORD"), exception.getMessage());
+        assertEquals(1, lookups.get());
+    }
+
+    @Test
+    void propagatesVaultFailuresDuringRequiredSecretValidation()
+    {
+        IllegalStateException vaultFailure = new IllegalStateException("Vault unavailable");
+        RequiredSecretsCheck check = check(
+            resolver(key -> {
+                throw vaultFailure;
+            }),
+            SecretProperties.WriteMode.vault,
+            prometheusAsset("p", "user", "PROM_PASSWORD")
+        );
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            () -> check.onStartAfterPersistenceSetup(new StartupEvent())
+        );
+        assertSame(vaultFailure, exception);
     }
 
     private static RequiredSecretsCheck check(Map<String, String> environment, Asset... assets)
     {
-        return check(new EnvironmentSecretResolver(environment::get), false, assets);
+        return check(new EnvironmentSecretResolver(environment::get), SecretProperties.WriteMode.disabled, assets);
     }
 
-    private static RequiredSecretsCheck check(SecretResolver secrets, boolean databaseEnabled, Asset... assets)
+    private static RequiredSecretsCheck check(SecretResolver secrets, SecretProperties.WriteMode writeMode, Asset... assets)
     {
         MonitoredEnvironments environments = new MonitoredEnvironments(
             Map.of("env", new Environment("env", List.of(assets))));
-        SecretProperties properties = secretProperties(databaseEnabled);
+        SecretProperties properties = secretProperties(writeMode);
         return new RequiredSecretsCheck(environments, secrets, properties);
     }
 
-    private static SecretProperties secretProperties(boolean databaseEnabled)
+    private static SecretProperties secretProperties(SecretProperties.WriteMode writeMode)
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
             .withSources(new PropertiesConfigSource(Map.of(
-                "wombat.secret.write-mode", databaseEnabled ? "DATABASE" : "DISABLED"
+                "wombat.secret.write-mode", writeMode.name()
             ), "test", 100))
             .build();
         return config.getConfigMapping(SecretProperties.class);

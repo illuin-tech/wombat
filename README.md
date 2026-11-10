@@ -213,7 +213,8 @@ More information on each of these modules can be found [in the `wombat-core` doc
 
 ## Documentation
 
-* [Access control (OpenID Connect)](doc/access-control.md)
+* [Access control (OpenID Connect)](doc/access-control.md): how to configure access control on the app through user credentials and API keys
+* [Secret management](doc/secret-management.md): how to provide necessary credentials to Wombat connectors
 * [Metric compaction](doc/compaction.md): how sourced metrics are folded before being served, and the effects of tuning the compaction window
 
 ## How to run
@@ -242,9 +243,11 @@ If you want to run it in dev mode:
 
 This will require you to have a functional Java 25+ JDK installed on your machine.
 
-The UI is a Vue 3 + TypeScript single-page app in [`src/main/webui`](src/main/webui), integrated with [Quarkus Quinoa](https://docs.quarkiverse.io/quarkus-quinoa/dev/): dev mode starts the Vite dev server with hot reload behind the Quarkus port, and `./mvnw package` type-checks, tests (Vitest) and bundles it into the application. Quinoa installs Node.js 22.22.2, so no local Node is required. Pages load their data from the REST API (`/api/app`, `/api/environments`, `/api/impact`, `/api/impact/timeline`, ...).
+The UI is a Vue 3 + TypeScript SPA in [`src/main/webui`](src/main/webui), integrated with [Quarkus Quinoa](https://docs.quarkiverse.io/quarkus-quinoa/dev/): dev mode starts the Vite dev server with hot reload behind the Quarkus port, and `./mvnw package` type-checks, runs tests (Vitest) and bundles it into the application.
 
-For a faster frontend loop, run `npx vue-tsc --noEmit && npx vitest run` from `src/main/webui`.
+Quinoa installs Node.js `22.22.2`, so no local Node is required. Pages load their data from the REST API.
+
+When running in dev-mode, you'll have access to the Quarkus dev-ui at `/q/dev-ui/`.
 
 ### Custom Extensions
 

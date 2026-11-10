@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static tech.illuin.wombat.engine.secret.SecretProperties.WriteMode.database;
 
 class DatabaseSecretConfigTest
 {
@@ -46,7 +47,7 @@ class DatabaseSecretConfigTest
         when(provider.activeKeyId()).thenThrow(new IllegalArgumentException("Invalid KEK configuration"));
 
         assertThrows(IllegalArgumentException.class, () -> new DatabaseSecretConfig().provideDatabaseSecretBackend(
-            load(Map.of("wombat.secret.write-mode", "DATABASE")), stores, providers
+            load(Map.of("wombat.secret.write-mode", database.name())), stores, providers
         ));
         verifyNoInteractions(stores);
     }
@@ -63,7 +64,7 @@ class DatabaseSecretConfigTest
         when(providers.get()).thenReturn(provider);
 
         SecretConfig.SecretResolverCandidate backend = new DatabaseSecretConfig().provideDatabaseSecretBackend(
-            load(Map.of("wombat.secret.write-mode", "DATABASE")), stores, providers
+            load(Map.of("wombat.secret.write-mode", database.name())), stores, providers
         );
 
         assertTrue(backend.isElected());

@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.illuin.wombat.engine.secret.SecretProperties.WriteMode.database;
 
 @QuarkusTest
 @TestProfile(DatabaseSecretStoreTest.Profile.class)
@@ -37,8 +38,8 @@ class DatabaseSecretStoreTest
     @Inject SecretResolver resolver;
     @Inject SecretWriter writer;
     @Inject EntityManager entityManager;
-    @Inject @WritableBackend
-    SecretConfig.SecretResolverCandidate electedBackend;
+    @Inject @WritableBackend @All
+    List<SecretConfig.SecretResolverCandidate> writableBackends;
     @Inject @All
     List<SecretConfig.SecretResolverCandidate> resolverCandidates;
 
@@ -90,8 +91,11 @@ class DatabaseSecretStoreTest
             .map(SecretConfig.SecretResolverCandidate::resolver)
             .toList();
 
-        assertTrue(this.electedBackend.isElected());
-        assertSame(this.secrets, this.electedBackend.resolver());
+        List<SecretConfig.SecretResolverCandidate> electedBackends = this.writableBackends.stream()
+            .filter(SecretConfig.SecretResolverCandidate::isElected)
+            .toList();
+        assertEquals(1, electedBackends.size());
+        assertSame(this.secrets, electedBackends.getFirst().resolver());
         assertSame(this.secrets, this.writer);
         assertSame(this.secrets, electedResolvers.getFirst());
         assertEquals(electedResolvers, ((CompositeSecretResolver)this.resolver).resolvers());
@@ -113,7 +117,7 @@ class DatabaseSecretStoreTest
                 "01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8)
             );
             return Map.of(
-                "wombat.secret.write-mode", "DATABASE",
+                "wombat.secret.write-mode", database.name(),
                 "wombat.secret.database.active-kek-id", "test",
                 "wombat.secret.database.kek.test", testKek
             );

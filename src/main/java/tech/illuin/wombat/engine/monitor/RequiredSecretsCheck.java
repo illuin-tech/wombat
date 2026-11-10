@@ -29,11 +29,11 @@ public class RequiredSecretsCheck
 
     private static final Logger logger = LoggerFactory.getLogger(RequiredSecretsCheck.class);
     /**
-     * The early check preserves the existing disabled-store behavior; the enabled database store is checked after
+     * The early check preserves the existing disabled-store behavior; enabled writable stores are checked after
      * persistence setup and before the reconciler.
      */
     static final int STARTUP_PRIORITY_SECRETS_EARLY = 1;
-    static final int STARTUP_PRIORITY_SECRETS_DATABASE = 1500;
+    static final int STARTUP_PRIORITY_SECRETS_WRITABLE_BACKEND = 1500;
 
     public RequiredSecretsCheck(MonitoredEnvironments monitoredEnvironments, SecretResolver secrets, SecretProperties properties)
     {
@@ -48,9 +48,10 @@ public class RequiredSecretsCheck
             validateRequiredSecrets();
     }
 
-    void onStartAfterPersistenceSetup(@Observes @Priority(STARTUP_PRIORITY_SECRETS_DATABASE) StartupEvent event)
+    void onStartAfterPersistenceSetup(@Observes @Priority(STARTUP_PRIORITY_SECRETS_WRITABLE_BACKEND) StartupEvent event)
     {
-        if (this.properties.writeMode() == SecretProperties.WriteMode.database)
+        if (this.properties.writeMode() == SecretProperties.WriteMode.database
+            || this.properties.writeMode() == SecretProperties.WriteMode.vault)
             validateRequiredSecrets();
     }
 

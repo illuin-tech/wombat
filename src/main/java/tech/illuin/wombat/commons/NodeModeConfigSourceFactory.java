@@ -15,7 +15,6 @@ import java.util.Map;
 @StaticInitSafe
 public class NodeModeConfigSourceFactory implements ConfigSourceFactory
 {
-    public static final String AGGREGATOR = "wombat-node.aggregator";
     public static final String WORKER_DB_KIND = "sqlite";
     private static final String WORKER_JDBC_URL = "jdbc:sqlite::memory:";
 
@@ -26,8 +25,6 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
         NodeMode mode = value.getValue() == null ? null : parse(value.getValue());
 
         Map<String, String> properties = new HashMap<>();
-        properties.put(AGGREGATOR, String.valueOf(mode == NodeMode.AGGREGATOR));
-
         if (mode == NodeMode.WORKER)
         {
             String dbKind = context.getValue("quarkus.datasource.db-kind").getValue();

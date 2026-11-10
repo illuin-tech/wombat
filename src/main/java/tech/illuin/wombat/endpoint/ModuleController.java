@@ -13,12 +13,15 @@ import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
+import tech.illuin.wombat.feature.Feature;
+import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.security.Permission;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 
 @Path("api/modules")
+@RequiresFeature(Feature.API_READ)
 @PermissionsAllowed(Permission.Names.API_MODULE_READ)
 public class ModuleController
 {

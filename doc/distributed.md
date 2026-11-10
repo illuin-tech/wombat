@@ -20,7 +20,9 @@ flowchart LR
     AGGREGATOR ==> DB
 ```
 
-Every instance runs the same image, in one of three modes set by `wombat.mode` (`WOMBAT_MODE`):
+Every instance runs the same image, in one of three modes set by `wombat.mode` (`WOMBAT_MODE`), or by the `--mode`
+argument, which takes precedence (e.g. `java -jar quarkus-run.jar --mode worker`, or `command: ["--mode", "worker"]`
+in a compose file):
 
 | Mode                   | Samples its environments | Writes metrics to   | Accepts `POST /api/workers/{worker}/metrics` |
 |------------------------|--------------------------|---------------------|-----------------------------|
@@ -28,7 +30,23 @@ Every instance runs the same image, in one of three modes set by `wombat.mode` (
 | `aggregator`           |                          | its database        | ✓                           |
 | `worker`               | ✓                        | the aggregator      |                             |
 
-Outside of the aggregator mode, `POST /api/workers/{worker}/metrics` and `PUT /api/workers/{worker}/environments` answer `404`.
+### Features
+
+The mode also sets which functionalities an instance serves:
+
+| Feature     | Serves                                                                         | `standalone` | `aggregator` | `worker` |
+|-------------|--------------------------------------------------------------------------------|--------------|--------------|----------|
+| `ui`        | the web UI and its dashboards, `GET /api/app`                                  | ✓            | ✓            |          |
+| `api-read`  | `/api/impact`, `/api/simulation`, `/api/environments`, `/api/modules`          | ✓            | ✓            |          |
+| `api-write` | `POST /api/workers/{worker}/metrics`, `PUT /api/workers/{worker}/environments` |              | ✓            |          |
+| `admin`     | `/api/users`, `/api/keys`, `/api/secrets`                                      | ✓            | ✓            |          |
+
+`api-write` only covers what workers push, so only an aggregator serves it. The endpoints managing an instance (users,
+API keys, secrets) write too, but fall under `admin`, so that a standalone instance can still be administered.
+
+A disabled feature answers `404`, and `/q/*` is never gated: by default, a worker serves nothing else, so it needs no
+authentication. The features are served as [quarkus-flags](https://docs.quarkiverse.io/quarkus-flags/dev) flags
+named after them, resolved once at startup and logged.
 
 ## Aggregator
 
@@ -153,7 +171,7 @@ holding `api.metric.write` and `api.environment.write` on its **API keys** page,
 For development purposes, you can use this sample distributed configuration to your advantage by running the aggregator as a dev instance, and launching workers as configured in the docker compose demo:
 
 ```sh
-./mvnw quarkus:dev -Dwombat.mode=aggregator -Dmonitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
+./mvnw quarkus:dev -Dquarkus.args="--mode aggregator" -Dmonitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
 
 WOMBAT_AGGREGATOR_URL=http://host.docker.internal:8080 docker compose -f compose/demo-distributed/compose.yaml up --no-deps worker-east worker-west ;
 ```

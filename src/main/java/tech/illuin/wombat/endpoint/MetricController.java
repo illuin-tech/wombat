@@ -1,6 +1,5 @@
 package tech.illuin.wombat.endpoint;
 
-import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -14,13 +13,14 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.MetricData;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.feature.Feature;
+import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
 import tech.illuin.wombat.persistence.backend.api.store.MetricSample;
 import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
@@ -33,15 +33,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Receives metrics sampled by workers, see {@link tech.illuin.wombat.persistence.backend.push.PushBackendConfig}. Only
- * an {@link NodeMode#AGGREGATOR} serves it. Each worker already aggregated its metrics over its sampling window, so they
+ * Receives metrics sampled by workers, see {@link tech.illuin.wombat.persistence.backend.push.PushBackendConfig}. Served
+ * with the {@link Feature#API_WRITE}, by an aggregator by default. Each worker already aggregated its metrics over its sampling window, so they
  * are saved to the database as they are, at the start of the worker's window, for the asset {@code workerId.assetId}, see
  * {@link WorkerController}. A sample for an asset type without an active module, or of a service family without a store,
  * is skipped and reported in the response status, under {@code errors}, with the asset id the worker knows; the others
  * are saved.
  */
 @Path("api/workers/{worker}/metrics")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR_CONFIG_KEY, stringValue = "false")
+@RequiresFeature(Feature.API_WRITE)
 @PermissionsAllowed(Permission.Names.API_METRIC_WRITE)
 public class MetricController
 {

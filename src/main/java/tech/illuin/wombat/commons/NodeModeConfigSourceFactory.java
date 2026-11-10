@@ -18,7 +18,6 @@ import static tech.illuin.wombat.persistence.PersistenceBackendConfigSourceFacto
 @StaticInitSafe
 public class NodeModeConfigSourceFactory implements ConfigSourceFactory
 {
-    public static final String AGGREGATOR_CONFIG_KEY = "_internal.aggregator";
     private static final String WORKER_DB_KIND = "sqlite";
     private static final String WORKER_JDBC_URL = "jdbc:sqlite::memory:";
 
@@ -31,8 +30,6 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
         NodeMode mode = value.getValue() == null ? null : parse(value.getValue());
 
         Map<String, String> properties = new HashMap<>();
-        properties.put(AGGREGATOR_CONFIG_KEY, String.valueOf(mode == NodeMode.aggregator));
-
         if (mode == NodeMode.worker)
         {
             String backend = context.getValue(ACTIVE_BACKEND_CONFIG_KEY).getValue();

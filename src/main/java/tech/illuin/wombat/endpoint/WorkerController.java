@@ -3,7 +3,6 @@ package tech.illuin.wombat.endpoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +15,6 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.source.Monitorable;
@@ -28,6 +26,8 @@ import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
+import tech.illuin.wombat.feature.Feature;
+import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
 import tech.illuin.wombat.security.Permission;
 
@@ -37,10 +37,11 @@ import java.util.Map;
 /**
  * Receives the environments declared by workers, so an aggregator evaluates their assets without declaring them itself.
  * Each worker owns the assets it declares, see {@link EnvironmentReconciler}, identified as {@code workerId.assetId}, so
- * two workers declaring the same asset id declare two assets. Only an {@link NodeMode#AGGREGATOR} serves it.
+ * two workers declaring the same asset id declare two assets.
+ * Served with the {@link Feature#API_WRITE}, by an aggregator by default.
  */
 @Path("api/workers")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR_CONFIG_KEY, stringValue = "false")
+@RequiresFeature(Feature.API_WRITE)
 public class WorkerController
 {
     private final EnvironmentReconciler reconciler;

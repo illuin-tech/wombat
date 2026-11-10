@@ -14,10 +14,10 @@ import tech.illuin.wombat.core.activity.llm.LLMActivityData;
 import tech.illuin.wombat.core.activity.llm.LLMServiceActivity;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.ClusterInfo;
-import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedAsset;
-import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedProfile;
-import tech.illuin.wombat.module.llm_simulated.LLMSimulatedAsset;
-import tech.illuin.wombat.module.llm_simulated.LLMSimulatedProfile;
+import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedAsset;
+import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedProfile;
+import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedAsset;
+import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedProfile;
 
 import java.util.List;
 import java.util.Map;

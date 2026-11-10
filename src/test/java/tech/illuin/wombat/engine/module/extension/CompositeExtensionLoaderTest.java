@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
-import tech.illuin.wombat.module.kubernetes_simulated.KubernetesSimulatedModule;
-import tech.illuin.wombat.module.llm_simulated.LLMSimulatedModule;
+import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
+import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 
 import java.io.IOException;
 import java.util.List;

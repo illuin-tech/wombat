@@ -250,7 +250,7 @@ For a faster frontend loop, run `npx vue-tsc --noEmit && npx vitest run` from `s
 
 Wombat allows user to provide custom modules built with `wombat-core` (see [repository](https://github.com/illuin-tech/wombat-core)) to extend its functionality.
 
-Custom modules (e.g. `wombat-simulator`) are loaded **_at startup_** from every JAR found in `module.extension.path`
+Custom modules are loaded **_at startup_** from every JAR found in `module.extension.path`
 (defaults to `extensions`, relative to the working directory). Override it with `-Dmodule.extension.path=...` or `MODULE_EXTENSION_PATH=...`.
 
 When starting up the app with a custom extension, you should see logs like these:

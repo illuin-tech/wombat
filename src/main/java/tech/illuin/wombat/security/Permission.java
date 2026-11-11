@@ -11,6 +11,7 @@ public enum Permission
     API_IMPACT_READ(Names.API_IMPACT_READ, true),
     API_SIMULATION_READ(Names.API_SIMULATION_READ, true),
     API_ENVIRONMENT_READ(Names.API_ENVIRONMENT_READ, true),
+    API_MODULE_READ(Names.API_MODULE_READ, true),
     API_APIKEY_MANAGE(Names.API_APIKEY_MANAGE, false),
     API_APIKEY_ADMIN(Names.API_APIKEY_ADMIN, false),
     API_USER_MANAGE(Names.API_USER_MANAGE, false),
@@ -51,6 +52,7 @@ public enum Permission
         public static final String UI_USERS_READ = "ui.users.read";
         public static final String API_IMPACT_READ = "api.impact.read";
         public static final String API_SIMULATION_READ = "api.simulation.read";
+        public static final String API_MODULE_READ = "api.module.read";
         public static final String API_ENVIRONMENT_READ = "api.environment.read";
         public static final String API_APIKEY_MANAGE = "api.apikey.manage";
         public static final String API_APIKEY_ADMIN = "api.apikey.admin";

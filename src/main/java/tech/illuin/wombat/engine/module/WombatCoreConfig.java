@@ -12,6 +12,8 @@ import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties;
 import tech.illuin.wombat.engine.module.WombatModuleConfig.DefaultHandlers;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.util.List;
 
@@ -28,9 +30,14 @@ public class WombatCoreConfig
         WombatContextProvider contextProvider,
         WombatMetricPersister persister,
         List<WombatModule> modules,
+        ModuleRegistry moduleRegistry,
         @All List<DefaultHandlers> defaultHandlers
     ) {
-        return new WombatCore(contextProvider, persister, modules, defaults -> defaultHandlers.forEach(
+        List<WombatModule> activeModules = modules.stream()
+            .filter(m -> moduleRegistry.getModule(m.type()).map(ModuleMetadata::enabled).orElse(false))
+            .toList();
+
+        return new WombatCore(contextProvider, persister, activeModules, defaults -> defaultHandlers.forEach(
             dh -> defaults.register(
                 dh.family(),
                 dh.activityResolver(),

@@ -10,16 +10,24 @@ import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
+import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
+import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
+import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
+import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -39,7 +47,7 @@ class WombatModuleConfigTest
     @Test
     void provideWombatExtensionLoader_returnsCompositeExtensionLoader()
     {
-        WombatModuleProperties properties = properties(true, true);
+        WombatModuleProperties properties = properties(true, true, true, true);
         ExtensionLoader loader = this.config.provideWombatExtensionLoader(properties);
 
         assertInstanceOf(CompositeExtensionLoader.class, loader);
@@ -56,6 +64,38 @@ class WombatModuleConfigTest
 
         assertEquals(expected, result);
         verify(loader).load();
+    }
+
+    @Test
+    void provideModuleRegistry_usesConfigurationForEnabledMetadata()
+    {
+        List<WombatModule> modules = List.of(
+            new KubernetesAPIModule(),
+            new LLMPrometheusModule(),
+            new LLMAnthropicModule(),
+            new LLMVertexAIModule(),
+            new KubernetesSimulatedModule(),
+            new LLMSimulatedModule(),
+            new KubernetesStaticModule(),
+            new LLMStaticModule()
+        );
+
+        assertAll(
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, true, true, true)), new KubernetesAPIModule(), false),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(true, false, true, true)), new LLMPrometheusModule(), false),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(true, true, false, true)), new LLMAnthropicModule(), false),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(true, true, true, false)), new LLMVertexAIModule(), false),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new KubernetesSimulatedModule(), true),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new LLMSimulatedModule(), true),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new KubernetesStaticModule(), true),
+            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new LLMStaticModule(), true)
+        );
+    }
+
+    private static void assertEnabled(ModuleRegistry registry, WombatModule module, boolean expected)
+    {
+        ModuleMetadata metadata = registry.getModule(module.type().name()).orElseThrow();
+        assertEquals(expected, metadata.enabled(), "enabled metadata for " + metadata.type().name());
     }
 
     @Test
@@ -148,7 +188,7 @@ class WombatModuleConfigTest
         assertNotNull(llmHandlers.costResolver());
     }
 
-    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus)
+    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmAnthropic, boolean vertexAi)
     {
         return new WombatModuleProperties()
         {
@@ -167,13 +207,13 @@ class WombatModuleConfigTest
             @Override
             public LlmAnthropicProperties llmAnthropic()
             {
-                return () -> false;
+                return () -> llmAnthropic;
             }
 
             @Override
             public LlmVertexAIProperties llmVertexAi()
             {
-                return () -> false;
+                return () -> vertexAi;
             }
 
             @Override

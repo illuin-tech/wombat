@@ -10,37 +10,22 @@ import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class CoreExtensionLoader implements ExtensionLoader
 {
-    private final WombatModuleProperties properties;
-
-    public CoreExtensionLoader(WombatModuleProperties properties)
-    {
-        this.properties = properties;
-    }
-
     @Override
     public List<WombatModule> load()
     {
-        List<WombatModule> modules = new ArrayList<>();
-
-        modules.add(new KubernetesSimulatedModule());
-        modules.add(new LLMSimulatedModule());
-        modules.add(new KubernetesStaticModule());
-        modules.add(new LLMStaticModule());
-
-        if (this.properties.llmPrometheus().enabled())
-            modules.add(new LLMPrometheusModule());
-        if (this.properties.kubernetesApi().enabled())
-            modules.add(new KubernetesAPIModule());
-        if (this.properties.llmAnthropic().enabled())
-            modules.add(new LLMAnthropicModule());
-        if (this.properties.llmVertexAi().enabled())
-            modules.add(new LLMVertexAIModule());
-
-        return modules;
+        return List.of(
+            new KubernetesSimulatedModule(),
+            new LLMSimulatedModule(),
+            new KubernetesStaticModule(),
+            new LLMStaticModule(),
+            new LLMPrometheusModule(),
+            new KubernetesAPIModule(),
+            new LLMAnthropicModule(),
+            new LLMVertexAIModule()
+        );
     }
 }

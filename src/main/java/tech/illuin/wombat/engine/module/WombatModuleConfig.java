@@ -6,7 +6,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import tech.illuin.wombat.endpoint.serde.JsonNodeSerializer;
+import tools.jackson.databind.JsonNode;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -37,6 +40,10 @@ import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
+import tech.illuin.wombat.engine.module.registry.InMemoryModuleRegistry;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
+import tech.illuin.wombat.engine.module.registry.schema.DefaultSchemaRegistry;
 
 import java.io.IOException;
 import java.util.List;
@@ -76,7 +83,7 @@ public class WombatModuleConfig
     public static ExtensionLoader provideWombatExtensionLoader(WombatModuleProperties properties)
     {
         return new CompositeExtensionLoader(
-            new CoreExtensionLoader(properties),
+            new CoreExtensionLoader(),
             new DynamicExtensionLoader(properties.extension().path())
         );
     }
@@ -103,9 +110,36 @@ public class WombatModuleConfig
         return modules;
     }
 
+    @Produces @Singleton
+    public static ModuleRegistry provideModuleRegistry(List<WombatModule> modules, WombatModuleProperties properties)
+    {
+        /* This will soon become DB-backed and handle all detected modules; for now we use the conf-based switches for core modules only */
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
+        modules.forEach(module -> {
+            boolean enabled = switch (module.type().name()) {
+                case "tech.illuin.wombat-module.kubernetes-api" -> properties.kubernetesApi().enabled();
+                case "tech.illuin.wombat-module.llm-prometheus" -> properties.llmPrometheus().enabled();
+                case "tech.illuin.wombat-module.llm-anthropic" -> properties.llmAnthropic().enabled();
+                case "tech.illuin.wombat-module.llm-vertexai" -> properties.llmVertexAi().enabled();
+                default -> true;
+            };
+            registry.registerModule(module, enabled);
+        });
+        return registry;
+    }
+
+    @Produces @Singleton
+    public static AssetSchemaRegistry provideAssetSchemaRegistry(ModuleRegistry moduleRegistry)
+    {
+        return new DefaultSchemaRegistry(moduleRegistry);
+    }
+
     public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)
     {
         registerSubTypes(modules, mapper);
+        SimpleModule jackson3Bridge = new SimpleModule();
+        jackson3Bridge.addSerializer(JsonNode.class, new JsonNodeSerializer());
+        mapper.registerModule(jackson3Bridge);
     }
 
     @Produces

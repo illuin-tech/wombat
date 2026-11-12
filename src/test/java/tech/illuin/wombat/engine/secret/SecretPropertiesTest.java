@@ -25,6 +25,7 @@ class SecretPropertiesTest
         assertEquals(SecretProperties.WriteMode.disabled, properties.writeMode());
         assertTrue(properties.database().activeKekId().isEmpty());
         assertTrue(properties.database().kek().isEmpty());
+        assertEquals("wombat", properties.vault().pathPrefix());
     }
 
     @Test
@@ -35,7 +36,7 @@ class SecretPropertiesTest
             "wombat.secret.keystore.path", "/secrets/keystore.p12",
             "wombat.secret.keystore.password", "store-password",
             "wombat.secret.keystore.type", "JKS",
-            "wombat.secret.write-mode", "DATABASE",
+            "wombat.secret.write-mode", "database",
             "wombat.secret.database.active-kek-id", "current",
             "wombat.secret.database.kek.current", "Y3VycmVudC1rZXk=",
             "wombat.secret.database.kek.previous", "cHJldmlvdXMta2V5"
@@ -48,6 +49,20 @@ class SecretPropertiesTest
         assertEquals(SecretProperties.WriteMode.database, properties.writeMode());
         assertEquals("current", properties.database().activeKekId().orElseThrow());
         assertEquals(Map.of("current", "Y3VycmVudC1rZXk=", "previous", "cHJldmlvdXMta2V5"), properties.database().kek());
+    }
+
+    @Test
+    void mapsVaultWriteMode()
+    {
+        SecretProperties properties = load(Map.of("wombat.secret.write-mode", "VAULT"));
+        assertEquals(SecretProperties.WriteMode.vault, properties.writeMode());
+    }
+
+    @Test
+    void mapsVaultPathPrefix()
+    {
+        SecretProperties properties = load(Map.of("wombat.secret.vault.path-prefix", "applications/wombat"));
+        assertEquals("applications/wombat", properties.vault().pathPrefix());
     }
 
     private static SecretProperties load(Map<String, String> values)

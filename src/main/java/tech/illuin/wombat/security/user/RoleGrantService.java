@@ -1,6 +1,7 @@
 package tech.illuin.wombat.security.user;
 
 import io.quarkus.narayana.jta.QuarkusTransaction;
+import io.quarkus.narayana.jta.QuarkusTransactionException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ClientErrorException;
@@ -58,7 +59,7 @@ public class RoleGrantService
         try {
             this.reload();
         }
-        catch (RuntimeException e) {
+        catch (QuarkusTransactionException e) {
             logger.warn("Could not load the roles granted in Wombat, using the previous ones", e);
             Snapshot previous = this.snapshot;
             this.snapshot = new Snapshot(previous == null ? Map.of() : previous.byIdentity(), Instant.now());

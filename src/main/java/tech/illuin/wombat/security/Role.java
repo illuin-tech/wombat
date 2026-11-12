@@ -42,6 +42,13 @@ public enum Role
             .findFirst();
     }
 
+    public static Set<Permission> permissionsOf(Collection<Role> roles)
+    {
+        Set<Permission> permissions = EnumSet.noneOf(Permission.class);
+        roles.forEach(role -> permissions.addAll(role.permissions));
+        return permissions;
+    }
+
     /* Every role extends the user role: it reads the report and manages its own API keys. A holder class, since an enum
        constant cannot read another one while the enum is being initialized. */
     private static final class Base
@@ -61,12 +68,5 @@ public enum Role
             permissions.addAll(Arrays.asList(extra));
             return Collections.unmodifiableSet(permissions);
         }
-    }
-
-    public static Set<Permission> permissionsOf(Collection<Role> roles)
-    {
-        Set<Permission> permissions = EnumSet.noneOf(Permission.class);
-        roles.forEach(role -> permissions.addAll(role.permissions));
-        return permissions;
     }
 }

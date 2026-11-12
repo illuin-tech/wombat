@@ -1,7 +1,6 @@
 package tech.illuin.wombat.engine.secret;
 
 import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithConverter;
 import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 import org.eclipse.microprofile.config.spi.Converter;
@@ -20,6 +19,8 @@ public interface SecretProperties
     Keystore keystore();
 
     Database database();
+
+    Vault vault();
 
     interface Directory
     {
@@ -44,10 +45,18 @@ public interface SecretProperties
         Map<String, String> kek();
     }
 
+    interface Vault
+    {
+        @WithName("path-prefix")
+        @WithDefault("wombat")
+        String pathPrefix();
+    }
+
     enum WriteMode
     {
         disabled,
-        database
+        database,
+        vault
     }
 
     class WriteModeConverter implements Converter<WriteMode>

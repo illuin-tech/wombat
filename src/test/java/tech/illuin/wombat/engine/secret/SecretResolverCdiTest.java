@@ -11,6 +11,7 @@ import tech.illuin.wombat.core.secret.CompositeSecretResolver;
 import tech.illuin.wombat.core.secret.EnvironmentSecretResolver;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.secret.SecretWriter;
+import tech.illuin.wombat.engine.secret.SecretProperties.WriteMode;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,9 +23,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @QuarkusTestResource(value = SecretResolverCdiTest.ResolverSources.class, restrictToAnnotatedClass = true)
@@ -33,10 +34,9 @@ class SecretResolverCdiTest
     @Inject SecretResolver resolver;
     @Inject @All
     List<SecretConfig.SecretResolverCandidate> candidates;
-    @Inject @WritableBackend
-    SecretConfig.SecretResolverCandidate electedBackend;
-    @Inject
-    Instance<SecretWriter> writer;
+    @Inject @WritableBackend @All
+    List<SecretConfig.SecretResolverCandidate> writableBackends;
+    @Inject Instance<SecretWriter> writer;
 
     @Test
     void composesElectedCdiSourcesInPriorityOrder()
@@ -58,7 +58,8 @@ class SecretResolverCdiTest
     @Test
     void disabledWritesStartWithoutDatabaseKekConfiguration()
     {
-        assertFalse(this.electedBackend.isElected());
+        assertEquals(2, this.writableBackends.size());
+        assertTrue(this.writableBackends.stream().noneMatch(SecretConfig.SecretResolverCandidate::isElected));
         assertThrows(IllegalStateException.class, () -> this.writer.get());
     }
 
@@ -91,7 +92,7 @@ class SecretResolverCdiTest
                 }
 
                 return Map.of(
-                    "wombat.secret.write-mode", "DISABLED",
+                    "wombat.secret.write-mode", WriteMode.disabled.name(),
                     "wombat.secret.keystore.path", keyStorePath.toString(),
                     "wombat.secret.keystore.password", PASSWORD,
                     "wombat.secret.directory.path", directory.toString()

@@ -74,6 +74,14 @@ quarkus:
   kubernetes-client:
     devservices:
       enabled: false
+  vault:
+    devservices:
+      enabled: false
+#    url: "${VAULT_ADDR}"
+#    kv-secret-engine-mount-path: secret
+#    tls:
+#      ca-cert: "/etc/vault/ca.pem"
+#      skip-verify: false
   oidc:
     tenant-enabled: false # enabled by the "oidc" profile, see application-oidc.yaml
   keycloak:
@@ -145,7 +153,6 @@ backup:
   #  secret-key: "your-secret-key"
 
 ## Secret Resolution Configuration
-# Write mode defaults to DISABLED; DATABASE is selected at startup and requires a restart to change.
 # Supply KEKs through external configuration (e.g. environment-variable
 # interpolation); each value must be Base64 for a 32-byte AES key. Never commit actual KEK material.
 # wombat:
@@ -161,3 +168,5 @@ backup:
 #       active-kek-id: "current"
 #       kek:
 #         current: "${WOMBAT_SECRET_DATABASE_KEK_CURRENT}"
+#     vault:
+#       path-prefix: wombat

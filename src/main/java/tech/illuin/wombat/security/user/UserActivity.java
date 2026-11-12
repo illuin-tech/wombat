@@ -1,6 +1,7 @@
 package tech.illuin.wombat.security.user;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.persistence.PersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.security.Caller;
@@ -50,7 +51,7 @@ public class UserActivity
             this.userService.record(caller);
             this.recorded.put(key(caller), new Recorded(Instant.now(), Set.copyOf(caller.roles()), caller.name(), caller.email()));
         }
-        catch (RuntimeException e) {
+        catch (PersistenceException e) {
             logger.warn("Could not record user {}", caller.name(), e);
         }
     }

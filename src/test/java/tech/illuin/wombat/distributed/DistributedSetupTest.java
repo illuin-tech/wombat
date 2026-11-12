@@ -24,7 +24,6 @@ import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.core.secret.SecretWriter;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.core.source.data.MetricData;
@@ -102,10 +101,6 @@ class DistributedSetupTest
 
     @Inject
     List<WombatModule> modules;
-
-    /* The aggregator's database secret store, written by an admin through /api/secrets. */
-    @Inject
-    SecretWriter secrets;
 
     /* The cumulative registry: what the aggregator staged, before its own window closes and writes it. */
     @Inject
@@ -201,20 +196,16 @@ class DistributedSetupTest
         assertEquals("east", this.asset("east-claimed").owner);
     }
 
-    /* Anthropic has no source: its activity is queried with the admin key when evaluated, so on the aggregator. */
+    /* Anthropic has no source, so nothing for a worker to sample: it is declared in the aggregator's environments file. */
     @Test
-    void worker_declaresAnUnsampledAssetRequiringASecret_onceTheAggregatorStoresIt()
+    void worker_cannotDeclareAnUnsampledAsset()
     {
         MonitoredEnvironments declaration = environment("east", anthropic("east", "east-anthropic", "EAST_ANTHROPIC_ADMIN_KEY"));
 
-        FeignException missing = assertThrows(FeignException.class, () -> this.east.declare(declaration));
-        assertEquals(400, missing.status());
+        FeignException rejected = assertThrows(FeignException.class, () -> this.east.declare(declaration));
+
+        assertEquals(400, rejected.status());
         assertNull(this.asset("east-anthropic"));
-
-        this.secrets.putSecret("EAST_ANTHROPIC_ADMIN_KEY", "admin-key");
-        this.east.declare(declaration);
-
-        assertEquals("east", this.asset("east-anthropic").owner);
     }
 
     /* The Prometheus password is used by the source, which runs on the worker: the aggregator never needs it. */

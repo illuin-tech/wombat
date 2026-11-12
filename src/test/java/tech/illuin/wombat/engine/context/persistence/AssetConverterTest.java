@@ -11,8 +11,8 @@ import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.context.persistence.AssetConverter;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
@@ -124,7 +124,7 @@ class AssetConverterTest
     private static AssetConverter converter()
     {
         AssetConverter converter = new AssetConverter();
-        converter.mapper = new WombatModuleConfig().provideJsonMapper(modules());
+        converter.mapper = new WombatModuleConfig().provideJsonMapper(ModuleRegistries.enabled(modules()));
         return converter;
     }
 

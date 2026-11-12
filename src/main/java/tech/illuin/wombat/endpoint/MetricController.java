@@ -82,7 +82,8 @@ public class MetricController
     private AssetType resolveType(MetricPush push)
     {
         return this.modules.getModule(push.assetType())
+            .filter(ModuleMetadata::enabled)
             .map(ModuleMetadata::type)
-            .orElseThrow(() -> new BadRequestException("Unknown asset type " + push.assetType() + " for asset " + push.asset().id()));
+            .orElseThrow(() -> new BadRequestException("No active module for asset type " + push.assetType() + " of asset " + push.asset().id()));
     }
 }

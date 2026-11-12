@@ -20,6 +20,7 @@ import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.context.EnvironmentConflictException;
 import tech.illuin.wombat.engine.context.EnvironmentReconciler;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
@@ -91,7 +92,7 @@ public class WorkerController
         if (asset instanceof UnrecognizedAsset unrecognized)
             throw new BadRequestException("Unknown asset type " + unrecognized.rawType() + " for asset " + asset.identity().id());
 
-        if (this.modules.getModule(asset.type()).isEmpty())
+        if (this.modules.getModule(asset.type()).filter(ModuleMetadata::enabled).isEmpty())
             throw new BadRequestException("No active module for asset type " + asset.type().name() + " of asset " + asset.identity().id());
 
         if (!(asset instanceof Monitorable))

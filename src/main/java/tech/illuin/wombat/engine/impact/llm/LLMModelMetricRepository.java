@@ -85,6 +85,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     }
 
     @Override
+    @Transactional
     public Map<Long, Map<String, LLMServiceActivity>> serviceActivitiesPerBucket(TimeRange range, String assetId)
     {
         List<TimeRange> slots = range.split();

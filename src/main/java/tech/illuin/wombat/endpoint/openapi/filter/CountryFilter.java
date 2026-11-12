@@ -21,7 +21,7 @@ public class CountryFilter implements OASFilter
         {
             externalClassSchema.setType(List.of(Schema.SchemaType.STRING));
             externalClassSchema.setProperties(null);
-            externalClassSchema.setExample("FRA");
+            externalClassSchema.setExamples(List.of("FRA"));
         }
     }
 }

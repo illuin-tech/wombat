@@ -38,11 +38,13 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         persist(entity);
     }
 
+    @Transactional
     public List<KubernetesMetricEntity> findByRange(long startMs, long endMs)
     {
         return find("instantMs >= ?1 AND instantMs <= ?2", startMs, endMs).list();
     }
 
+    @Transactional
     public List<KubernetesMetricEntity> findByRangeAndAssets(long startMs, long endMs, List<String> assetIds)
     {
         if (assetIds.isEmpty()) return findByRange(startMs, endMs);
@@ -57,6 +59,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
+    @Transactional
     public Map<Long, Double> averageCpuPerBucket(TimeRange range, List<String> assetIds)
     {
         List<TimeRange> slots = range.split();
@@ -86,6 +89,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
+    @Transactional
     public Map<Long, Map<String, Double>> containerSharesPerBucket(TimeRange range, List<String> assetIds)
     {
         List<TimeRange> slots = range.split();
@@ -122,6 +126,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Override
+    @Transactional
     public Map<String, List<ContainerLocation>> containerLocations(TimeRange range, List<String> assetIds)
     {
         List<TimeRange> slots = range.split();

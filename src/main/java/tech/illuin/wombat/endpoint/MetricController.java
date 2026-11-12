@@ -13,18 +13,16 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.type.AssetType;
-import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.core.source.persistence.WombatPersistenceException;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.persistence.push.MetricPush;
 import tech.illuin.wombat.security.Permission;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Receives metrics sampled by workers, see {@link tech.illuin.wombat.persistence.backend.push.PushBackendConfig}. Only
@@ -37,16 +35,14 @@ import java.util.stream.Collectors;
 public class MetricController
 {
     private final WombatMetricPersister persister;
-    private final Map<String, AssetType> types;
+    private final ModuleRegistry modules;
 
     public MetricController(
         WombatMetricPersister persister,
-        List<WombatModule> modules
+        ModuleRegistry modules
     ) {
         this.persister = persister;
-        this.types = modules.stream()
-            .map(WombatModule::type)
-            .collect(Collectors.toMap(AssetType::name, Function.identity(), (first, _) -> first));
+        this.modules = modules;
     }
 
     @POST
@@ -85,9 +81,8 @@ public class MetricController
 
     private AssetType resolveType(MetricPush push)
     {
-        AssetType type = this.types.get(push.assetType());
-        if (type == null)
-            throw new BadRequestException("Unknown asset type " + push.assetType() + " for asset " + push.asset().id());
-        return type;
+        return this.modules.getModule(push.assetType())
+            .map(ModuleMetadata::type)
+            .orElseThrow(() -> new BadRequestException("Unknown asset type " + push.assetType() + " for asset " + push.asset().id()));
     }
 }

@@ -14,20 +14,16 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.Monitorable;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.context.EnvironmentConflictException;
 import tech.illuin.wombat.engine.context.EnvironmentReconciler;
 import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
 import tech.illuin.wombat.security.Permission;
-
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Receives the environments declared by workers, so an aggregator evaluates their assets without declaring them itself.
@@ -39,16 +35,14 @@ import java.util.stream.Collectors;
 public class WorkerController
 {
     private final EnvironmentReconciler reconciler;
-    private final Set<String> registeredTypes;
+    private final ModuleRegistry modules;
 
     public WorkerController(
         EnvironmentReconciler reconciler,
-        List<WombatModule> modules
+        ModuleRegistry modules
     ) {
         this.reconciler = reconciler;
-        this.registeredTypes = modules.stream()
-            .map(module -> module.type().name())
-            .collect(Collectors.toUnmodifiableSet());
+        this.modules = modules;
     }
 
     /**
@@ -97,7 +91,7 @@ public class WorkerController
         if (asset instanceof UnrecognizedAsset unrecognized)
             throw new BadRequestException("Unknown asset type " + unrecognized.rawType() + " for asset " + asset.identity().id());
 
-        if (!this.registeredTypes.contains(asset.type().name()))
+        if (this.modules.getModule(asset.type()).isEmpty())
             throw new BadRequestException("No active module for asset type " + asset.type().name() + " of asset " + asset.identity().id());
 
         if (!(asset instanceof Monitorable))

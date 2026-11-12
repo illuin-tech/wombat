@@ -41,7 +41,7 @@ An aggregator stores and serves what its workers send: the environments they dec
 itself, not even the assets of its own environments file: to also sample environments next to the aggregator, run a
 worker there.
 
-The endpoints require the `api.environment.write` and `api.metric.write` permissions (held by `admin`): create an API key
+The endpoints require the `api.environment.write` and `api.metric.write` permissions: create an API key
 holding both for the workers, from the **API keys** page or `POST /api/keys`.
 
 Pushed metrics are staged exactly like those of the aggregator's own sources: they are aggregated in its 5-minute
@@ -62,12 +62,12 @@ declares in the same environment.
   updated, with their history recorded like those of the file.
 - Declaring an asset that the aggregator's file or another worker already declares is rejected with `409`, and nothing
   from that declaration is applied. The aggregator's file takes over such assets at its next startup instead.
-- Secrets are resolved where they are used. Those of a sampled asset (e.g. a Prometheus password) are used by its
-  source, on the worker, which needs them to start. Those of an asset without a source (e.g. an Anthropic admin key)
-  are used when evaluating it, on the aggregator, which rejects its declaration with `400` until it can resolve them.
-  With the database secret store enabled, an admin can store the missing secret with `PUT /api/secrets` on the
-  aggregator, and the worker's next declaration, within a minute, goes through without restarting anything (see
-  [secret management](secret-management.md)).
+- A worker only declares assets it samples: each must have an asset type the aggregator has an active module for, and
+  be monitorable. Anything else (an unknown type, a disabled module, an asset without a source such as Anthropic) is
+  rejected with `400`, and nothing from that declaration is applied. Assets without a source belong in the
+  aggregator's file.
+- The aggregator does not check the secrets of declared assets: those of a sampled asset (e.g. a Prometheus password)
+  are used by its source, on the worker, and the aggregator does not need to know them.
 - An environment is disabled once no declaration holds it, nor any of its assets.
 
 ## Workers
@@ -89,8 +89,10 @@ environments changes nothing, and an aggregator started after its workers, or re
 a minute. A declaration that fails is logged, and the next one tries again. Removing an asset from the worker's file
 removes it from the aggregator at the worker's next startup.
 
-No metric is written to the worker's database. It still needs a datasource, which holds its environment configuration,
-users and API keys; the default SQLite one is enough. Its compaction runs on empty tables, and its dashboard stays empty.
+No metric is written to the worker's database, so a worker always runs on an in-memory SQLite database, whatever its
+`quarkus.datasource.jdbc.url`: it needs no database file, and loses its users and API keys at each restart. A worker
+refuses to start on any other `quarkus.datasource.db-kind`, which is fixed at build time: run workers from a SQLite
+build. Its compaction runs on empty tables, and its dashboard stays empty.
 
 Each window is sent in at most one request per metric family. A push that fails (aggregator unreachable, rejected key)
 is retried a few times on network errors, then logged and dropped: the worker does not buffer windows it could not send.
@@ -98,7 +100,7 @@ is retried a few times on network errors, then logged and dropped: the worker do
 ## Running it locally
 
 [`compose/distributed`](../compose/distributed) holds a ready-made setup: an aggregator on port `8080` and two workers,
-`east` on `8081` and `west` on `8082`. Each one runs from its own directory, which holds its database (`data/`), its
+`east` on `8081` and `west` on `8082`. Each one runs from its own directory, which holds the aggregator's database (`data/`), its
 `config/application.yaml` (read by Quarkus from the working directory) and its `monitored-environments.yaml`:
 
 | Instance      | Samples        | Declares                   |
@@ -122,10 +124,7 @@ what their sources use.
      cp $node/config/application.yaml.dist $node/config/application.yaml
      cp $node/monitored-environments.yaml.dist $node/monitored-environments.yaml
    done
-   mkdir -p worker-east/data/db worker-west/data/db
    ```
-   The workers' database folders must exist before their first start: Hibernate connects at startup, before Wombat
-   creates them, and logs an `HHH100046` warning otherwise.
 3. Give each worker the kubeconfig of its cluster: `worker-east/kubeconfig/east.config.yaml` and
    `worker-west/kubeconfig/west.config.yaml`. The aggregator never reads them.
 4. Start each instance from its directory, in three terminals:

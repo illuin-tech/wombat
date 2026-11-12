@@ -17,4 +17,12 @@ class MetricControllerStandaloneTest
             .when().post("/api/metrics")
             .then().statusCode(404);
     }
+
+    @Test
+    void declare_isNotServedOutsideOfTheAggregatorMode()
+    {
+        given().contentType(ContentType.JSON).body("{}")
+            .when().put("/api/workers/east/environments")
+            .then().statusCode(404);
+    }
 }

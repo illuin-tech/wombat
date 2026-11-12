@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -10,7 +11,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.commons.NodeMode;
-import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
@@ -31,19 +32,17 @@ import java.util.stream.Collectors;
  * database with the next sampling window.
  */
 @Path("api/metrics")
+@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_METRIC_WRITE)
 public class MetricController
 {
-    private final NodeMode mode;
     private final WombatMetricPersister persister;
     private final Map<String, AssetType> types;
 
     public MetricController(
-        WombatProperties wombat,
         WombatMetricPersister persister,
         List<WombatModule> modules
     ) {
-        this.mode = wombat.mode();
         this.persister = persister;
         this.types = modules.stream()
             .map(WombatModule::type)
@@ -67,9 +66,6 @@ public class MetricController
     )
     public Response<Integer> push(@NotNull @Valid List<@NotNull @Valid MetricPush> pushes)
     {
-        if (this.mode != NodeMode.AGGREGATOR)
-            throw new NotFoundException("Metrics can only be pushed to an instance in aggregator mode");
-
         List<AssetType> resolved = pushes.stream().map(this::resolveType).toList();
 
         try {

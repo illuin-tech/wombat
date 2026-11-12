@@ -1,5 +1,5 @@
 # Worker "east" of the local distributed setup, see doc/distributed.md
-# Run from compose/distributed/worker-east: its database lands in ./data and its environments are read from ./
+# Run from compose/distributed/worker-east: its environments are read from ./ (a worker's database is in memory)
 wombat:
   mode: worker
   worker:

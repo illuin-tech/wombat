@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -11,12 +12,10 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.commons.NodeMode;
-import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.context.WombatContext;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.core.secret.SecretAware;
-import tech.illuin.wombat.core.secret.SecretResolver;
+import tech.illuin.wombat.core.source.Monitorable;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.context.EnvironmentConflictException;
@@ -36,24 +35,18 @@ import java.util.stream.Collectors;
  * it.
  */
 @Path("api/workers")
+@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
 public class WorkerController
 {
-    private final NodeMode mode;
     private final EnvironmentReconciler reconciler;
-    private final SecretResolver secrets;
-    private final Set<String> sampledTypes;
+    private final Set<String> registeredTypes;
 
     public WorkerController(
-        WombatProperties wombat,
         EnvironmentReconciler reconciler,
-        SecretResolver secrets,
         List<WombatModule> modules
     ) {
-        this.mode = wombat.mode();
         this.reconciler = reconciler;
-        this.secrets = secrets;
-        this.sampledTypes = modules.stream()
-            .filter(WorkerController::hasSource)
+        this.registeredTypes = modules.stream()
             .map(module -> module.type().name())
             .collect(Collectors.toUnmodifiableSet());
     }
@@ -83,9 +76,6 @@ public class WorkerController
         @PathParam("worker") @Pattern(regexp = PushBackendConfig.WORKER_ID_PATTERN) String worker,
         @NotNull @Valid MonitoredEnvironments environments
     ) {
-        if (this.mode != NodeMode.AGGREGATOR)
-            throw new NotFoundException("Environments can only be declared to an instance in aggregator mode");
-
         for (Asset asset : environments.allAssets())
             this.validate(asset);
 
@@ -98,32 +88,19 @@ public class WorkerController
     }
 
     /**
-     * This instance evaluates the asset, so it needs its module. The asset's credentials are only needed here when its
-     * module samples nothing, such as Anthropic whose activity is queried at evaluation: otherwise they are those of the
-     * source, which runs on the worker.
+     * This instance evaluates the asset, so it needs its module, and a worker only declares what it samples. The
+     * asset's secrets are not checked: those of its source are resolved on the worker, and this instance may not know
+     * them.
      */
     private void validate(Asset asset)
     {
         if (asset instanceof UnrecognizedAsset unrecognized)
             throw new BadRequestException("Unknown asset type " + unrecognized.rawType() + " for asset " + asset.identity().id());
 
-        if (asset instanceof SecretAware secretAware && !this.sampledTypes.contains(asset.type().name()))
-        {
-            List<String> missing = secretAware.requiredSecretKeys().stream()
-                .filter(key -> this.secrets.find(key).isEmpty())
-                .toList();
-            if (!missing.isEmpty())
-                throw new BadRequestException("Asset " + asset.identity().id() + " requires secret(s) missing from this instance: " + String.join(", ", missing));
-        }
-    }
+        if (!this.registeredTypes.contains(asset.type().name()))
+            throw new BadRequestException("No active module for asset type " + asset.type().name() + " of asset " + asset.identity().id());
 
-    private static boolean hasSource(WombatModule module)
-    {
-        try {
-            return module.getClass().getMethod("createSource", WombatContext.class).getDeclaringClass() != WombatModule.class;
-        }
-        catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
-        }
+        if (!(asset instanceof Monitorable))
+            throw new BadRequestException("Asset " + asset.identity().id() + " of type " + asset.type().name() + " is not monitorable, declare it in the aggregator's environments file");
     }
 }

@@ -10,7 +10,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import tech.illuin.wombat.commons.NodeMode;
+import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.persistence.backend.api.Action;
@@ -44,6 +46,7 @@ public class PushBackendConfig
     @Produces @Singleton
     public PersistenceBackend providePushBackend(
         WombatProperties wombat,
+        @ConfigProperty(name = "quarkus.datasource.db-kind") String dbKind,
         Instance<ObjectMapper> mapper,
         Instance<JsonMapper> assetMapper,
         Instance<MonitoredEnvironments> environments
@@ -56,6 +59,8 @@ public class PushBackendConfig
         String worker = properties.id().orElseThrow(() -> new IllegalArgumentException("wombat.worker.id must be provided in worker mode"));
         if (!worker.matches(WORKER_ID_PATTERN))
             throw new IllegalArgumentException("wombat.worker.id must match " + WORKER_ID_PATTERN + ", got: " + worker);
+        if (!dbKind.equals(NodeModeConfigSourceFactory.WORKER_DB_KIND))
+            throw new IllegalStateException("Worker mode only runs on SQLite, got quarkus.datasource.db-kind: " + dbKind);
 
         Supplier<Action> declaration = () -> new EnvironmentDeclaration(
             createClient(WombatEnvironmentClient.class, aggregator, assetMapper.get()), worker, environments.get()

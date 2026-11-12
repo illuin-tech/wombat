@@ -127,8 +127,9 @@ public class CachedAssetEvaluator extends AssetEvaluator
     }
 
     @Override
-    public void close() throws Exception
+    public void close()
     {
+        super.close();
         this.evaluateCache.invalidateAll();
         this.activityCache.invalidateAll();
         this.impactCache.invalidateAll();

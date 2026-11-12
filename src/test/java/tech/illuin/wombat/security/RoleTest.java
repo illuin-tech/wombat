@@ -28,7 +28,8 @@ class RoleTest
         assertEquals(
             EnumSet.of(
                 Permission.UI_DASHBOARD_READ, Permission.UI_APIKEYS_MANAGE, Permission.API_APIKEY_MANAGE,
-                Permission.API_IMPACT_READ, Permission.API_SIMULATION_READ, Permission.API_ENVIRONMENT_READ
+                Permission.API_IMPACT_READ, Permission.API_SIMULATION_READ, Permission.API_ENVIRONMENT_READ,
+                Permission.API_MODULE_READ
             ),
             Role.USER.permissions()
         );

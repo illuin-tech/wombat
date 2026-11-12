@@ -37,6 +37,10 @@ import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
+import tech.illuin.wombat.engine.module.registry.InMemoryModuleRegistry;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
+import tech.illuin.wombat.engine.module.registry.schema.DefaultSchemaRegistry;
 
 import java.io.IOException;
 import java.util.List;
@@ -76,7 +80,7 @@ public class WombatModuleConfig
     public static ExtensionLoader provideWombatExtensionLoader(WombatModuleProperties properties)
     {
         return new CompositeExtensionLoader(
-            new CoreExtensionLoader(properties),
+            new CoreExtensionLoader(),
             new DynamicExtensionLoader(properties.extension().path())
         );
     }
@@ -101,6 +105,30 @@ public class WombatModuleConfig
 
         logger.info("Wiring {} wombat module(s): {}", modules.size(), modules.stream().map(module -> module.getClass().getSimpleName()).toList());
         return modules;
+    }
+
+    @Produces @Singleton
+    public static ModuleRegistry provideModuleRegistry(List<WombatModule> modules, WombatModuleProperties properties)
+    {
+        /* This will soon become DB-backed and handle all detected modules; for now we use the conf-based switches for core modules only */
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
+        modules.forEach(module -> {
+            boolean enabled = switch (module.type().name()) {
+                case "tech.illuin.wombat-module.kubernetes-api" -> properties.kubernetesApi().enabled();
+                case "tech.illuin.wombat-module.llm-prometheus" -> properties.llmPrometheus().enabled();
+                case "tech.illuin.wombat-module.llm-anthropic" -> properties.llmAnthropic().enabled();
+                case "tech.illuin.wombat-module.llm-vertexai" -> properties.llmVertexAi().enabled();
+                default -> true;
+            };
+            registry.registerModule(module, enabled);
+        });
+        return registry;
+    }
+
+    @Produces @Singleton
+    public static AssetSchemaRegistry provideAssetSchemaRegistry(ModuleRegistry moduleRegistry, ObjectMapper mapper)
+    {
+        return new DefaultSchemaRegistry(moduleRegistry, mapper);
     }
 
     public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)

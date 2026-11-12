@@ -35,6 +35,7 @@ Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI a
 API hubs include:
 * `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary
+* `api/modules` is for getting information about registered `WombatModules` and the asset types they provide
 * `api/environments` is for getting information about active environments
 * `api/secrets` provides admin-only management of the optional encrypted database secret store; see [secret management](doc/secret-management.md)
 

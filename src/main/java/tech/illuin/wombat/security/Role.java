@@ -59,7 +59,8 @@ public enum Role
             API_APIKEY_MANAGE,
             API_IMPACT_READ,
             API_SIMULATION_READ,
-            API_ENVIRONMENT_READ
+            API_ENVIRONMENT_READ,
+            API_MODULE_READ
         ));
 
         static Set<Permission> with(Permission... extra)

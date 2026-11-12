@@ -77,7 +77,7 @@
         <jacoco.version>0.8.16</jacoco.version>
         <checkstyle.version>14.4.0</checkstyle.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
-        <testcontainers.version>1.21.4</testcontainers.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <!-- Maven deps -->
         <maven-checkstyle.version>3.6.0</maven-checkstyle.version>
         <!-- UI deps -->

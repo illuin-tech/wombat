@@ -6,10 +6,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import tech.illuin.wombat.endpoint.serde.JsonNodeSerializer;
-import tools.jackson.databind.JsonNode;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -129,17 +126,14 @@ public class WombatModuleConfig
     }
 
     @Produces @Singleton
-    public static AssetSchemaRegistry provideAssetSchemaRegistry(ModuleRegistry moduleRegistry)
+    public static AssetSchemaRegistry provideAssetSchemaRegistry(ModuleRegistry moduleRegistry, ObjectMapper mapper)
     {
-        return new DefaultSchemaRegistry(moduleRegistry);
+        return new DefaultSchemaRegistry(moduleRegistry, mapper);
     }
 
     public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)
     {
         registerSubTypes(modules, mapper);
-        SimpleModule jackson3Bridge = new SimpleModule();
-        jackson3Bridge.addSerializer(JsonNode.class, new JsonNodeSerializer());
-        mapper.registerModule(jackson3Bridge);
     }
 
     @Produces

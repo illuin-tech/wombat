@@ -1,7 +1,7 @@
 package tech.illuin.wombat.engine.module.registry.schema;
 
 import tech.illuin.wombat.core.asset.type.AssetType;
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Optional;
 

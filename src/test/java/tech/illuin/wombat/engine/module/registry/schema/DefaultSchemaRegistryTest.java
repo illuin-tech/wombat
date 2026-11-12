@@ -1,23 +1,28 @@
 package tech.illuin.wombat.engine.module.registry.schema;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
-import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
-import tech.illuin.wombat.engine.module.registry.InMemoryModuleRegistry;
-import tools.jackson.databind.JsonNode;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@QuarkusTest
 class DefaultSchemaRegistryTest
 {
+    @Inject AssetSchemaRegistry schemaRegistry;
+    @Inject ModuleRegistry moduleRegistry;
+
     @Test
     void getSchema_generatesAndCachesSchemaForRegisteredModule()
     {
         KubernetesSimulatedModule module = new KubernetesSimulatedModule();
-        InMemoryModuleRegistry moduleRegistry = new InMemoryModuleRegistry();
-        moduleRegistry.registerModule(module, true);
-        DefaultSchemaRegistry schemaRegistry = new DefaultSchemaRegistry(moduleRegistry);
+        moduleRegistry.getModule(module.type().name()).orElseThrow();
 
         JsonNode schema = schemaRegistry.getSchema(module.type()).orElseThrow();
 
@@ -29,8 +34,8 @@ class DefaultSchemaRegistryTest
     @Test
     void getSchema_returnsEmptyForUnregisteredType()
     {
-        DefaultSchemaRegistry schemaRegistry = new DefaultSchemaRegistry(new InMemoryModuleRegistry());
-
-        assertTrue(schemaRegistry.getSchema(new LLMSimulatedModule().type()).isEmpty());
+        AssetType unregisteredType = AssetType.of("tech.illuin", "wombat-module", "nonexistent",
+            tech.illuin.wombat.core.asset.type.ActivityRegime.MODELED, ServiceFamily.KUBERNETES_CONTAINER);
+        assertTrue(schemaRegistry.getSchema(unregisteredType).isEmpty());
     }
 }

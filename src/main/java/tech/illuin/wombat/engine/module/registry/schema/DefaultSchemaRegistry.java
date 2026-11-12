@@ -1,11 +1,10 @@
 package tech.illuin.wombat.engine.module.registry.schema;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.victools.jsonschema.generator.*;
-import com.github.victools.jsonschema.module.jackson.JacksonOption;
-import com.github.victools.jsonschema.module.jackson.JacksonSchemaModule;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
-import tools.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Map;
 import java.util.Optional;
@@ -20,10 +19,10 @@ public class DefaultSchemaRegistry implements AssetSchemaRegistry
     private final SchemaGenerator schemaGenerator;
     private final Map<AssetType, JsonNode> cache;
 
-    public DefaultSchemaRegistry(ModuleRegistry moduleRegistry)
+    public DefaultSchemaRegistry(ModuleRegistry moduleRegistry, ObjectMapper objectMapper)
     {
         this.moduleRegistry = moduleRegistry;
-        this.schemaGenerator = createGenerator();
+        this.schemaGenerator = createGenerator(objectMapper);
         this.cache = new ConcurrentHashMap<>();
     }
 
@@ -37,14 +36,9 @@ public class DefaultSchemaRegistry implements AssetSchemaRegistry
         return Optional.ofNullable(node);
     }
 
-    private static SchemaGenerator createGenerator()
+    private static SchemaGenerator createGenerator(ObjectMapper objectMapper)
     {
-        SchemaGeneratorConfigBuilder configBuilder = new SchemaGeneratorConfigBuilder(DRAFT_2020_12, PLAIN_JSON)
-            .with(new JacksonSchemaModule(
-                JacksonOption.RESPECT_JSONPROPERTY_REQUIRED,
-                JacksonOption.RESPECT_JSONPROPERTY_ORDER
-            ));
-
+        SchemaGeneratorConfigBuilder configBuilder = new SchemaGeneratorConfigBuilder(DRAFT_2020_12, PLAIN_JSON).withObjectMapper(objectMapper);
         return new SchemaGenerator(configBuilder.build());
     }
 }

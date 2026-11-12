@@ -1,6 +1,5 @@
 package tech.illuin.wombat.endpoint;
 
-import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -10,8 +9,6 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import tech.illuin.wombat.commons.NodeMode;
-import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.core.source.persistence.WombatPersistenceException;
@@ -19,18 +16,20 @@ import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.feature.Feature;
+import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.persistence.push.MetricPush;
 import tech.illuin.wombat.security.Permission;
 
 import java.util.List;
 
 /**
- * Receives metrics sampled by workers, see {@link tech.illuin.wombat.persistence.backend.push.PushBackendConfig}. Only
- * an {@link NodeMode#AGGREGATOR} serves it. Metrics are staged exactly like those of local sources, and land in the
+ * Receives metrics sampled by workers, see {@link tech.illuin.wombat.persistence.backend.push.PushBackendConfig}. Served
+ * with the {@link Feature#API_WRITE}, by an aggregator by default. Metrics are staged exactly like those of local sources, and land in the
  * database with the next sampling window.
  */
 @Path("api/metrics")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
+@RequiresFeature(Feature.API_WRITE)
 @PermissionsAllowed(Permission.Names.API_METRIC_WRITE)
 public class MetricController
 {

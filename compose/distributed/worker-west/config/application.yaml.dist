@@ -1,7 +1,7 @@
 # Worker "west" of the local distributed setup, see doc/distributed.md
-# Run from compose/distributed/worker-west: its environments are read from ./ (a worker's database is in memory)
+# Run from compose/distributed/worker-west with --mode worker: its environments are read from ./ (a worker's
+# database is in memory)
 wombat:
-  mode: worker
   worker:
     # Owner of the environments this worker declares to the aggregator, unique among its workers
     id: west

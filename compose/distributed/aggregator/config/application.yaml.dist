@@ -1,20 +1,20 @@
 # Aggregator of the local distributed setup, see doc/distributed.md
-# Run from compose/distributed/aggregator: its database lands in ./data and its environments are read from ./
-wombat:
-  mode: aggregator
+# Run from compose/distributed/aggregator with --mode aggregator: its database lands in ./data and its environments are
+# read from ./
 
-  # Assets without a source, from this file or declared by workers, use their secrets when evaluated here, so these
-  # must be resolvable here, e.g. ANTHROPIC_ADMIN_KEY: as an environment variable, as a file named after the key in a
-  # secrets directory, or in the database secret store, written with PUT /api/secrets (KEK from
-  # `openssl rand -base64 32`, see doc/secret-management.md).
-  #secret:
-  #  directory:
-  #    path: /path/to/secrets
-  #  write-mode: database
-  #  database:
-  #    active-kek-id: "local"
-  #    kek:
-  #      local: "${WOMBAT_SECRET_KEK_LOCAL}"
+# Assets without a source, from this file or declared by workers, use their secrets when evaluated here, so these
+# must be resolvable here, e.g. ANTHROPIC_ADMIN_KEY: as an environment variable, as a file named after the key in a
+# secrets directory, or in the database secret store, written with PUT /api/secrets (KEK from
+# `openssl rand -base64 32`, see doc/secret-management.md).
+#wombat:
+#  secret:
+#    directory:
+#      path: /path/to/secrets
+#    write-mode: database
+#    database:
+#      active-kek-id: "local"
+#      kek:
+#        local: "${WOMBAT_SECRET_KEK_LOCAL}"
 
 quarkus:
   http:

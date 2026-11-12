@@ -81,6 +81,7 @@
         <checkstyle.version>14.4.0</checkstyle.version>
         <checkstyle.config.location>checkstyle.xml</checkstyle.config.location>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <quarkus-flags.version>1.0.1</quarkus-flags.version>
     </properties>
 
     <dependencyManagement>
@@ -122,6 +123,11 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-kubernetes-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.flags</groupId>
+            <artifactId>quarkus-flags</artifactId>
+            <version>${quarkus-flags.version}</version>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>

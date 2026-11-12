@@ -21,6 +21,8 @@ import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
 import tech.illuin.wombat.engine.impact.timeline.TimelineStep;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.feature.Feature;
+import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.security.Permission;
 
 import java.time.Duration;
@@ -33,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("api/impact")
+@RequiresFeature(Feature.API_READ)
 @PermissionsAllowed(Permission.Names.API_IMPACT_READ)
 public class ImpactController
 {

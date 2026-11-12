@@ -20,7 +20,9 @@ flowchart LR
     AGGREGATOR ==> DB
 ```
 
-Every instance runs the same image, in one of three modes set by `wombat.mode` (`WOMBAT_MODE`):
+Every instance runs the same image, in one of three modes set by `wombat.mode` (`WOMBAT_MODE`), or by the `--mode`
+argument, which takes precedence (e.g. `java -jar quarkus-run.jar --mode worker`, or `command: ["--mode", "worker"]`
+in a compose file):
 
 | Mode                   | Samples its environments | Writes metrics to   | Accepts `POST /api/metrics` |
 |------------------------|--------------------------|---------------------|-----------------------------|
@@ -28,7 +30,20 @@ Every instance runs the same image, in one of three modes set by `wombat.mode` (
 | `aggregator`           |                          | its database        | ✓                           |
 | `worker`               | ✓                        | the aggregator      |                             |
 
-Outside of the aggregator mode, `POST /api/metrics` and `PUT /api/workers/{worker}/environments` answer `404`.
+### Features
+
+The mode also sets which functionalities an instance serves:
+
+| Feature                       | Serves                                                                  | `standalone` | `aggregator` | `worker` |
+|-------------------------------|-------------------------------------------------------------------------|--------------|--------------|----------|
+| `ui`                          | the web UI and its dashboards, `GET /api/app`                           | ✓            | ✓            |          |
+| `api-read`                    | `/api/impact`, `/api/simulation`, `/api/environments`                   | ✓            | ✓            |          |
+| `api-write`                   | `POST /api/metrics`, `PUT /api/workers/{worker}/environments`           |              | ✓            |          |
+| `admin`                       | `/api/users`, `/api/keys`, `/api/secrets`                               | ✓            | ✓            |          |
+
+A disabled feature answers `404`, and `/q/*` is never gated: by default, a worker serves nothing else, so it needs no
+authentication. The features are served as [quarkus-flags](https://docs.quarkiverse.io/quarkus-flags/dev) flags
+named after them, resolved once at startup and logged.
 
 ## Aggregator
 
@@ -129,9 +144,9 @@ what their sources use.
    `worker-west/kubeconfig/west.config.yaml`. The aggregator never reads them.
 4. Start each instance from its directory, in three terminals:
    ```sh
-   cd compose/distributed/aggregator  && ANTHROPIC_ADMIN_KEY=<admin key> java -jar ../../../target/quarkus-app/quarkus-run.jar
-   cd compose/distributed/worker-east && java -jar ../../../target/quarkus-app/quarkus-run.jar
-   cd compose/distributed/worker-west && java -jar ../../../target/quarkus-app/quarkus-run.jar
+   cd compose/distributed/aggregator  && ANTHROPIC_ADMIN_KEY=<admin key> java -jar ../../../target/quarkus-app/quarkus-run.jar --mode aggregator
+   cd compose/distributed/worker-east && java -jar ../../../target/quarkus-app/quarkus-run.jar --mode worker
+   cd compose/distributed/worker-west && java -jar ../../../target/quarkus-app/quarkus-run.jar --mode worker
    ```
    The admin key can also come from a secrets directory or the database secret store, see the aggregator's
    `application.yaml`.
@@ -157,7 +172,7 @@ configuration instead (PostgreSQL, sign-in, local connectors), run the aggregato
 with an environments file holding only what no worker declares:
 
 ```sh
-./mvnw quarkus:dev -Dwombat.mode=aggregator -Dmonitor.environments-file=compose/distributed/aggregator/monitored-environments.yaml
+./mvnw quarkus:dev -Dquarkus.args="--mode aggregator" -Dmonitor.environments-file=compose/distributed/aggregator/monitored-environments.yaml
 ```
 
 ## Request formats

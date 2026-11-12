@@ -11,11 +11,14 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.feature.Feature;
+import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.security.AuthProperties;
 
 import java.util.Locale;
 
 @Path("api/app")
+@RequiresFeature(Feature.UI)
 public class AppController
 {
     private final SecurityIdentity identity;

@@ -7,13 +7,16 @@ src/main/resources/application-local.yaml
 src/main/resources/application-dev.yaml
 src/**/monitored-environments-dev.yaml
 
-/compose/data
-/compose/application.yaml
-/compose/monitored-environments.yaml
-/compose/distributed/*/config/application.yaml
-/compose/distributed/*/monitored-environments.yaml
-/compose/distributed/*/data
-/compose/distributed/*/kubeconfig
+/compose/dev/data
+/compose/dev/application.yaml
+/compose/dev/monitored-environments.yaml
+/compose/demo-standalone/data
+/compose/demo-standalone/application.yaml
+/compose/demo-standalone/monitored-environments.yaml
+/compose/demo-distributed/*/config/application.yaml
+/compose/demo-distributed/*/monitored-environments.yaml
+/compose/demo-distributed/*/data
+/compose/demo-distributed/*/kubeconfig
 
 /data/
 /secrets/

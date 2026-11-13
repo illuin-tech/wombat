@@ -222,13 +222,14 @@ More information on each of these modules can be found [in the `wombat-core` doc
 
 ## How to run
 
-You can find a sample docker compose file for a basic local setup [here](compose/compose.yaml).
+You can find a sample docker compose file for a basic local setup [here](compose/demo-standalone/compose.yaml).
 
 It will let you run:
+
 * a Wombat app with an sqlite storage backend
 * local Boavizta & Ecologits APIs
 
-You will also find [`application.yaml.dist`](compose/application.yaml.dist) and [`monitored-environments.yaml.dist`](compose/monitored-environments.yaml.dist) files that you can use to create the required `application.yaml` and `monitored-environments.yaml`.
+You will also find [`application.yaml.dist`](compose/demo-standalone/application.yaml.dist) and [`monitored-environments.yaml.dist`](compose/demo-standalone/monitored-environments.yaml.dist) files that you can use to create the required `application.yaml` and `monitored-environments.yaml`.
 
 The `application.yaml` template can be used as is, it's a basic setup that will simply override the connectors to use local Boavizta and Ecologits APIs, and enable the SQLite backend.
 

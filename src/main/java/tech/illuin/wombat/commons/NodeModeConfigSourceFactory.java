@@ -17,7 +17,7 @@ import java.util.Map;
 @StaticInitSafe
 public class NodeModeConfigSourceFactory implements ConfigSourceFactory
 {
-    public static final String AGGREGATOR = "TECHNICAL_INTERNAL_AGGREGATOR";
+    public static final String AGGREGATOR = "_internal.aggregator";
     private static final String WORKER_DB_KIND = "sqlite";
     private static final String WORKER_JDBC_URL = "jdbc:sqlite::memory:";
 

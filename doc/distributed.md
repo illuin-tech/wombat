@@ -12,7 +12,7 @@ flowchart LR
     subgraph ENV_B[Environment B]
         WORKER_B[Worker\nsources + push]
     end
-    AGGREGATOR[Aggregator\nPOST /api/workers/{worker}/metrics]
+    AGGREGATOR[Aggregator\nPOST /api/workers/$worker/metrics]
     DB[(Metrics DB)]
 
     WORKER_A -->|every 5 minutes| AGGREGATOR
@@ -64,17 +64,17 @@ Declarations can share an environment: the aggregator's file typically holds the
 Anthropic, whose activity is queried from its usage API by the instance evaluating it, next to the clusters a worker
 declares in the same environment.
 
-- A worker's declaration replaces its previous one: the assets it no longer declares are deleted, the others created or
+* A worker's declaration replaces its previous one: the assets it no longer declares are deleted, the others created or
   updated, with their history recorded like those of the file.
-- Declaring an asset whose `workerId.assetId` the aggregator's file already declares is rejected with `409`, and nothing
+* Declaring an asset whose `workerId.assetId` the aggregator's file already declares is rejected with `409`, and nothing
   from that declaration is applied. The aggregator's file takes over such assets at its next startup instead.
-- A worker only declares assets it samples: each must have an asset type the aggregator has a module for, and be
+* A worker only declares assets it samples: each must have an asset type the aggregator has a module for, and be
   monitorable. Anything else (an unknown type, an asset without a source such as Anthropic) is rejected with `400`, and
   nothing from that declaration is applied. Assets without a source belong in the aggregator's file.
-- An asset whose module the aggregator disabled is still declared: its metrics are skipped when pushed, see above.
-- The aggregator does not check the secrets of declared assets: those of a sampled asset (e.g. a Prometheus password)
+* An asset whose module the aggregator disabled is still declared: its metrics are skipped when pushed, see above.
+* The aggregator does not check the secrets of declared assets: those of a sampled asset (e.g. a Prometheus password)
   are used by its source, on the worker, and the aggregator does not need to know them.
-- An environment is disabled once no declaration holds it, nor any of its assets.
+* An environment is disabled once no declaration holds it, nor any of its assets.
 
 ## Workers
 
@@ -108,9 +108,8 @@ is retried a few times on network errors, then logged and dropped: the worker do
 
 ## Running it locally
 
-[`compose/distributed/compose.yaml`](../compose/distributed/compose.yaml) runs a ready-made setup: an aggregator on
-port `8080` and two workers, `east` on `8081` and `west` on `8082`, next to the Boavizta and Ecologits APIs. Each
-instance reads its `monitored-environments.yaml` from its own directory of `compose/distributed`:
+[`compose/demo-distributed/compose.yaml`](../compose/demo-distributed/compose.yaml) runs a ready-made setup: an aggregator on port `8080` and two workers, `east` on `8081` and `west` on `8082`, next to the Boavizta and Ecologits APIs.
+Each instance reads its `monitored-environments.yaml` from its own directory of `compose/demo-distributed`:
 
 | Instance      | Samples        | Declares                      |
 |---------------|----------------|-------------------------------|
@@ -125,23 +124,23 @@ what their sources use.
    Anthropic asset to match yours:
    ```sh
    for node in aggregator worker-east worker-west; do
-     cp compose/distributed/$node/monitored-environments.yaml.dist compose/distributed/$node/monitored-environments.yaml
+     cp compose/demo-distributed/$node/monitored-environments.yaml.dist compose/demo-distributed/$node/monitored-environments.yaml
    done
    ```
-2. Give each worker the kubeconfig of its cluster: `compose/distributed/worker-east/kubeconfig/east.config.yaml` and
-   `compose/distributed/worker-west/kubeconfig/west.config.yaml`. The aggregator never reads them.
+2. Give each worker the kubeconfig of its cluster: `compose/demo-distributed/worker-east/kubeconfig/east.config.yaml` and
+   `compose/demo-distributed/worker-west/kubeconfig/west.config.yaml`. The aggregator never reads them.
 3. Start the setup, from the latest `illuin/wombat` image of Docker Hub:
    ```sh
-   ANTHROPIC_ADMIN_KEY=<admin key> docker compose -f compose/distributed/compose.yaml up
+   ANTHROPIC_ADMIN_KEY=<admin key> docker compose -f compose/demo-distributed/compose.yaml up
    ```
-   The aggregator does not start without the admin key, since its environments file declares the Anthropic asset. Its
-   database lands in `compose/distributed/aggregator/data`.
+   The aggregator does not start without the admin key, since its environments file declares the Anthropic asset.
+   Its database lands in `compose/demo-distributed/aggregator/data`.
 4. Open the aggregator's dashboard at http://localhost:8080. The clusters are listed as soon as their worker started,
    and show activity once a window went all the way through, about 10 to 15 minutes after the start:
-   - each worker samples every 10 seconds, and pushes each 5-minute window after it closes (Micrometer publishes at a
+   * each worker samples every 10 seconds, and pushes each 5-minute window after it closes (Micrometer publishes at a
      random point of the following window);
-   - the aggregator saves what it received right away, at the start of the worker's window;
-   - its compaction, set to 5-minute windows in `compose.yaml`, folds the rows a minute later.
+   * the aggregator saves what it received right away, at the start of the worker's window;
+   * its compaction, set to 5-minute windows in `compose.yaml`, folds the rows a minute later.
 
    Meanwhile, `http://localhost:8081/q/metrics` (or `8082`) shows what a worker sampled in its window in progress,
    under `wombat_k8s_*`.
@@ -151,68 +150,12 @@ authentication, enable the `oidc` profile on the aggregator (see [access control
 holding `api.metric.write` and `api.environment.write` on its **API keys** page, and start the setup with it as
 `WOMBAT_WORKER_API_KEY`.
 
-### With the dev mode as aggregator
+### Running the aggregator in dev mode
 
-The packaged application is built for SQLite (`quarkus.datasource.db-kind` is fixed at build time). To use your dev
-configuration instead (PostgreSQL, sign-in, local connectors), run the aggregator in dev mode from the repository root,
-with an environments file holding only what no worker declares, then start only the workers, pointed at it:
+For development purposes, you can use this sample distributed configuration to your advantage by running the aggregator as a dev instance, and launching workers as configured in the docker compose demo:
 
 ```sh
-./mvnw quarkus:dev -Dwombat.mode=aggregator -Dmonitor.environments-file=compose/distributed/aggregator/monitored-environments.yaml
-WOMBAT_AGGREGATOR_URL=http://host.docker.internal:8080 docker compose -f compose/distributed/compose.yaml up --no-deps worker-east worker-west
-```
+./mvnw quarkus:dev -Dwombat.mode=aggregator -Dmonitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
 
-## Request formats
-
-`PUT /api/workers/{worker}/environments` takes the same environments as a `monitor.environments-file`, in JSON:
-
-```json
-{
-  "environments": {
-    "east": {
-      "id": "east",
-      "assets": [
-        {"type": "tech.illuin.wombat-module.kubernetes-api", "id": "east-cluster", "environmentId": "east", "name": "East Cluster", "configPath": "kubeconfig/east.config.yaml", "namespace": "default", "profile": {"provider": "aws", "instanceType": "c5.xlarge", "location": "FRA", "lifespan": "5y"}}
-      ]
-    }
-  }
-}
-```
-
-The response payload counts the created, updated and deleted assets.
-
-`POST /api/workers/{worker}/metrics` takes a list of samples: each one is a metric a worker aggregated for an asset (its `type` included)
-over one of its windows, from `window.start` to `window.end` on the worker's clock, and is saved at `window.start`. Its
-`data` carries its family in a `family` property, which selects its variant:
-
-```json
-[
-  {
-    "asset": {"id": "prod-cluster", "environmentId": "prod", "name": "Production cluster", "type": "tech.illuin.wombat-module.kubernetes-api"},
-    "window": {"start": "2026-01-01T00:00:00Z", "end": "2026-01-01T00:05:00Z"},
-    "data": {"family": "KUBERNETES_CONTAINER", "serviceId": "api", "cluster": "prod", "namespace": "default", "pod": "api-7d9f", "cpuNanocores": 125000000.0, "ramBytes": 268435456.0}
-  },
-  {
-    "asset": {"id": "assistant", "environmentId": "prod", "name": "Assistant", "type": "tech.illuin.wombat-module.llm-prometheus"},
-    "window": {"start": "2026-01-01T00:00:00Z", "end": "2026-01-01T00:05:00Z"},
-    "data": {"family": "LLM", "serviceId": "chat", "provider": "mistralai", "model": "mistral-large-latest", "location": "FRA", "outputTokens": 1200, "requests": 4}
-  }
-]
-```
-
-The response payload is the number of saved metrics. When some are skipped, the status says so and lists them under
-`metadata.errors`, one entry per asset and reason, with the asset id the worker knows:
-
-```json
-{
-  "status": {
-    "message": "Saved 1 metric(s), skipped 1",
-    "metadata": {
-      "errors": [
-        {"assetId": "prod-cluster", "assetType": "tech.illuin.wombat-module.kubernetes-api", "reason": "No active module for asset type tech.illuin.wombat-module.kubernetes-api", "count": 1}
-      ]
-    }
-  },
-  "payload": 1
-}
+WOMBAT_AGGREGATOR_URL=http://host.docker.internal:8080 docker compose -f compose/demo-distributed/compose.yaml up --no-deps worker-east worker-west ;
 ```

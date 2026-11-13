@@ -131,10 +131,8 @@ public class WorkerController
         if (asset instanceof UnrecognizedAsset unrecognized)
             throw new BadRequestException("Unknown asset type " + unrecognized.rawType() + " for asset " + asset.identity().id());
 
-        Optional<ModuleMetadata> module = this.modules.getModule(asset.type());
-        if (module.isEmpty())
-            throw new BadRequestException("No module for asset type " + asset.type().name() + " of asset " + asset.identity().id());
-        if (!module.get().enabled())
+        ModuleMetadata module = this.modules.getModule(asset.type()).orElseThrow(() -> new BadRequestException("No module for asset type " + asset.type().name() + " of asset " + asset.identity().id()));
+        if (!module.enabled())
             logger.debug("Asset {} is declared with asset type {} whose module is disabled, its metrics will be skipped", asset.identity().id(), asset.type().name());
 
         if (!(asset instanceof Monitorable))

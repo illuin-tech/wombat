@@ -1,0 +1,69 @@
+x-wombat: &wombat
+  image: illuin/wombat:latest
+  pull_policy: always
+
+services:
+  aggregator:
+    <<: *wombat
+    ports:
+      - "8080:8080"
+    environment:
+      WOMBAT_MODE: aggregator
+      QUARKUS_DATASOURCE_JDBC_URL: "jdbc:sqlite:/var/data/local.db"
+      # Fold sampling rows every 5 minutes instead of every hour, so pushed activity reaches the UI within minutes
+      COMPACTION_CRON: "0 1/5 * * * ?"
+      COMPACTION_WINDOW: 5m
+      COMPACTION_DELAY: 30s
+      CONNECTOR_BOAVIZTA_URI: "http://boavizta:5000/v1/"
+      CONNECTOR_ECOLOGITS_URI: "http://ecologits:80/"
+      # Secret of the Anthropic asset of aggregator/monitored-environments.yaml, which is evaluated here
+      ANTHROPIC_ADMIN_KEY: "${ANTHROPIC_ADMIN_KEY:-}"
+    volumes:
+      # Only what no worker declares, such as the Anthropic asset, which has no source. The aggregator samples nothing.
+      - ./aggregator/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
+      - ./aggregator/data:/var/data:rw
+    depends_on:
+      - boavizta
+      - ecologits
+
+  worker-east:
+    <<: *wombat
+    ports:
+      - "8081:8080"
+    environment:
+      WOMBAT_MODE: worker
+      WOMBAT_WORKER_ID: east
+      WOMBAT_WORKER_AGGREGATOR_URL: "${WOMBAT_AGGREGATOR_URL:-http://aggregator:8080}"
+      # Any value works while the aggregator runs without authentication. With authentication on, use a key holding
+      # api.metric.write and api.environment.write, created on the aggregator's API keys page.
+      WOMBAT_WORKER_AGGREGATOR_API_KEY: "${WOMBAT_WORKER_API_KEY:-local-worker}"
+    volumes:
+      - ./worker-east/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
+      - ./worker-east/kubeconfig:/deployments/kubeconfig:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - aggregator
+
+  worker-west:
+    <<: *wombat
+    ports:
+      - "8082:8080"
+    environment:
+      WOMBAT_MODE: worker
+      WOMBAT_WORKER_ID: west
+      WOMBAT_WORKER_AGGREGATOR_URL: "${WOMBAT_AGGREGATOR_URL:-http://aggregator:8080}"
+      WOMBAT_WORKER_AGGREGATOR_API_KEY: "${WOMBAT_WORKER_API_KEY:-local-worker}"
+    volumes:
+      - ./worker-west/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
+      - ./worker-west/kubeconfig:/deployments/kubeconfig:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - aggregator
+
+  boavizta:
+    image: ghcr.io/boavizta/boaviztapi:2.4.1
+
+  ecologits:
+    image: ghcr.io/mlco2/ecologits-api:0.0.2

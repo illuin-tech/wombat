@@ -3,7 +3,6 @@ package tech.illuin.wombat.endpoint;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.endpoint.EnvironmentDescription;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
@@ -32,12 +31,12 @@ class EnvironmentDescriptionTest
     {
         Environment environment = new Environment("Production", List.of(
             new KubernetesAPIAsset(
-                AssetIdentity.of("cluster-1", "Production", "Cluster One"),
+                AssetIdentity.of("cluster-1", "Production", "Cluster One", KubernetesAPIModule.TYPE),
                 "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
                 new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
             ),
             new LLMStaticAsset(
-                AssetIdentity.of("llm-1", "Production", "LLM One"),
+                AssetIdentity.of("llm-1", "Production", "LLM One", LLMStaticModule.TYPE),
                 new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, List.of(
                     new ConstantScenario(500, 1000, null)
                 ))

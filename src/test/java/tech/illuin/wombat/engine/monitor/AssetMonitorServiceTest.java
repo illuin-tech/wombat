@@ -1,6 +1,7 @@
 package tech.illuin.wombat.engine.monitor;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
@@ -177,7 +178,7 @@ class AssetMonitorServiceTest
     private static LLMPrometheusAsset prometheus(String id, Period period)
     {
         return new LLMPrometheusAsset(
-            AssetIdentity.of(id, "env", id),
+            AssetIdentity.of(id, "env", id, LLMPrometheusModule.TYPE),
             "http://prometheus", null, null, null, period,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );

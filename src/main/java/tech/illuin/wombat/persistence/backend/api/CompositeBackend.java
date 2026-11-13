@@ -2,8 +2,10 @@ package tech.illuin.wombat.persistence.backend.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 
 public class CompositeBackend implements PersistenceBackend, AutoCloseable
@@ -11,6 +13,7 @@ public class CompositeBackend implements PersistenceBackend, AutoCloseable
     private final String id;
     private final Set<HookSupplier> hooks;
     private final Set<ProcessSupplier> processes;
+    private final MetricStoreContainer stores;
     private final boolean enabled;
 
     private static final Logger logger = LoggerFactory.getLogger(CompositeBackend.class);
@@ -19,11 +22,13 @@ public class CompositeBackend implements PersistenceBackend, AutoCloseable
         String id,
         Collection<HookSupplier> hooks,
         Collection<ProcessSupplier> processes,
+        MetricStoreContainer stores,
         boolean enabled
     ) {
         this.id = id;
         this.hooks = Set.copyOf(hooks);
         this.processes = Set.copyOf(processes);
+        this.stores = stores;
         this.enabled = enabled;
     }
 
@@ -49,6 +54,12 @@ public class CompositeBackend implements PersistenceBackend, AutoCloseable
     public Set<ProcessSupplier> processes()
     {
         return this.processes;
+    }
+
+    @Override
+    public Optional<MetricStoreContainer> stores()
+    {
+        return Optional.ofNullable(this.stores);
     }
 
     @Override

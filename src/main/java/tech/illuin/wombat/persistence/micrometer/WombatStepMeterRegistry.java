@@ -11,13 +11,11 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
-import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
-import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
 import tech.illuin.wombat.persistence.micrometer.data.Aggregation;
 import tech.illuin.wombat.persistence.micrometer.data.MetricGroup;
 import tech.illuin.wombat.persistence.micrometer.data.TagGroup;
-import tech.illuin.wombat.persistence.model.KubernetesMetricEntity;
-import tech.illuin.wombat.persistence.model.LLMMetricEntity;
+import tech.illuin.wombat.persistence.backend.api.store.MetricSample;
+import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -26,8 +24,7 @@ import static tech.illuin.wombat.core.source.persistence.micrometer.MicrometerTa
 
 public class WombatStepMeterRegistry extends StepMeterRegistry
 {
-    private final KubernetesMetricRepository kubernetesRepository;
-    private final LLMModelMetricRepository llmRepository;
+    private final MetricStoreContainer stores;
     private final Clock clock;
     private final long stepMs;
     private long lastPublishedBucketMs;
@@ -67,12 +64,10 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     public WombatStepMeterRegistry(
         StepRegistryConfig config,
         Clock clock,
-        KubernetesMetricRepository kubernetesRepository,
-        LLMModelMetricRepository llmRepository
+        MetricStoreContainer stores
     ) {
         super(config, clock);
-        this.kubernetesRepository = kubernetesRepository;
-        this.llmRepository = llmRepository;
+        this.stores = stores;
         this.clock = clock;
         this.stepMs = config.step().toMillis();
         this.lastPublishedBucketMs = Long.MIN_VALUE;
@@ -122,7 +117,7 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
 
     private void publishKubernetesData(long ms, Collection<MetricGroup> groups)
     {
-        int persisted = 0;
+        List<MetricSample<KubernetesData>> samples = new ArrayList<>();
         for (MetricGroup group : groups)
         {
             Optional<Double> cpu = group.value(METRIC_K8S_CPU);
@@ -141,30 +136,21 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
                 cpu.get(),
                 ram.get()
             );
-            KubernetesMetricEntity row = new KubernetesMetricEntity();
-            row.instantMs = ms;
-            row.windowMs = this.stepMs;
-            row.assign(identityOf(group));
-            row.assetType = group.tag(TAG_ASSET_TYPE).orElse(null);
-            row.data = data;
-            row.cpuNanocores = data.cpuNanocores();
-            row.ramBytes = data.ramBytes();
-            this.kubernetesRepository.save(row);
-            logger.trace("Persisted row {}", row);
-            persisted++;
+            samples.add(MetricSample.of(identityOf(group), ms, this.stepMs, data));
         }
 
-        if (persisted == 0)
+        if (samples.isEmpty())
         {
             logger.info("No CPU/RAM samples in the last window; skipping write");
             return;
         }
-        logger.info("Persisted {} container row(s) at {}", persisted, ms);
+        this.stores.save(samples);
+        logger.info("Persisted {} container sample(s) at {}", samples.size(), ms);
     }
 
     private void publishLLMData(long ms, Collection<MetricGroup> groups)
     {
-        int persisted = 0;
+        List<MetricSample<LLMData>> samples = new ArrayList<>();
         for (MetricGroup group : groups)
         {
             Optional<Double> outputTokens = group.value(METRIC_LLM_OUTPUT_TOKENS);
@@ -183,23 +169,16 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
                 1L
             );
 
-            LLMMetricEntity row = new LLMMetricEntity();
-            row.instantMs = ms;
-            row.assign(identityOf(group));
-            row.assetType = group.tag(TAG_ASSET_TYPE).orElse(null);
-            row.data = data;
-            row.outputTokens = data.outputTokens();
-            this.llmRepository.save(row);
-            logger.trace("Persisted row {}", row);
-            persisted++;
+            samples.add(MetricSample.of(identityOf(group), ms, this.stepMs, data));
         }
 
-        if (persisted == 0)
+        if (samples.isEmpty())
         {
             logger.info("No LLM samples in the last window; skipping write");
             return;
         }
-        logger.info("Persisted {} llm-model row(s) at {}", persisted, ms);
+        this.stores.save(samples);
+        logger.info("Persisted {} llm-model sample(s) at {}", samples.size(), ms);
     }
 
     private static AssetIdentity identityOf(MetricGroup group)
@@ -207,7 +186,8 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
         return new AssetIdentity(
             group.tag(TAG_ASSET).orElseThrow(),
             group.tag(TAG_ENVIRONMENT).orElseThrow(),
-            group.tag(TAG_ASSET_NAME).orElseThrow()
+            group.tag(TAG_ASSET_NAME).orElseThrow(),
+            group.tag(TAG_ASSET_TYPE).orElseThrow()
         );
     }
 

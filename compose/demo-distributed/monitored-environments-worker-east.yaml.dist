@@ -1,0 +1,17 @@
+# Sampled by this worker, and declared to the aggregator, which evaluates the assets as owned by this worker.
+environments:
+  east:
+    id: east
+    assets:
+      # Reads the cluster's metrics API with the kubeconfig at compose/distributed/worker-east/kubeconfig/east.config.yaml
+      - type: tech.illuin.wombat-module.kubernetes-api
+        id: east-cluster
+        environment-id: east
+        name: East Cluster
+        config-path: kubeconfig/east.config.yaml
+        namespace: default
+        profile:
+          provider: aws
+          instance-type: c5.xlarge
+          location: FRA
+          lifespan: 43800  # hours

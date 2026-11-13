@@ -11,6 +11,7 @@ import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.secret.SecretAware;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
@@ -104,11 +105,11 @@ class MonitoredEnvironmentsTemplateTest
      */
     private static YAMLMapper mapper()
     {
-        return new WombatModuleConfig().provideYAMLMapper(List.of(
+        return new WombatModuleConfig().provideYAMLMapper(ModuleRegistries.enabled(List.of(
             new KubernetesAPIModule(),
             new LLMPrometheusModule(),
             new LLMStaticModule()
-        ));
+        )));
     }
 
     private static Asset byType(List<Asset> assets, AssetType type)

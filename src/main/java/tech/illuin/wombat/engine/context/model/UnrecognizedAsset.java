@@ -1,7 +1,6 @@
 package tech.illuin.wombat.engine.context.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
@@ -14,7 +13,6 @@ import tech.illuin.wombat.core.asset.profile.AssetProfile;
 @RegisterForReflection
 public record UnrecognizedAsset(
     @JsonUnwrapped AssetIdentity identity,
-    @JsonProperty("type") String rawType,
     @JsonIgnore String rawJson
 ) implements Asset
 {
@@ -28,12 +26,6 @@ public record UnrecognizedAsset(
 
     private static final AssetProfile UNKNOWN_PROFILE = new AssetProfile() {};
 
-    public UnrecognizedAsset
-    {
-        if (rawType == null)
-            rawType = UnrecognizedAssetProblemHandler.getCurrentUnknownType();
-    }
-
     @Override
     public AssetType type()
     {
@@ -44,5 +36,10 @@ public record UnrecognizedAsset(
     public AssetProfile profile()
     {
         return UNKNOWN_PROFILE;
+    }
+
+    public String rawType()
+    {
+        return this.identity.assetType();
     }
 }

@@ -12,6 +12,7 @@ public record AssetInfo(
     @JsonUnwrapped Asset properties,
     String type,
     String uuid,
+    String owner,
     Instant createdAt,
     Instant updatedAt,
     Instant deletedAt
@@ -20,8 +21,9 @@ public record AssetInfo(
     {
         this(
             properties,
-            properties instanceof UnrecognizedAsset unrecognized ? unrecognized.rawType() : properties.type().name(),
+            properties.identity().assetType(),
             uuid,
+            null,
             createdAt,
             updatedAt,
             deletedAt
@@ -34,6 +36,7 @@ public record AssetInfo(
             entity.properties,
             entity.type,
             entity.uuid,
+            entity.owner,
             entity.createdAt,
             entity.updatedAt,
             entity.deletedAt

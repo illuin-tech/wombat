@@ -39,6 +39,12 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Transactional
+    public void save(Collection<KubernetesMetricEntity> entities)
+    {
+        persist(entities);
+    }
+
+    @Transactional
     public List<KubernetesMetricEntity> findByRange(long startMs, long endMs)
     {
         return find("instantMs >= ?1 AND instantMs <= ?2", startMs, endMs).list();
@@ -58,8 +64,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         return rows;
     }
 
-    @Override
-    @Transactional
+    @Override @Transactional
     public Map<Long, Double> averageCpuPerBucket(TimeRange range, List<String> assetIds)
     {
         List<TimeRange> slots = range.split();
@@ -88,8 +93,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         return perBucket;
     }
 
-    @Override
-    @Transactional
+    @Override @Transactional
     public Map<Long, Map<String, Double>> containerSharesPerBucket(TimeRange range, List<String> assetIds)
     {
         List<TimeRange> slots = range.split();
@@ -125,8 +129,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         return perBucket;
     }
 
-    @Override
-    @Transactional
+    @Override @Transactional
     public Map<String, List<ContainerLocation>> containerLocations(TimeRange range, List<String> assetIds)
     {
         List<TimeRange> slots = range.split();
@@ -188,7 +191,6 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
             row.cpuNanocores = weightedMean(samples, sample -> sample.cpuNanocores);
             row.ramBytes = weightedMean(samples, sample -> sample.ramBytes);
             row.assign(key.asset());
-            row.assetType = key.assetType();
             row.data = key.toData(row.cpuNanocores, row.ramBytes);
             row.compacted = true;
             folded.add(row);
@@ -229,7 +231,6 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
 
     private record ContainerKey(
         AssetIdentity asset,
-        String assetType,
         String serviceId,
         String cluster,
         String namespace,
@@ -238,7 +239,7 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
         private static ContainerKey of(KubernetesMetricEntity row)
         {
             KubernetesData data = row.data;
-            return new ContainerKey(row.identity(), row.assetType, data.serviceId(), data.cluster(), data.namespace(), data.pod());
+            return new ContainerKey(row.identity(), data.serviceId(), data.cluster(), data.namespace(), data.pod());
         }
 
         private KubernetesData toData(double cpuNanocores, double ramBytes)

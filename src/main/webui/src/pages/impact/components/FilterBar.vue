@@ -31,6 +31,7 @@ const environmentOptions = computed(() => props.environments.map(environment => 
 const assetOptions = computed(() => props.assets.map(asset => ({
   value: asset.id,
   label: `${asset.name} — ${asset.id}${asset.namespace ? ` / ${asset.namespace}` : ''}`,
+  badge: asset.owner ?? undefined,
 })))
 const environmentSummary = computed(() => props.environmentsLoading ? 'Loading environments…' : props.environments.find(environment => environment.id === environmentId.value)?.name ?? environmentId.value)
 const assetSummary = computed(() => props.assetsLoading ? 'Loading assets…' : `${assetIds.value.length} / ${props.assets.length} assets`)

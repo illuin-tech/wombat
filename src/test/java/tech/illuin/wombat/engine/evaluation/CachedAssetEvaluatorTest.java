@@ -25,10 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -57,7 +54,7 @@ class CachedAssetEvaluatorTest
         this.timeRange = new TimeRange(start, end, Duration.ofHours(1));
         this.filter = new AssetFilter(Set.of(new AssetFilter.Environment("env1", Set.of(new AssetFilter.Asset("asset1", Set.of("serviceA"))))));
 
-        this.identity = new AssetIdentity("asset1", "env1", "Asset 1");
+        this.identity = new AssetIdentity("asset1", "env1", "Asset 1", "tech.illuin.wombat-module.kubernetes-api");
         this.asset = mock(Asset.class);
         when(this.asset.identity()).thenReturn(this.identity);
     }
@@ -171,7 +168,7 @@ class CachedAssetEvaluatorTest
         AssetActivity act2 = mock(AssetActivity.class);
 
         Asset otherAsset = mock(Asset.class);
-        when(otherAsset.identity()).thenReturn(new AssetIdentity("asset2", "env2", "Asset 2"));
+        when(otherAsset.identity()).thenReturn(new AssetIdentity("asset2", "env2", "Asset 2", "tech.illuin.wombat-module.kubernetes-api"));
 
         when(this.delegate.computeActivity(this.asset, this.timeRange, this.filter)).thenReturn(Optional.of(act1));
         when(this.delegate.computeActivity(otherAsset, this.timeRange, this.filter)).thenReturn(Optional.of(act2));
@@ -195,7 +192,7 @@ class CachedAssetEvaluatorTest
         assertThrows(WombatActivityException.class, () -> this.evaluator.computeActivity(this.asset, this.timeRange, this.filter));
 
         Optional<AssetActivity> secondResult = this.evaluator.computeActivity(this.asset, this.timeRange, this.filter);
-        assertEquals(true, secondResult.isPresent());
+        assertTrue(secondResult.isPresent());
         verify(this.delegate, times(2)).computeActivity(this.asset, this.timeRange, this.filter);
     }
 
@@ -245,7 +242,7 @@ class CachedAssetEvaluatorTest
         assertThrows(WombatEvaluationException.class, () -> this.evaluator.computeImpact(this.asset, data));
 
         Optional<AssetEvaluation> secondResult = this.evaluator.computeImpact(this.asset, data);
-        assertEquals(true, secondResult.isPresent());
+        assertTrue(secondResult.isPresent());
         verify(this.delegate, times(2)).computeImpact(this.asset, data);
     }
 
@@ -295,7 +292,7 @@ class CachedAssetEvaluatorTest
         assertThrows(WombatEvaluationException.class, () -> this.evaluator.computeCost(this.asset, data));
 
         Optional<AssetEvaluation> secondResult = this.evaluator.computeCost(this.asset, data);
-        assertEquals(true, secondResult.isPresent());
+        assertTrue(secondResult.isPresent());
         verify(this.delegate, times(2)).computeCost(this.asset, data);
     }
 

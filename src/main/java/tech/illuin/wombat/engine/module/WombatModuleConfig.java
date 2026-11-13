@@ -131,7 +131,7 @@ public class WombatModuleConfig
         return new DefaultSchemaRegistry(moduleRegistry, mapper);
     }
 
-    public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)
+    public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, ModuleRegistry modules)
     {
         registerSubTypes(modules, mapper);
     }
@@ -139,7 +139,7 @@ public class WombatModuleConfig
     @Produces
     @Singleton
     @Typed(YAMLMapper.class)
-    public YAMLMapper provideYAMLMapper(List<WombatModule> modules)
+    public YAMLMapper provideYAMLMapper(ModuleRegistry modules)
     {
         YAMLMapper mapper = YAMLMapper.builder()
             .findAndAddModules()
@@ -152,19 +152,22 @@ public class WombatModuleConfig
     @Produces
     @Singleton
     @Typed(JsonMapper.class)
-    public JsonMapper provideJsonMapper(List<WombatModule> modules)
+    public JsonMapper provideJsonMapper(ModuleRegistry modules)
     {
         JsonMapper mapper = JsonMapper.builder().findAndAddModules().build();
         registerSubTypes(modules, mapper);
         return mapper;
     }
 
-    private static <O extends ObjectMapper> void registerSubTypes(List<WombatModule> modules, O mapper)
+    /**
+     * Disabled modules are registered too, so their assets are still read as such rather than as unrecognized ones.
+     */
+    private static <O extends ObjectMapper> void registerSubTypes(ModuleRegistry modules, O mapper)
     {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         mapper.disable(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS);
         mapper.addHandler(new UnrecognizedAssetProblemHandler());
-        modules.forEach(module -> mapper.registerSubtypes(new NamedType(
+        modules.listModules().forEach(module -> mapper.registerSubtypes(new NamedType(
             module.assetClass(), module.type().name()
         )));
     }

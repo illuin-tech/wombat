@@ -9,6 +9,7 @@ import jakarta.ws.rs.Produces;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.flywaydb.core.Flyway;
 import tech.illuin.wombat.persistence.backend.api.*;
+import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
 import tech.illuin.wombat.persistence.backend.api.action.FlywayMigrate;
 import tech.illuin.wombat.persistence.backend.postgres.action.*;
 
@@ -27,7 +28,8 @@ public class PostgresBackendConfig
         @ConfigProperty(name = "quarkus.datasource.db-kind") String dbKind,
         Instance<AgroalDataSource> dataSources,
         Instance<Flyway> flyway,
-        Instance<MeterRegistry> registry
+        Instance<MeterRegistry> registry,
+        MetricStoreContainer databaseStores
     ) {
         if (!dbKind.equals(DBKIND_POSTGRESQL))
             return PersistenceBackend.disabled(DBKIND_POSTGRESQL);
@@ -37,6 +39,6 @@ public class PostgresBackendConfig
         hooks.add(new HookSupplier("flyway-migration", BACKEND_SETUP, 0, () -> new FlywayMigrate(flyway.get())));
         hooks.add(new HookSupplier("db-metrics", BACKEND_SETUP, 16, () -> new PostgresDBMetricsInit(registry.get(), dataSources.get())));
 
-        return PersistenceBackend.of(DBKIND_POSTGRESQL, hooks, List.of());
+        return PersistenceBackend.of(DBKIND_POSTGRESQL, hooks, List.of(), databaseStores);
     }
 }

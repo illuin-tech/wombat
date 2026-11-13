@@ -5,6 +5,8 @@ export type Permission =
   | 'api.impact.read'
   | 'api.simulation.read'
   | 'api.environment.read'
+  | 'api.environment.write'
+  | 'api.metric.write'
   | 'api.apikey.manage'
   | 'api.apikey.admin'
   | 'api.user.manage'

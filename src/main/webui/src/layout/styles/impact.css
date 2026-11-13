@@ -127,6 +127,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .container-item span { font-size: 13px; color: var(--text-muted); }
 .container-item:has(input:checked) span { color: var(--text); }
 .container-item.hidden { display: none; }
+.container-item .picker-badge,
+.container-item:has(input:checked) .picker-badge { margin-left: auto; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: var(--accent-blue-soft); color: var(--accent-blue); white-space: nowrap; }
 .btn-apply { background: var(--accent-green); color: #fff; font-size: 13px; font-weight: 600; border: none; padding: 9px 22px; border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s, box-shadow 0.15s; align-self: flex-end; }
 .btn-apply:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,0.28); }
 .btn-reset { background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; border: 1.5px solid var(--border); padding: 9px 18px; border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.15s, color 0.15s; align-self: flex-end; }

@@ -30,7 +30,7 @@ class AssetEntityTest
     void kubernetesPropertiesRoundTripThroughTheEntity()
     {
         KubernetesAPIAsset props = new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K"),
+            AssetIdentity.of("k", "env", "K", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
@@ -46,7 +46,7 @@ class AssetEntityTest
     void llmStaticPropertiesRoundTripThroughTheEntity()
     {
         LLMStaticAsset props = new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S"),
+            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
             new LLMStaticProfile(
                 LLMProvider.mistralai, "m", FRANCE,
                 List.of(new ConstantScenario(500, 1000))
@@ -63,7 +63,7 @@ class AssetEntityTest
     void llmPrometheusPropertiesRoundTripThroughTheEntity()
     {
         LLMPrometheusAsset props = new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P"),
+            AssetIdentity.of("p", "env", "P", LLMPrometheusModule.TYPE),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", Period.ofSeconds(7),
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );

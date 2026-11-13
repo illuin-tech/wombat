@@ -50,8 +50,7 @@ public class RequiredSecretsCheck
 
     void onStartAfterPersistenceSetup(@Observes @Priority(STARTUP_PRIORITY_SECRETS_WRITABLE_BACKEND) StartupEvent event)
     {
-        if (this.properties.writeMode() == SecretProperties.WriteMode.database
-            || this.properties.writeMode() == SecretProperties.WriteMode.vault)
+        if (this.properties.writeMode() == SecretProperties.WriteMode.database || this.properties.writeMode() == SecretProperties.WriteMode.vault)
             validateRequiredSecrets();
     }
 
@@ -75,7 +74,8 @@ public class RequiredSecretsCheck
         {
             throw new IllegalStateException(
                 "Missing required secret(s): " + String.join(", ", missing)
-                + ". Configure each missing key in an available secret source before starting the application.");
+                + ". Configure each missing key in an available secret source before starting the application."
+            );
         }
 
         logger.info("Resolved {} required secret(s) from configured secret sources", required.size());

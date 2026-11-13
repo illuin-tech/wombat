@@ -11,7 +11,6 @@ import tech.illuin.wombat.core.asset.profile.LLMProfile;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.module.WombatModule;
-import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -287,7 +286,7 @@ class DynamicExtensionLoaderTest
         @Override
         public AssetIdentity identity()
         {
-            return AssetIdentity.of(this.assetId, "env", this.assetId);
+            return AssetIdentity.of(this.assetId, "env", this.assetId, this.type());
         }
 
         @Override
@@ -329,7 +328,7 @@ class DynamicExtensionLoaderTest
         @Override
         public AssetIdentity identity()
         {
-            return AssetIdentity.of(this.assetId, "env", this.assetId);
+            return AssetIdentity.of(this.assetId, "env", this.assetId, this.type());
         }
 
         @Override

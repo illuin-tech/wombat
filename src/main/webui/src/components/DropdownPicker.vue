@@ -4,6 +4,7 @@ import {computed, nextTick, onBeforeUnmount, ref, watch} from 'vue'
 interface PickerOption {
   value: string
   label: string
+  badge?: string
 }
 
 const props = withDefaults(defineProps<{
@@ -109,6 +110,7 @@ function deselectVisible(): void {
         <label v-for="option in options" :key="option.value" class="container-item" :class="{hidden: !matches(option)}">
           <input :type="multiple ? 'checkbox' : 'radio'" :name="inputName ?? label.toLowerCase()" :value="option.value" :data-label="option.label" :checked="modelValue.includes(option.value)" @change="toggle(option.value)" />
           <span>{{ option.label }}</span>
+          <span v-if="option.badge" class="picker-badge">{{ option.badge }}</span>
         </label>
       </div>
     </div>

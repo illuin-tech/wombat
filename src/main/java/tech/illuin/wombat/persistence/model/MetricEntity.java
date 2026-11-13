@@ -25,10 +25,11 @@ public abstract class MetricEntity extends PanacheEntityBase
         this.assetId = asset.id();
         this.environmentId = asset.environmentId();
         this.assetName = asset.name();
+        this.assetType = asset.assetType();
     }
 
     public AssetIdentity identity()
     {
-        return new AssetIdentity(this.assetId, this.environmentId, this.assetName);
+        return new AssetIdentity(this.assetId, this.environmentId, this.assetName, this.assetType);
     }
 }

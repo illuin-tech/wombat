@@ -62,4 +62,20 @@ describe('DropdownPicker', () => {
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([['worker']])
     wrapper.unmount()
   })
+
+  it('shows the badge of an option next to its label', () => {
+    const wrapper = mount(DropdownPicker, {
+      props: {
+        label: 'Assets',
+        options: [{value: 'east.a', label: 'Asset A', badge: 'east'}, {value: 'b', label: 'Asset B'}],
+        modelValue: [],
+        summary: '0 / 2 assets',
+      },
+    })
+
+    const items = wrapper.findAll('.container-item')
+    expect(items[0].get('.picker-badge').text()).toBe('east')
+    expect(items[1].find('.picker-badge').exists()).toBe(false)
+    wrapper.unmount()
+  })
 })

@@ -5,6 +5,8 @@ import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.module.llm_static.LLMStaticModule;
+import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
@@ -14,8 +16,6 @@ import tech.illuin.wombat.core.secret.EnvironmentSecretResolver;
 import tech.illuin.wombat.core.secret.KeyStoreSecretResolver;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
-import tech.illuin.wombat.engine.monitor.RequiredSecretsCheck;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
@@ -259,7 +259,7 @@ class RequiredSecretsCheckTest
     private static LLMPrometheusAsset prometheusAsset(String id, String username, String passwordEnv)
     {
         return new LLMPrometheusAsset(
-            AssetIdentity.of(id, "env", id),
+            AssetIdentity.of(id, "env", id, LLMPrometheusModule.TYPE),
             "http://prometheus", null, username, passwordEnv, Period.ZERO,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
@@ -268,7 +268,7 @@ class RequiredSecretsCheckTest
     private static LLMStaticAsset staticAsset()
     {
         return new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S"),
+            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000)
             ))

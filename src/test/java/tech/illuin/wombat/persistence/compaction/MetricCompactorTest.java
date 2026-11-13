@@ -171,8 +171,7 @@ class MetricCompactorTest
         KubernetesMetricEntity row = new KubernetesMetricEntity();
         row.instantMs = instantMs;
         row.windowMs = FIVE_MINUTES_MS;
-        row.assign(new AssetIdentity("c1", "env", "Cluster One"));
-        row.assetType = "tech.illuin.wombat-module.kubernetes-api";
+        row.assign(new AssetIdentity("c1", "env", "Cluster One", "tech.illuin.wombat-module.kubernetes-api"));
         row.data = new KubernetesData(container, "c1", "ns", "pod", cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
@@ -187,8 +186,7 @@ class MetricCompactorTest
     {
         LLMMetricEntity row = new LLMMetricEntity();
         row.instantMs = instantMs;
-        row.assign(new AssetIdentity("p-llm", "env", "Prometheus LLM"));
-        row.assetType = "tech.illuin.wombat-module.llm-prometheus";
+        row.assign(new AssetIdentity("p-llm", "env", "Prometheus LLM", "tech.illuin.wombat-module.llm-prometheus"));
         row.data = new LLMData("m", LLMProvider.mistralai, "m", FRANCE, tokens, requests);
         row.outputTokens = tokens;
         row.requestCount = requests;

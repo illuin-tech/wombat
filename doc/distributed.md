@@ -99,8 +99,7 @@ a minute. A declaration that fails is logged, and the next one tries again. Remo
 removes it from the aggregator at the worker's next startup.
 
 No metric is written to the worker's database, so a worker always runs on an in-memory SQLite database, whatever its
-`persistence.backend.mode` setting, and logs a warning when the configured backend is another
-one: it needs no database file, and loses its users and API keys at each restart.
+`persistence.backend.mode` setting.
 
 Each window is sent in at most one request per metric family. A push that fails (aggregator unreachable, rejected key)
 is retried a few times on network errors, then logged and dropped: the worker does not buffer windows it could not send.

@@ -16,7 +16,7 @@ import java.util.Map;
 @StaticInitSafe
 public class PersistenceBackendConfigSourceFactory implements ConfigSourceFactory
 {
-    public static final String ACTIVE_BACKEND = "_internal.persistence.backend";
+    public static final String ACTIVE_BACKEND_CONFIG_KEY = "_internal.persistence.backend";
     private static final Logger logger = LoggerFactory.getLogger(PersistenceBackendConfigSourceFactory.class);
 
     @Override
@@ -26,7 +26,7 @@ public class PersistenceBackendConfigSourceFactory implements ConfigSourceFactor
         BackendMode mode = modeStr == null ? BackendMode.sqlite : parse(modeStr);
 
         Map<String, String> properties = new HashMap<>();
-        properties.put(ACTIVE_BACKEND, mode.name().toLowerCase(Locale.ROOT));
+        properties.put(ACTIVE_BACKEND_CONFIG_KEY, mode.name().toLowerCase(Locale.ROOT));
 
         switch (mode)
         {

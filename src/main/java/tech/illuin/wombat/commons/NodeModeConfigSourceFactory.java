@@ -11,13 +11,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+
+import static tech.illuin.wombat.persistence.PersistenceBackendConfigSourceFactory.ACTIVE_BACKEND_CONFIG_KEY;
 
 @StaticInitSafe
 public class NodeModeConfigSourceFactory implements ConfigSourceFactory
 {
-    public static final String AGGREGATOR = "_internal.aggregator";
+    public static final String AGGREGATOR_CONFIG_KEY = "_internal.aggregator";
     private static final String WORKER_DB_KIND = "sqlite";
     private static final String WORKER_JDBC_URL = "jdbc:sqlite::memory:";
 
@@ -30,11 +31,11 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
         NodeMode mode = value.getValue() == null ? null : parse(value.getValue());
 
         Map<String, String> properties = new HashMap<>();
-        properties.put(AGGREGATOR, String.valueOf(mode == NodeMode.aggregator));
+        properties.put(AGGREGATOR_CONFIG_KEY, String.valueOf(mode == NodeMode.aggregator));
 
         if (mode == NodeMode.worker)
         {
-            String backend = context.getValue("_internal.persistence.backend").getValue();
+            String backend = context.getValue(ACTIVE_BACKEND_CONFIG_KEY).getValue();
             if (backend != null && !backend.equals(WORKER_DB_KIND))
                 logger.warn("Worker mode only runs on SQLite in-memory: overriding backend {} with {}", backend, WORKER_DB_KIND);
 
@@ -42,7 +43,7 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
             properties.put("quarkus.datasource.jdbc.url", WORKER_JDBC_URL);
             properties.put("quarkus.datasource.jdbc.min-size", "1");
             properties.put("quarkus.datasource.jdbc.max-size", "1");
-            properties.put("_internal.persistence.backend", WORKER_DB_KIND);
+            properties.put(ACTIVE_BACKEND_CONFIG_KEY, WORKER_DB_KIND);
         }
 
         return List.of(new PropertiesConfigSource(

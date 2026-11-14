@@ -41,7 +41,7 @@ import java.util.Map;
  * are saved.
  */
 @Path("api/workers/{worker}/metrics")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
+@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR_CONFIG_KEY, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_METRIC_WRITE)
 public class MetricController
 {

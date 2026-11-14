@@ -40,7 +40,7 @@ import java.util.Map;
  * two workers declaring the same asset id declare two assets. Only an {@link NodeMode#AGGREGATOR} serves it.
  */
 @Path("api/workers")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
+@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR_CONFIG_KEY, stringValue = "false")
 public class WorkerController
 {
     private final EnvironmentReconciler reconciler;

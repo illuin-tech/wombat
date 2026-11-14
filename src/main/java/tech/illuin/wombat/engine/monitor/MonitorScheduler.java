@@ -16,24 +16,23 @@ public class MonitorScheduler
 {
     private final Scheduler scheduler;
     private final Instance<MonitorService> service;
-    private final WombatProperties wombat;
+    private final NodeMode mode;
+    private final MonitorProperties properties;
 
     private static final Logger logger = LoggerFactory.getLogger(MonitorScheduler.class);
 
     @Inject
-    public MonitorScheduler(
-        Scheduler scheduler,
-        Instance<MonitorService> service,
-        WombatProperties wombat
-    ) {
+    public MonitorScheduler(Scheduler scheduler, Instance<MonitorService> service, WombatProperties wombat)
+    {
         this.scheduler = scheduler;
         this.service = service;
-        this.wombat = wombat;
+        this.mode = wombat.mode();
+        this.properties = wombat.monitor();
     }
 
     public void registerMonitorService(@Observes StartupEvent event)
     {
-        if (this.wombat.mode() == NodeMode.aggregator)
+        if (this.mode == NodeMode.aggregator)
         {
             logger.info("Running in aggregator mode, environments are sampled by workers: skipping monitor service scheduling");
             return;
@@ -46,7 +45,7 @@ public class MonitorScheduler
         }
 
         MonitorService monitor = this.service.get();
-        String interval = this.wombat.monitor().heartbeat().asText();
+        String interval = this.properties.heartbeat().asText();
 
         this.scheduler.newJob("wombat-monitor")
             .setInterval(interval)

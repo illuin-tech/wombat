@@ -5,7 +5,7 @@ import io.smallrye.config.WithDefault;
 
 import java.time.Duration;
 
-@ConfigMapping(prefix = "compaction")
+@ConfigMapping(prefix = "persistence.compaction")
 public interface CompactionProperties
 {
     @WithDefault("0 1 * * * ?")

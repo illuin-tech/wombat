@@ -30,18 +30,19 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
         NodeMode mode = value.getValue() == null ? null : parse(value.getValue());
 
         Map<String, String> properties = new HashMap<>();
-        properties.put(AGGREGATOR, String.valueOf(mode == NodeMode.AGGREGATOR));
+        properties.put(AGGREGATOR, String.valueOf(mode == NodeMode.aggregator));
 
-        if (mode == NodeMode.WORKER)
+        if (mode == NodeMode.worker)
         {
-            String dbKind = context.getValue("quarkus.datasource.db-kind").getValue();
-            if (dbKind != null && !dbKind.equals(WORKER_DB_KIND))
-                logger.warn("Worker mode only runs on SQLite: overriding quarkus.datasource.db-kind {} with {}", dbKind, WORKER_DB_KIND);
+            String backend = context.getValue("_internal.persistence.backend").getValue();
+            if (backend != null && !backend.equals(WORKER_DB_KIND))
+                logger.warn("Worker mode only runs on SQLite in-memory: overriding backend {} with {}", backend, WORKER_DB_KIND);
 
             properties.put("quarkus.datasource.db-kind", WORKER_DB_KIND);
             properties.put("quarkus.datasource.jdbc.url", WORKER_JDBC_URL);
             properties.put("quarkus.datasource.jdbc.min-size", "1");
             properties.put("quarkus.datasource.jdbc.max-size", "1");
+            properties.put("_internal.persistence.backend", WORKER_DB_KIND);
         }
 
         return List.of(new PropertiesConfigSource(
@@ -53,6 +54,6 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
 
     private static NodeMode parse(String mode)
     {
-        return NodeMode.valueOf(mode.trim().replace('-', '_').toUpperCase(Locale.ROOT));
+        return NodeMode.valueOf(mode.trim().replace('-', '_').toLowerCase(Locale.ROOT));
     }
 }

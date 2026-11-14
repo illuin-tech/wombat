@@ -1,37 +1,34 @@
-quarkus:
-  datasource:
-    jdbc:
-      url: "jdbc:sqlite:/var/data/local.db"
+persistence:
+  backend:
+    mode: sqlite
+    #mode: postgresql
+    sqlite:
+      jdbc-url: "jdbc:sqlite:/var/data/local.db"
+#       # Local S3 Backup setup (e.g. SeaweedFS service)
+#       backup:
+#         enabled: false
+#         cron: "0 0 * * * ?"  # hourly
+#         s3:
+#           key-prefix: sqlite/
+#           endpoint: http://localhost:8333
+#           bucket: wombat-bucket
+#           region: us-east-1
+#           access-key: admin
+#           secret-key: secret
+#     # Alternative PostgreSQL backend:
+#     postgresql:
+#       jdbc-url: "jdbc:postgresql://localhost:5432/wombat"
+#       username: wombat
+#       password: wombat
 
-# Alternative PostgreSQL Datasource for dev:
-# quarkus:
-#   datasource:
-#     db-kind: postgresql
-#     username: wombat
-#     password: wombat
-#     jdbc:
-#       url: "jdbc:postgresql://localhost:5432/wombat"
-
-connector:
-  boavizta:
-    uri: "http://boavizta:5000/v1/"
-  ecologits:
-    uri: "http://ecologits:80/"
-
-# Local S3 Backup setup (e.g. SeaweedFS service)
-# backup:
-#   enabled: false
-#   cron: "0 0 * * * ?"  # hourly
-#   s3:
-#     key-prefix: sqlite/
-#     endpoint: http://localhost:8333
-#     bucket: wombat-bucket
-#     region: us-east-1
-#     access-key: admin
-#     secret-key: secret
-
-# Optional Secret resolution directory:
-# wombat:
+wombat:
+#   # Optional Secret resolution directory:
 #   secret:
 #     directory:
 #       path: /secrets
+
+  connector:
+    boavizta:
+      uri: "http://boavizta:5000/v1/"
+    ecologits:
+      uri: "http://ecologits:80/"

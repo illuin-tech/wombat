@@ -6,8 +6,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Produces;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.flywaydb.core.Flyway;
+import tech.illuin.wombat.persistence.BackendMode;
+import tech.illuin.wombat.persistence.PersistenceBackendProperties;
 import tech.illuin.wombat.persistence.backend.api.*;
 import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
 import tech.illuin.wombat.persistence.backend.api.action.FlywayMigrate;
@@ -25,13 +26,13 @@ public class PostgresBackendConfig
 
     @Produces @Singleton
     public PersistenceBackend providePostgresBackend(
-        @ConfigProperty(name = "quarkus.datasource.db-kind") String dbKind,
+        PersistenceBackendProperties backendProps,
         Instance<AgroalDataSource> dataSources,
         Instance<Flyway> flyway,
         Instance<MeterRegistry> registry,
         MetricStoreContainer databaseStores
     ) {
-        if (!dbKind.equals(DBKIND_POSTGRESQL))
+        if (backendProps.mode() != BackendMode.postgresql)
             return PersistenceBackend.disabled(DBKIND_POSTGRESQL);
 
         List<HookSupplier> hooks = new ArrayList<>();

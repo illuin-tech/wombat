@@ -26,10 +26,10 @@ class CachedAssetEvaluatorPropertiesTest
     void indexedActivityResolverCacheUsesItsModuleAndDefaultCacheSettings()
     {
         CachedAssetEvaluatorProperties properties = load(Map.of(
-            "evaluation.cache.activity-resolver-caches[0].module", "tech.custom:llm",
-            "evaluation.cache.activity-resolver-caches[1].module", "tech.custom:container",
-            "evaluation.cache.activity-resolver-caches[1].maximum-size", "25",
-            "evaluation.cache.activity-resolver-caches[1].expire-after-write", "2m"
+            "wombat.evaluator.cache.activity-resolver-caches[0].module", "tech.custom:llm",
+            "wombat.evaluator.cache.activity-resolver-caches[1].module", "tech.custom:container",
+            "wombat.evaluator.cache.activity-resolver-caches[1].maximum-size", "25",
+            "wombat.evaluator.cache.activity-resolver-caches[1].expire-after-write", "2m"
         ));
 
         assertEquals(2, properties.activityResolverCaches().size());
@@ -44,10 +44,10 @@ class CachedAssetEvaluatorPropertiesTest
     private static CachedAssetEvaluatorProperties load(Map<String, String> values)
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
-            .withMapping(CachedAssetEvaluatorProperties.class)
-            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(values, "test", 100))
+            .withMapping(CachedAssetEvaluatorProperties.class, "wombat.evaluator.cache")
+            .withConverter(Duration.class, 100, new DurationConverter())
             .build();
-        return config.getConfigMapping(CachedAssetEvaluatorProperties.class);
+        return config.getConfigMapping(CachedAssetEvaluatorProperties.class, "wombat.evaluator.cache");
     }
 }

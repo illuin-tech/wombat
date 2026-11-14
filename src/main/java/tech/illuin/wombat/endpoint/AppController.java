@@ -9,9 +9,11 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.security.AuthProperties;
+import tech.illuin.wombat.endpoint.UIProperties;
 
 import java.util.Locale;
 

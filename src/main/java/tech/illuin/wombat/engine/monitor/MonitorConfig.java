@@ -6,6 +6,7 @@ import jakarta.inject.Singleton;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
+import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.source.AssetMonitor;
 
@@ -19,9 +20,9 @@ import java.util.Set;
 public class MonitorConfig
 {
     @Singleton
-    public MonitoredEnvironments provideMonitoredEnvironments(MonitorProperties properties, YAMLMapper mapper, Validator validator)
+    public MonitoredEnvironments provideMonitoredEnvironments(WombatProperties wombat, YAMLMapper mapper, Validator validator)
     {
-        String location = properties.environmentsFile();
+        String location = wombat.monitor().environmentsFile();
         try (InputStream in = open(location))
         {
             MonitoredEnvironments monitoredEnvironments = mapper.readValue(in, MonitoredEnvironments.class);

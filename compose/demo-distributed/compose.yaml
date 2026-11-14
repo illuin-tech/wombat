@@ -9,13 +9,14 @@ services:
       - "8080:8080"
     environment:
       WOMBAT_MODE: aggregator
-      QUARKUS_DATASOURCE_JDBC_URL: "jdbc:sqlite:/var/data/local.db"
+      PERSISTENCE_BACKEND_MODE: sqlite
+      PERSISTENCE_BACKEND_SQLITE_JDBC_URL: "jdbc:sqlite:/var/data/local.db"
       # Fold sampling rows every 5 minutes instead of every hour, so pushed activity reaches the UI within minutes
-      COMPACTION_CRON: "0 1/5 * * * ?"
-      COMPACTION_WINDOW: 5m
-      COMPACTION_DELAY: 30s
-      CONNECTOR_BOAVIZTA_URI: "http://boavizta:5000/v1/"
-      CONNECTOR_ECOLOGITS_URI: "http://ecologits:80/"
+      PERSISTENCE_COMPACTION_CRON: "0 1/5 * * * ?"
+      PERSISTENCE_COMPACTION_WINDOW: 5m
+      PERSISTENCE_COMPACTION_DELAY: 30s
+      WOMBAT_CONNECTOR_BOAVIZTA_URI: "http://boavizta:5000/v1/"
+      WOMBAT_CONNECTOR_ECOLOGITS_URI: "http://ecologits:80/"
       # Secret of the Anthropic asset of aggregator/monitored-environments.yaml, which is evaluated here
       ANTHROPIC_ADMIN_KEY: "${ANTHROPIC_ADMIN_KEY:-}"
     volumes:

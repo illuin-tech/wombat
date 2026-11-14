@@ -14,7 +14,6 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.MetricData;

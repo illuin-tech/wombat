@@ -26,6 +26,8 @@ public class EcologitsConfig
             .decoder(new JacksonDecoder());
 
         properties.proxyUrl().ifPresent(proxyUrl -> {
+            if (proxyUrl.isBlank())
+                return;
             URI proxy = URI.create(proxyUrl);
             if (proxy.getHost() == null || proxy.getPort() == -1)
                 throw new IllegalArgumentException("wombat.connector.ecologits.proxy-url must include a host and port, got: " + proxyUrl);

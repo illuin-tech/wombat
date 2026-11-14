@@ -91,6 +91,8 @@ public class PushBackendConfig
             .options(new Request.Options(timeout, timeout, true));
 
         properties.proxyUrl().ifPresent(proxyUrl -> {
+            if (proxyUrl.isBlank())
+                return;
             URI proxy = URI.create(proxyUrl);
             if (proxy.getHost() == null || proxy.getPort() == -1)
                 throw new IllegalArgumentException("wombat.worker.aggregator.proxy-url must include a host and port, got: " + proxyUrl);

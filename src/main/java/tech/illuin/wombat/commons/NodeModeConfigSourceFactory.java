@@ -54,6 +54,6 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
 
     private static NodeMode parse(String mode)
     {
-        return NodeMode.valueOf(mode.trim().replace('-', '_').toLowerCase(Locale.ROOT));
+        return NodeMode.valueOf(mode.trim().replace('-', '_').toLowerCase());
     }
 }

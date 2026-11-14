@@ -32,6 +32,7 @@ import tech.illuin.wombat.core.evaluation.cost.commons.AssetCost;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
+import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
@@ -77,11 +78,11 @@ public class WombatModuleConfig
     }
 
     @Produces @Singleton
-    public static ExtensionLoader provideWombatExtensionLoader(WombatModuleProperties properties)
+    public static ExtensionLoader provideWombatExtensionLoader(WombatProperties wombat)
     {
         return new CompositeExtensionLoader(
             new CoreExtensionLoader(),
-            new DynamicExtensionLoader(properties.extension().path())
+            new DynamicExtensionLoader(wombat.module().extension().path())
         );
     }
 
@@ -108,8 +109,9 @@ public class WombatModuleConfig
     }
 
     @Produces @Singleton
-    public static ModuleRegistry provideModuleRegistry(List<WombatModule> modules, WombatModuleProperties properties)
+    public static ModuleRegistry provideModuleRegistry(List<WombatModule> modules, WombatProperties wombat)
     {
+        WombatModuleProperties properties = wombat.module();
         /* This will soon become DB-backed and handle all detected modules; for now we use the conf-based switches for core modules only */
         InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
         modules.forEach(module -> {

@@ -158,6 +158,10 @@ class PostgresDatabaseSecretStoreTest
                 "01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8)
             );
             return Map.ofEntries(
+                Map.entry("persistence.backend.mode", "postgresql"),
+                Map.entry("persistence.backend.postgresql.jdbc-url", jdbcUrl),
+                Map.entry("persistence.backend.postgresql.username", PostgresTestContainer.username()),
+                Map.entry("persistence.backend.postgresql.password", PostgresTestContainer.password()),
                 Map.entry("quarkus.datasource.db-kind", "postgresql"),
                 Map.entry("quarkus.datasource.username", PostgresTestContainer.username()),
                 Map.entry("quarkus.datasource.password", PostgresTestContainer.password()),

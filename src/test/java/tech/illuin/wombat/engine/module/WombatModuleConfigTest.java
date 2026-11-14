@@ -10,6 +10,10 @@ import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
+import tech.illuin.wombat.commons.NodeMode;
+import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.engine.connector.boavizta.BoaviztaProperties;
+import tech.illuin.wombat.engine.connector.ecologits.EcologitsProperties;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
@@ -18,6 +22,9 @@ import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.persistence.BackendMode;
+import tech.illuin.wombat.persistence.PersistenceBackendProperties;
+import tech.illuin.wombat.persistence.backend.push.WorkerProperties;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
 import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
@@ -27,6 +34,7 @@ import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static tech.illuin.wombat.engine.module.WombatModuleConfig.*;
 
 /**
  * Exercises the producers directly rather than through CDI: the toggles are plain logic over
@@ -48,8 +57,8 @@ class WombatModuleConfigTest
     @Test
     void provideWombatExtensionLoader_returnsCompositeExtensionLoader()
     {
-        WombatModuleProperties properties = properties(true, true, true, true);
-        ExtensionLoader loader = this.config.provideWombatExtensionLoader(properties);
+        WombatProperties wombat = wombatProperties(true, true, true, true);
+        ExtensionLoader loader = provideWombatExtensionLoader(wombat);
 
         assertInstanceOf(CompositeExtensionLoader.class, loader);
     }
@@ -61,7 +70,7 @@ class WombatModuleConfigTest
         List<WombatModule> expected = List.of(new KubernetesAPIModule(), new LLMStaticModule());
         when(loader.load()).thenReturn(expected);
 
-        List<WombatModule> result = this.config.provideWombatModules(loader);
+        List<WombatModule> result = provideWombatModules(loader);
 
         assertEquals(expected, result);
         verify(loader).load();
@@ -82,14 +91,14 @@ class WombatModuleConfigTest
         );
 
         assertAll(
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, true, true, true)), new KubernetesAPIModule(), false),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(true, false, true, true)), new LLMPrometheusModule(), false),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(true, true, false, true)), new LLMAnthropicModule(), false),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(true, true, true, false)), new LLMVertexAIModule(), false),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new KubernetesSimulatedModule(), true),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new LLMSimulatedModule(), true),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new KubernetesStaticModule(), true),
-            () -> assertEnabled(this.config.provideModuleRegistry(modules, properties(false, false, false, false)), new LLMStaticModule(), true)
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(false, true, true, true)), new KubernetesAPIModule(), false),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(true, false, true, true)), new LLMPrometheusModule(), false),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(true, true, false, true)), new LLMAnthropicModule(), false),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(true, true, true, false)), new LLMVertexAIModule(), false),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(false, false, false, false)), new KubernetesSimulatedModule(), true),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(false, false, false, false)), new LLMSimulatedModule(), true),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(false, false, false, false)), new KubernetesStaticModule(), true),
+            () -> assertEnabled(provideModuleRegistry(modules, wombatProperties(false, false, false, false)), new LLMStaticModule(), true)
         );
     }
 
@@ -189,38 +198,64 @@ class WombatModuleConfigTest
         assertNotNull(llmHandlers.costResolver());
     }
 
-    private static WombatModuleProperties properties(boolean kubernetesApi, boolean llmPrometheus, boolean llmAnthropic, boolean vertexAi)
+    private static WombatProperties wombatProperties(boolean kubernetesApi, boolean llmPrometheus, boolean llmAnthropic, boolean vertexAi)
     {
-        return new WombatModuleProperties()
+        return new WombatProperties()
         {
             @Override
-            public KubernetesApiProperties kubernetesApi()
+            public NodeMode mode() { return NodeMode.standalone; }
+
+            @Override
+            public WorkerProperties worker()
             {
-                return () -> kubernetesApi;
+                return new WorkerProperties() {
+                    @Override public Optional<String> id() { return Optional.empty(); }
+                    @Override public Optional<tech.illuin.wombat.persistence.backend.push.AggregatorProperties> aggregator() { return Optional.empty(); }
+                };
             }
 
             @Override
-            public LlmPrometheusProperties llmPrometheus()
+            public tech.illuin.wombat.engine.monitor.MonitorProperties monitor() { return null; }
+
+            @Override
+            public WombatProperties.EvaluatorProperties evaluator()
             {
-                return () -> llmPrometheus;
+                return () -> null;
             }
 
             @Override
-            public LlmAnthropicProperties llmAnthropic()
+            public WombatModuleProperties module()
             {
-                return () -> llmAnthropic;
+                return new WombatModuleProperties()
+                {
+                    @Override
+                    public WombatModuleProperties.KubernetesApiProperties kubernetesApi() { return () -> kubernetesApi; }
+
+                    @Override
+                    public WombatModuleProperties.LlmPrometheusProperties llmPrometheus() { return () -> llmPrometheus; }
+
+                    @Override
+                    public WombatModuleProperties.LlmAnthropicProperties llmAnthropic() { return () -> llmAnthropic; }
+
+                    @Override
+                    public WombatModuleProperties.LlmVertexAIProperties llmVertexAi() { return () -> vertexAi; }
+
+                    @Override
+                    public WombatModuleProperties.ExtensionProperties extension() { return () -> Path.of("extensions"); }
+                };
             }
 
             @Override
-            public LlmVertexAIProperties llmVertexAi()
+            public WombatProperties.ConnectorProperties connector()
             {
-                return () -> vertexAi;
-            }
+                return new WombatProperties.ConnectorProperties()
+                {
+                    @Override
+                    public BoaviztaProperties boavizta() { return null; }
 
-            @Override
-            public ExtensionProperties extension()
-            {
-                return () -> Path.of("extensions");
+                    @Override
+                    public EcologitsProperties ecologits() { return null; }
+                };
             }
         };
     }

@@ -4,19 +4,16 @@ quarkus:
       uri: "http://localhost:0/boavizta"
     ecologits-api-url:
       uri: "http://localhost:0/ecologits"
+  # Database configuration is handled dynamically by PersistenceBackendConfigSourceFactory
+  # based on persistence.backend.mode. The values below are build-time defaults only
+  # and are overridden at runtime with priority Integer.MAX_VALUE - 1000.
   datasource:
     db-kind: sqlite
-    jdbc:
-      url: "jdbc:sqlite:target/wombat-test.db"
-      min-size: 0
   hibernate-orm:
     schema-management:
       strategy: none
   flyway:
-    migrate-at-start: true
-    clean-at-start: true
-    clean-disabled: false
-    locations: classpath:db/migration/${quarkus.datasource.db-kind}
+    locations: classpath:db/migration/sqlite
   scheduler:
     enabled: false
   devservices:
@@ -35,20 +32,48 @@ quarkus:
     reuse-data-file: true
     report: false
 
-monitor:
-  heartbeat: "1s"
-  environments-file: monitored-environments-test.yaml
+persistence:
+  backend:
+    mode: sqlite
+    sqlite:
+      jdbc-url: "jdbc:sqlite:target/wombat-test.db"
+      backup:
+        enabled: false
+        s3:
+          endpoint: "http://localhost:0"
+          bucket: "wombat-test"
+          region: "us-east-1"
+          key-prefix: "tests/"
+          access-key: "test"
+          secret-key: "test"
 
-module:
-  extension:
-    path: "/target/extensions"
+  compaction:
+    cron: "0 1 * * * ?"
+    window: 1h
+    delay: 1m
 
-backup:
-  enabled: false
-  s3:
-    endpoint: "http://localhost:0"
-    bucket: "wombat-test"
-    region: "us-east-1"
-    key-prefix: "tests/"
-    access-key: "test"
-    secret-key: "test"
+ui:
+  max-date-range:
+    duration: 1
+    unit: YEARS
+
+wombat:
+  monitor:
+    heartbeat: "1s"
+    environments-file: monitored-environments-test.yaml
+
+  evaluator:
+    cache:
+      enabled: true
+      maximum-size: 5000
+      expire-after-write: 10m
+
+  module:
+    kubernetes-api:
+      enabled: true
+    llm-prometheus:
+      enabled: true
+    llm-anthropic:
+      enabled: true
+    extension:
+      path: "/target/extensions"

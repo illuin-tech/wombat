@@ -1,13 +1,11 @@
 package tech.illuin.wombat.engine.evaluation;
 
-import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 
 import java.time.Duration;
 import java.util.List;
 
-@ConfigMapping(prefix = "evaluation.cache")
 public interface CachedAssetEvaluatorProperties
 {
     @WithDefault("true")

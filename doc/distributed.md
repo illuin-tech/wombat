@@ -44,8 +44,7 @@ API keys, secrets) write too, but fall under `admin`, so that a standalone insta
 
 The endpoints of a disabled feature are not registered: they answer `404` and are left out of the OpenAPI document
 (`/api/openapi`). `/q/*` is never gated: a worker serves nothing else, so it needs no authentication. The features are
-also served as [quarkus-flags](https://docs.quarkiverse.io/quarkus-flags/dev) flags named after them, resolved once at
-startup and logged.
+resolved once at startup and logged.
 
 ## Aggregator
 

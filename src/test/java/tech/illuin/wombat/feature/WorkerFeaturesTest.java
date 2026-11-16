@@ -1,11 +1,11 @@
 package tech.illuin.wombat.feature;
 
-import io.quarkiverse.flags.Flags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -17,18 +17,21 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-/** A worker serves none of the features, only {@code /q/*}, whatever the flag configuration. */
+/** A worker serves none of the features, only {@code /q/*}. */
 @QuarkusTest
 @TestProfile(WorkerFeaturesTest.WorkerProfile.class)
 class WorkerFeaturesTest
 {
     @Inject
-    Flags flags;
+    FeatureFlags features;
 
     @Test
-    void flagsAreAllDisabled()
+    void featuresAreAllDisabled()
     {
-        Arrays.stream(Feature.values()).forEach(feature -> assertFalse(this.flags.isEnabled(feature.flag()), feature.flag()));
+        Arrays.stream(Feature.values()).forEach(feature -> {
+            assertFalse(this.features.isEnabled(feature), feature.flag());
+            assertFalse(ConfigProvider.getConfig().getValue(feature.configKey(), Boolean.class), feature.configKey());
+        });
     }
 
     @Test
@@ -80,7 +83,6 @@ class WorkerFeaturesTest
             String kek = Base64.getEncoder().encodeToString("01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8));
             return Map.of(
                 "wombat.mode", "worker",
-                "quarkus.flags.runtime.ui.value", "true", // ignored: the mode alone sets the features
                 "wombat.worker.id", "test-worker",
                 "wombat.worker.aggregator.url", "http://localhost:0",
                 "wombat.worker.aggregator.api-key", "unused",

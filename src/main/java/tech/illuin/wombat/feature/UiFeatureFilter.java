@@ -31,15 +31,10 @@ public class UiFeatureFilter
             return;
         }
 
-        this.features.isEnabled(Feature.UI).subscribe().with(
-            enabled -> {
-                if (enabled)
-                    context.next();
-                else
-                    context.response().setStatusCode(404).end();
-            },
-            context::fail
-        );
+        if (this.features.isEnabled(Feature.UI))
+            context.next();
+        else
+            context.response().setStatusCode(404).end();
     }
 
     static boolean isUiPath(String path)

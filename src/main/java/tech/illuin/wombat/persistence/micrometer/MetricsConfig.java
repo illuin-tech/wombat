@@ -12,9 +12,9 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.persistence.PersistenceBackendProperties;
 import tech.illuin.wombat.persistence.backend.PersistenceEngine;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
 import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
@@ -32,15 +32,14 @@ public class MetricsConfig
     public WombatStepMeterRegistry provideStepRegistry(
         PersistenceEngine engine,
         WombatProperties wombat,
-        @ConfigProperty(name = "quarkus.datasource.db-kind") String dbKind
+        PersistenceBackendProperties backendProps
     ) {
         NodeMode mode = wombat.mode();
-        String backend = mode == NodeMode.WORKER ? PushBackendConfig.BACKEND_PUSH : dbKind;
+        String backend = mode == NodeMode.worker ? PushBackendConfig.BACKEND_PUSH : backendProps.mode().name();
         MetricStoreContainer stores = engine.stores(backend);
         logger.info("Running in {} mode, sampled metrics are written to the {} backend", mode, backend);
 
-        StepRegistryConfig stepConfig = new StepRegistryConfig()
-        {
+        StepRegistryConfig stepConfig = new StepRegistryConfig() {
             @Override
             public String prefix()
             {

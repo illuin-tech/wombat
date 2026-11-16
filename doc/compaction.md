@@ -4,11 +4,11 @@ Sourced metrics are written as raw samples every 5 minutes, then periodically fo
 The dashboard and the HTTP API only read compacted rows, so the compaction window is the delay before fresh activity
 becomes visible.
 
-| Property             | Default       | Description                                                                                      |
-|----------------------|---------------|--------------------------------------------------------------------------------------------------|
-| `compaction.cron`    | `0 1 * * * ?` | When compaction runs. Only closed windows are folded, so running it more often than they close is wasted. |
-| `compaction.window`  | `1h`          | Width of the compacted windows. Must be a multiple of the 5-minute sampling step and divide an hour (`5m`, `10m`, `15m`, `20m`, `30m`, `1h`); the app refuses to start otherwise. |
-| `compaction.delay`   | `1m`          | How long after its end a window is left alone, so the last raw samples land in it before it is folded. |
+| Property                        | Default       | Description                                                                                      |
+|---------------------------------|---------------|--------------------------------------------------------------------------------------------------|
+| `persistence.compaction.cron`   | `0 1 * * * ?` | When compaction runs. Only closed windows are folded, so running it more often than they close is wasted. |
+| `persistence.compaction.window` | `1h`          | Width of the compacted windows. Must be a multiple of the 5-minute sampling step and divide an hour (`5m`, `10m`, `15m`, `20m`, `30m`, `1h`); the app refuses to start otherwise. |
+| `persistence.compaction.delay`  | `1m`          | How long after its end a window is left alone, so the last raw samples land in it before it is folded. |
 
 > [!IMPORTANT]
 > Keeping the default settings in production is highly recommended. A shorter window is meant for development, where

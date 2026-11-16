@@ -52,16 +52,17 @@ services:
 With the following `application.yaml` file:
 
 ```yaml
-quarkus:
-  datasource:
-    jdbc:
-      url: "jdbc:sqlite:/var/data/local.db"
+persistence:
+  backend:
+    sqlite:
+      jdbc-url: "jdbc:sqlite:/var/data/local.db"
 
-connector:
-  boavizta:
-    uri: "http://boavizta:5000/v1/"
-  ecologits:
-    uri: "http://ecologits:80/"
+wombat:
+  connector:
+    boavizta:
+      uri: "http://boavizta:5000/v1/"
+    ecologits:
+      uri: "http://ecologits:80/"
 ```
 
 And the following `monitored-environments.yaml` file:

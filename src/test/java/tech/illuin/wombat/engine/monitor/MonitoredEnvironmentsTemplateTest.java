@@ -6,11 +6,17 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.commons.NodeMode;
+import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.engine.connector.boavizta.BoaviztaProperties;
+import tech.illuin.wombat.engine.connector.ecologits.EcologitsProperties;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.secret.SecretAware;
 import tech.illuin.wombat.core.source.Period;
+import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
+import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
@@ -18,8 +24,12 @@ import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
+import tech.illuin.wombat.persistence.backend.push.WorkerProperties;
 
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -95,7 +105,7 @@ class MonitoredEnvironmentsTemplateTest
     private static MonitoredEnvironments load()
     {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-        return new MonitorConfig().provideMonitoredEnvironments(new TemplateProperties(TEMPLATE), mapper(), validator);
+        return new MonitorConfig().provideMonitoredEnvironments(wombatProperties(TEMPLATE), mapper(), validator);
     }
 
     /**
@@ -120,12 +130,60 @@ class MonitoredEnvironmentsTemplateTest
             .orElseThrow(() -> new AssertionError("Template declares no " + type + " asset"));
     }
 
-    private record TemplateProperties(String environmentsFile) implements MonitorProperties
+    private static WombatProperties wombatProperties(String environmentsFile)
     {
-        @Override
-        public Period heartbeat()
+        return new WombatProperties()
         {
-            return Period.parse("1s");
-        }
+            @Override public NodeMode mode() { return NodeMode.standalone; }
+            @Override public WorkerProperties worker()
+            {
+                return new WorkerProperties() {
+                    @Override public Optional<String> id() { return Optional.empty(); }
+                    @Override public Optional<tech.illuin.wombat.persistence.backend.push.AggregatorProperties> aggregator() { return Optional.empty(); }
+                };
+            }
+
+            @Override public MonitorProperties monitor()
+            {
+                return new MonitorProperties()
+                {
+                    @Override public Period heartbeat() { return Period.parse("1s"); }
+                    @Override public String environmentsFile() { return environmentsFile; }
+                };
+            }
+
+            @Override public WombatProperties.EvaluatorProperties evaluator()
+            {
+                return new WombatProperties.EvaluatorProperties()
+                {
+                    @Override public CachedAssetEvaluatorProperties cache() { return null; }
+                };
+            }
+
+            @Override public WombatModuleProperties module()
+            {
+                return new WombatModuleProperties()
+                {
+                    @Override public WombatModuleProperties.KubernetesApiProperties kubernetesApi() { return () -> true; }
+                    @Override public WombatModuleProperties.LlmPrometheusProperties llmPrometheus() { return () -> true; }
+                    @Override public WombatModuleProperties.LlmAnthropicProperties llmAnthropic() { return () -> true; }
+                    @Override public WombatModuleProperties.LlmVertexAIProperties llmVertexAi() { return () -> true; }
+                    @Override public WombatModuleProperties.ExtensionProperties extension() { return () -> Path.of("extensions"); }
+                };
+            }
+
+            @Override
+            public WombatProperties.ConnectorProperties connector()
+            {
+                return new WombatProperties.ConnectorProperties()
+                {
+                    @Override
+                    public BoaviztaProperties boavizta() { return null; }
+
+                    @Override
+                    public EcologitsProperties ecologits() { return null; }
+                };
+            }
+        };
     }
 }

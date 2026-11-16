@@ -50,25 +50,18 @@ quarkus:
     path: /api/swagger
     always-include: true
 
+  # Database configuration is handled dynamically by PersistenceBackendConfigSourceFactory
+  # based on persistence.backend.mode. The values below are build-time defaults only
+  # and are overridden at runtime with priority Integer.MAX_VALUE - 1000.
   datasource:
     db-kind: sqlite
     jdbc:
-      url: "jdbc:sqlite:./data/db/local.db"
-      min-size: 0
-  ## PostgreSQL Datasource Configuration
-  #datasource:
-  #  db-kind: postgresql
-  #  username: my-username
-  #  password: my-password
-  #  jdbc:
-  #    url: "jdbc:postgresql://localhost:5432/wombat"
-
+      url: "jdbc:sqlite::memory:"
   hibernate-orm:
     schema-management:
       strategy: none
   flyway:
-    migrate-at-start: false
-    locations: classpath:db/migration/${quarkus.datasource.db-kind}
+    locations: classpath:db/migration/sqlite
   scheduler:
     enabled: true
   kubernetes-client:
@@ -99,44 +92,6 @@ quarkus:
     quinoa:
       enabled: false
 
-module:
-  kubernetes-api:
-    enabled: true
-  llm-prometheus:
-    enabled: true
-  llm-anthropic:
-    enabled: true
-  extension:
-    path: "extensions"
-
-evaluation:
-  cache:
-    enabled: true
-    maximum-size: 5000
-    expire-after-write: 10m
-
-compaction:
-  cron: "0 1 * * * ?" # a minute past every hour
-  window: 1h
-  delay: 1m
-
-monitor:
-  heartbeat: "10s"
-  environments-file: "monitored/monitored-environments.yaml"
-
-ui:
-  max-date-range:
-    duration: 1
-    unit: YEARS
-
-connector:
-  boavizta:
-    uri: "https://api.boavizta.org/v1/"
-    #proxy-url: "http://proxy.example.com:3128"
-  ecologits:
-    uri: "https://api.ecologits.ai/"
-    #proxy-url: "http://proxy.example.com:3128"
-
 wombat:
   # standalone: samples its environments into its own database (single-instance setup)
   # aggregator: stores and serves the metrics pushed by workers on POST /api/workers/{worker}/metrics, samples nothing itself
@@ -151,6 +106,34 @@ wombat:
   #    api-key: "<key holding api.metric.write and api.environment.write on the aggregator>"
   #    proxy-url: "http://proxy.example.com:3128"  # optional, HTTP proxy to reach the aggregator through
   #    timeout: 30s
+
+  connector:
+    boavizta:
+      uri: "https://api.boavizta.org/v1/"
+      #proxy-url: "http://proxy.example.com:3128"
+    ecologits:
+      uri: "https://api.ecologits.ai/"
+      #proxy-url: "http://proxy.example.com:3128"
+
+  monitor:
+    heartbeat: "10s"
+    environments-file: "monitored/monitored-environments.yaml"
+
+  evaluator:
+    cache:
+      enabled: true
+      maximum-size: 5000
+      expire-after-write: 10m
+
+  module:
+    kubernetes-api:
+      enabled: true
+    llm-prometheus:
+      enabled: true
+    llm-anthropic:
+      enabled: true
+    extension:
+      path: "extensions"
 
   ## Secret Resolution Configuration
   # Write mode defaults to DISABLED; DATABASE is selected at startup and requires a restart to change.
@@ -169,19 +152,39 @@ wombat:
   #    kek:
   #      current: "${WOMBAT_SECRET_DATABASE_KEK_CURRENT}"
 
-backup:
-  enabled: false
-  cron: "0 0 2 * * ?"
-  restore-on-startup: true
-  cleanup:
-    enabled: true
-    cron: "0 0 3 * * ?"
-    retain-last: 10
-  ## S3 Backup Storage Configuration
-  #s3:
-  #  endpoint: "https://s3.amazonaws.com"
-  #  bucket: "wombat-backups"
-  #  region: "us-east-1"
-  #  key-prefix: "backups/"
-  #  access-key: "your-access-key"
-  #  secret-key: "your-secret-key"
+persistence:
+  backend:
+    mode: sqlite
+    sqlite:
+      jdbc-url: "jdbc:sqlite:./data/db/local.db"
+      backup:
+        enabled: false
+        cron: "0 0 2 * * ?"
+        restore-on-startup: true
+        cleanup:
+          enabled: true
+          cron: "0 0 3 * * ?"
+          retain-last: 10
+        ## S3 Backup Storage Configuration
+        #s3:
+        #  endpoint: "https://s3.amazonaws.com"
+        #  bucket: "wombat-backups"
+        #  region: "us-east-1"
+        #  key-prefix: "backups/"
+        #  access-key: "your-access-key"
+        #  secret-key: "your-secret-key"
+    ## PostgreSQL Configuration
+    #postgresql:
+    #  jdbc-url: "jdbc:postgresql://localhost:5432/wombat"
+    #  username: my-username
+    #  password: my-password
+
+  compaction:
+    cron: "0 1 * * * ?" # a minute past every hour
+    window: 1h
+    delay: 1m
+
+ui:
+  max-date-range:
+    duration: 1
+    unit: YEARS

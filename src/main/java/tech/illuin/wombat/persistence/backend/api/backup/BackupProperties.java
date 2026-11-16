@@ -6,7 +6,7 @@ import tech.illuin.wombat.persistence.backend.s3.S3Properties;
 
 import java.util.Optional;
 
-@ConfigMapping(prefix = "backup")
+@ConfigMapping(prefix = "persistence.backend.sqlite.backup")
 public interface BackupProperties
 {
     @WithDefault("false")

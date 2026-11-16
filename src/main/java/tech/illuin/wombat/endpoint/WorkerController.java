@@ -16,7 +16,6 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.Environment;
@@ -34,7 +33,6 @@ import tech.illuin.wombat.security.Permission;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Receives the environments declared by workers, so an aggregator evaluates their assets without declaring them itself.
@@ -42,7 +40,7 @@ import java.util.Optional;
  * two workers declaring the same asset id declare two assets. Only an {@link NodeMode#AGGREGATOR} serves it.
  */
 @Path("api/workers")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
+@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR_CONFIG_KEY, stringValue = "false")
 public class WorkerController
 {
     private final EnvironmentReconciler reconciler;

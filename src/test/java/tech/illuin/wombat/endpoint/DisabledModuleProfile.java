@@ -12,7 +12,7 @@ public class DisabledModuleProfile implements QuarkusTestProfile
     {
         return Map.of(
             "wombat.mode", "aggregator",
-            "module.kubernetes-api.enabled", "false"
+            "wombat.module.kubernetes-api.enabled", "false"
         );
     }
 }

@@ -52,7 +52,7 @@ public class PushBackendConfig
         Instance<JsonMapper> assetMapper,
         Instance<MonitoredEnvironments> environments
     ) {
-        if (wombat.mode() != NodeMode.WORKER)
+        if (wombat.mode() != NodeMode.worker)
             return PersistenceBackend.disabled(BACKEND_PUSH);
 
         WorkerProperties properties = wombat.worker();
@@ -90,13 +90,14 @@ public class PushBackendConfig
             .requestInterceptor(template -> template.header(ApiKeyAuthenticationMechanism.HEADER, properties.apiKey()))
             .options(new Request.Options(timeout, timeout, true));
 
-        if (properties.proxyUrl().isPresent() && !properties.proxyUrl().get().isBlank())
-        {
-            URI proxy = URI.create(properties.proxyUrl().get());
+        properties.proxyUrl().ifPresent(proxyUrl -> {
+            if (proxyUrl.isBlank())
+                return;
+            URI proxy = URI.create(proxyUrl);
             if (proxy.getHost() == null || proxy.getPort() == -1)
-                throw new IllegalArgumentException("wombat.worker.aggregator.proxy-url must include a host and port, got: " + properties.proxyUrl().get());
+                throw new IllegalArgumentException("wombat.worker.aggregator.proxy-url must include a host and port, got: " + proxyUrl);
             builder.client(new Client.Proxied(null, null, new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxy.getHost(), proxy.getPort()))));
-        }
+        });
 
         return builder.target(type, properties.url().replaceAll("/+$", ""));
     }

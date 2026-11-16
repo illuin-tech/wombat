@@ -19,11 +19,11 @@ class MonitorSchedulerTest
     @Test
     void standaloneAndWorkers_sampleTheirEnvironments()
     {
-        for (NodeMode mode : new NodeMode[]{ NodeMode.STANDALONE, NodeMode.WORKER })
+        for (NodeMode mode : new NodeMode[]{ NodeMode.standalone, NodeMode.worker })
         {
             Scheduler scheduler = startedScheduler();
             Instance<MonitorService> service = service();
-            new MonitorScheduler(scheduler, service, properties(), wombat(mode)).registerMonitorService(null);
+            new MonitorScheduler(scheduler, service, wombat(mode)).registerMonitorService(null);
             verify(scheduler).newJob("wombat-monitor");
             verify(service).get();
         }
@@ -35,7 +35,7 @@ class MonitorSchedulerTest
     {
         Scheduler scheduler = startedScheduler();
         Instance<MonitorService> service = service();
-        new MonitorScheduler(scheduler, service, properties(), wombat(NodeMode.AGGREGATOR)).registerMonitorService(null);
+        new MonitorScheduler(scheduler, service, wombat(NodeMode.aggregator)).registerMonitorService(null);
         verify(scheduler, never()).newJob(anyString());
         verify(service, never()).get();
     }
@@ -58,13 +58,8 @@ class MonitorSchedulerTest
 
     private static WombatProperties wombat(NodeMode mode)
     {
-        WombatProperties wombat = mock(WombatProperties.class);
+        WombatProperties wombat = mock(WombatProperties.class, RETURNS_DEEP_STUBS);
         when(wombat.mode()).thenReturn(mode);
         return wombat;
-    }
-
-    private static MonitorProperties properties()
-    {
-        return mock(MonitorProperties.class, RETURNS_DEEP_STUBS);
     }
 }

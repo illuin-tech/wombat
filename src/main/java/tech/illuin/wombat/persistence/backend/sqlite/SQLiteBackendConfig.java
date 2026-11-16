@@ -6,14 +6,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Produces;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.flywaydb.core.Flyway;
+import tech.illuin.wombat.persistence.BackendMode;
+import tech.illuin.wombat.persistence.PersistenceBackendProperties;
+import tech.illuin.wombat.persistence.PersistenceBackendProperties.SQLiteProperties;
 import tech.illuin.wombat.persistence.backend.api.*;
 import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
 import tech.illuin.wombat.persistence.backend.api.action.FlywayMigrate;
+import tech.illuin.wombat.persistence.backend.api.backup.BackupProperties;
 import tech.illuin.wombat.persistence.backend.s3.S3Properties;
 import tech.illuin.wombat.persistence.backend.sqlite.action.*;
-import tech.illuin.wombat.persistence.backend.api.backup.BackupProperties;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,16 +31,17 @@ public class SQLiteBackendConfig
 
     @Produces @Singleton
     public PersistenceBackend provideSQLiteBackend(
-        @ConfigProperty(name = "quarkus.datasource.db-kind") String dbKind,
-        @ConfigProperty(name = "quarkus.datasource.jdbc.url") String jdbcUrl,
-        BackupProperties backupProperties,
+        PersistenceBackendProperties backendProps,
         Instance<AgroalDataSource> dataSources,
         Instance<Flyway> flyway,
         Instance<MeterRegistry> registry,
         MetricStoreContainer databaseStores
     ) {
-        if (!dbKind.equals(DBKIND_SQLITE))
+        if (backendProps.mode() != BackendMode.sqlite)
             return PersistenceBackend.disabled(DBKIND_SQLITE);
+
+        SQLiteProperties sqlite = backendProps.mode().getSection(backendProps);
+        String jdbcUrl = sqlite.jdbcUrl();
 
         List<HookSupplier> hooks = new ArrayList<>();
         List<ProcessSupplier> processes = new ArrayList<>();
@@ -51,11 +54,10 @@ public class SQLiteBackendConfig
         if (!jdbcPath.equals(":memory:"))
         {
             Path dbPath = Path.of(jdbcPath);
-            
+
             hooks.add(new HookSupplier("directory-init", RESOURCE_INIT, 0, () -> new SQLiteDirectoryInit(dbPath)));
 
-            if (backupProperties.enabled())
-            {
+            sqlite.backup().filter(BackupProperties::enabled).ifPresent(backupProperties -> {
                 S3Properties s3Properties = backupProperties.s3().orElseThrow(() -> new IllegalArgumentException("S3 properties must be provided when backup is enabled"));
 
                 Supplier<Action> backupAction = () -> new SQLiteBackupProduce(dataSources.get(), s3Properties);
@@ -66,7 +68,7 @@ public class SQLiteBackendConfig
                     hooks.add(new HookSupplier("backup-restore", RESOURCE_INIT, 16, () -> new SQLiteBackupRestore(dbPath, s3Properties)));
                 if (backupProperties.cleanup().enabled())
                     processes.add(new ProcessSupplier("backup-clean", backupProperties.cleanup().cron(), () -> new SQLiteBackupClean(backupProperties.cleanup(), s3Properties)));
-            }
+            });
         }
 
         return PersistenceBackend.of(DBKIND_SQLITE, hooks, processes, databaseStores);

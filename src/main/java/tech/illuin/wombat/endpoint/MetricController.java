@@ -14,7 +14,6 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.NodeModeConfigSourceFactory;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.source.data.MetricData;
@@ -42,7 +41,7 @@ import java.util.Map;
  * are saved.
  */
 @Path("api/workers/{worker}/metrics")
-@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR, stringValue = "false")
+@EndpointDisabled(name = NodeModeConfigSourceFactory.AGGREGATOR_CONFIG_KEY, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_METRIC_WRITE)
 public class MetricController
 {

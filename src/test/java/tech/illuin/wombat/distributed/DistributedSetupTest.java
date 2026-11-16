@@ -141,8 +141,8 @@ class DistributedSetupTest
         AssetIdentity westLlm = AssetIdentity.of("llm", "west", "LLM", LLM_TYPE);
         List<String> assetIds = List.of("east.cluster", "east.llm", "west.cluster", "west.llm");
         QuarkusTransaction.requiringNew().run(() -> {
-            this.kubernetesMetrics.delete("assetId in ?1", assetIds);
-            this.llmMetrics.delete("assetId in ?1", assetIds);
+            this.kubernetesMetrics.deleteByAssetIds(assetIds);
+            this.llmMetrics.deleteByAssetIds(assetIds);
         });
 
         /* Several source heartbeats within one window on each worker. */
@@ -289,7 +289,7 @@ class DistributedSetupTest
 
     private void assertSaved(AssetIdentity asset, String type, long instantMs, double cpu, double ram)
     {
-        List<KubernetesMetricEntity> rows = this.kubernetesMetrics.list("assetId", asset.id());
+        List<KubernetesMetricEntity> rows = this.kubernetesMetrics.listByAssetId(asset.id());
         assertEquals(1, rows.size(), asset.id());
         KubernetesMetricEntity row = rows.getFirst();
         assertEquals(asset, row.identity());
@@ -302,7 +302,7 @@ class DistributedSetupTest
 
     private void assertSaved(AssetIdentity asset, String type, long instantMs, long outputTokens)
     {
-        List<LLMMetricEntity> rows = this.llmMetrics.list("assetId", asset.id());
+        List<LLMMetricEntity> rows = this.llmMetrics.listByAssetId(asset.id());
         assertEquals(1, rows.size(), asset.id());
         LLMMetricEntity row = rows.getFirst();
         assertEquals(asset, row.identity());

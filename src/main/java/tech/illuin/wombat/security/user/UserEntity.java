@@ -1,6 +1,5 @@
 package tech.illuin.wombat.security.user;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -23,7 +22,7 @@ import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.no
  */
 @Entity
 @Table(name = "users")
-public class UserEntity extends PanacheEntityBase
+public class UserEntity
 {
     @Id @Column(nullable = false)
     public String id;

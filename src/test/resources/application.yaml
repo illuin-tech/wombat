@@ -4,16 +4,6 @@ quarkus:
       uri: "http://localhost:0/boavizta"
     ecologits-api-url:
       uri: "http://localhost:0/ecologits"
-  # Database configuration is handled dynamically by PersistenceBackendConfigSourceFactory
-  # based on persistence.backend.mode. The values below are build-time defaults only
-  # and are overridden at runtime with priority Integer.MAX_VALUE - 1000.
-  datasource:
-    db-kind: sqlite
-  hibernate-orm:
-    schema-management:
-      strategy: none
-  flyway:
-    locations: classpath:db/migration/sqlite
   scheduler:
     enabled: false
   devservices:
@@ -36,7 +26,7 @@ persistence:
   backend:
     mode: sqlite
     sqlite:
-      jdbc-url: "jdbc:sqlite:target/wombat-test.db"
+      jdbc-url: "jdbc:sqlite::memory:"
       backup:
         enabled: false
         s3:

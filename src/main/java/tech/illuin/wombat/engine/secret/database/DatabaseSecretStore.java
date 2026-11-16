@@ -63,7 +63,10 @@ public class DatabaseSecretStore implements SecretStore
     public boolean deleteSecret(String key)
     {
         validateKey(key);
-        return this.secrets.deleteById(key);
+        SecretEntity entity = this.secrets.findById(key);
+        if (entity != null)
+            this.secrets.delete(entity);
+        return entity != null;
     }
 
     @Override @Transactional

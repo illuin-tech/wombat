@@ -33,7 +33,7 @@ class MetricControllerTest
     @BeforeEach
     void setUp()
     {
-        QuarkusTransaction.requiringNew().run(() -> this.llm.delete("assetId in ?1", List.of("east.pushed-llm", "east.a")));
+        QuarkusTransaction.requiringNew().run(() -> this.llm.deleteByAssetIds(List.of("east.pushed-llm", "east.a")));
     }
 
     @Test
@@ -61,7 +61,7 @@ class MetricControllerTest
             .body("status.message", is("Success"))
             .body("status.metadata.errors", nullValue());
 
-        List<LLMMetricEntity> rows = this.llm.list("assetId", "east.pushed-llm");
+        List<LLMMetricEntity> rows = this.llm.listByAssetId("east.pushed-llm");
         assertEquals(2, rows.size());
         assertTrue(rows.stream().allMatch(row -> row.instantMs == WORKER_INSTANT_MS));
         assertEquals(30L, rows.stream().mapToLong(row -> row.outputTokens).sum());
@@ -86,8 +86,8 @@ class MetricControllerTest
             .body("status.metadata.errors[0].reason", is("No active module for asset type unknown.type"))
             .body("status.metadata.errors[0].count", is(1));
 
-        assertEquals(0, this.llm.count("assetId", "east.a"));
-        assertEquals(1, this.llm.count("assetId", "east.pushed-llm"));
+        assertEquals(0, this.llm.countByAssetId("east.a"));
+        assertEquals(1, this.llm.countByAssetId("east.pushed-llm"));
     }
 
     @Test

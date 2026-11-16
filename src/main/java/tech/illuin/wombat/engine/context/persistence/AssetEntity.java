@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.context.persistence;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -15,7 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "assets")
-public class AssetEntity extends PanacheEntityBase
+public class AssetEntity
 {
     @Id
     @Column(nullable = false)

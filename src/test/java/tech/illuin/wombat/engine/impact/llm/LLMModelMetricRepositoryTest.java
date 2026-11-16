@@ -44,7 +44,7 @@ class LLMModelMetricRepositoryTest
     {
         repository.save(row(1000L, "p-llm", "mistral-large-latest", 42L));
 
-        LLMMetricEntity persisted = repository.findAll().firstResult();
+        LLMMetricEntity persisted = repository.listAll().get(0);
         assertEquals(new LLMData("mistral-large-latest", LLMProvider.mistralai, "mistral-large-latest", FRANCE, 42L, 1L), persisted.data);
         assertEquals(42L, persisted.outputTokens);
         assertEquals(1L, persisted.requestCount);
@@ -134,7 +134,7 @@ class LLMModelMetricRepositoryTest
         assertEquals(30L, servedTokens("p-llm"));
         assertEquals(5L, servedTokens("other"));
 
-        List<LLMMetricEntity> all = repository.findAll().list();
+        List<LLMMetricEntity> all = repository.listAll();
         assertEquals(2, all.size(), "the sampling rows should be gone");
         assertTrue(all.stream().allMatch(row -> row.compacted));
         assertTrue(all.stream().allMatch(row -> row.instantMs == 0L));
@@ -162,7 +162,7 @@ class LLMModelMetricRepositoryTest
         int rows = repository.compactBucket(0L, HOUR_MS);
 
         assertEquals(2, rows);
-        List<LLMMetricEntity> all = repository.findAll().list();
+        List<LLMMetricEntity> all = repository.listAll();
         assertEquals(2, all.size());
 
         LLMMetricEntity mistral = all.stream().filter(r -> "mistral".equals(r.data.model())).findFirst().orElseThrow();
@@ -188,7 +188,7 @@ class LLMModelMetricRepositoryTest
         repository.save(sampled(2000L, "p-llm", "m", 15L, 1L));
         assertEquals(1, repository.compactBucket(0L, HOUR_MS));
 
-        List<LLMMetricEntity> folded = repository.findAll().list();
+        List<LLMMetricEntity> folded = repository.listAll();
         assertEquals(1, folded.size(), "one row for the hour, not two");
         LLMMetricEntity entity = folded.getFirst();
         assertEquals(45L, entity.outputTokens);
@@ -206,7 +206,7 @@ class LLMModelMetricRepositoryTest
 
         repository.compactBucket(0L, HOUR_MS);
 
-        List<LLMMetricEntity> all = repository.findAll().list();
+        List<LLMMetricEntity> all = repository.listAll();
         assertEquals(2, all.size());
 
         LLMMetricEntity firstHour = all.stream().filter(r -> r.instantMs == 0L).findFirst().orElseThrow();
@@ -228,7 +228,7 @@ class LLMModelMetricRepositoryTest
 
         assertEquals(0, repository.compactBucket(0L, HOUR_MS));
         assertEquals(10L, servedTokens("p-llm"));
-        assertEquals(1, repository.findAll().list().size());
+        assertEquals(1, repository.listAll().size());
     }
 
     @Test

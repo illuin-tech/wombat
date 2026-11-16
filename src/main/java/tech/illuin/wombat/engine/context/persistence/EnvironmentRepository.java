@@ -1,15 +1,22 @@
 package tech.illuin.wombat.engine.context.persistence;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
 import java.util.List;
 
 @ApplicationScoped
-public class EnvironmentRepository implements PanacheRepositoryBase<EnvironmentEntity, String>
+public class EnvironmentRepository extends Repository<EnvironmentEntity, String>
 {
+    public EnvironmentRepository()
+    {
+        super(EnvironmentEntity.class);
+    }
+
     public List<EnvironmentEntity> findActive()
     {
-        return this.list("disabledAt is null");
+        return getEntityManager()
+            .createQuery("FROM EnvironmentEntity WHERE disabledAt IS NULL", EnvironmentEntity.class)
+            .getResultList();
     }
 }

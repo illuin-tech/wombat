@@ -1,6 +1,5 @@
 package tech.illuin.wombat.security.apikey;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -19,7 +18,7 @@ import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.no
 /** A key belongs to the user who created it, and never grants more than its owner currently holds. */
 @Entity
 @Table(name = "api_keys")
-public class ApiKeyEntity extends PanacheEntityBase
+public class ApiKeyEntity
 {
     @Id @Column(nullable = false)
     public String id;

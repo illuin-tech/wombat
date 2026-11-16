@@ -63,8 +63,7 @@ public class RestoredSecretStartupTest
         @Override
         public Map<String, String> start()
         {
-            try
-            {
+            try {
                 this.directory = Files.createTempDirectory(Path.of("target"), "secret-restore-");
                 this.backup = this.directory.resolve("backup.db");
                 this.target = this.directory.resolve("restored.db").toAbsolutePath();
@@ -83,12 +82,10 @@ public class RestoredSecretStartupTest
                 }
 
                 return Map.ofEntries(
-                    Map.entry("persistence.backend.sqlite.jdbc-url", "jdbc:sqlite:" + this.target),
-                    Map.entry("quarkus.datasource.jdbc.url", "jdbc:sqlite:" + this.target),
-                    Map.entry("quarkus.flyway.clean-at-start", "false"),
-                    Map.entry("quarkus.flyway.migrate-at-start", "false"),
                     Map.entry("quarkus.scheduler.enabled", "true"),
                     Map.entry("wombat.monitor.environments-file", "src/test/resources/monitored-restored-secret.yaml"),
+                    Map.entry("persistence.backend.mode", "sqlite"),
+                    Map.entry("persistence.backend.sqlite.jdbc-url", "jdbc:sqlite:" + this.target),
                     Map.entry("persistence.backend.sqlite.backup.enabled", "true"),
                     Map.entry("persistence.backend.sqlite.backup.restore-on-startup", "true"),
                     Map.entry("persistence.backend.sqlite.backup.cleanup.enabled", "false"),
@@ -98,13 +95,12 @@ public class RestoredSecretStartupTest
                     Map.entry("persistence.backend.sqlite.backup.s3.key-prefix", "restored/"),
                     Map.entry("persistence.backend.sqlite.backup.s3.access-key", this.localstack.getAccessKey()),
                     Map.entry("persistence.backend.sqlite.backup.s3.secret-key", this.localstack.getSecretKey()),
-                    Map.entry("wombat.secret.write-mode", "DATABASE"),
+                    Map.entry("wombat.secret.write-mode", "database"),
                     Map.entry("wombat.secret.database.active-kek-id", "test"),
                     Map.entry("wombat.secret.database.kek.test", TEST_KEK)
                 );
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 stop();
                 throw new IllegalStateException("Could not prepare restored secret startup test", e);
             }
@@ -115,8 +111,7 @@ public class RestoredSecretStartupTest
         {
             if (this.localstack != null)
                 this.localstack.stop();
-            try
-            {
+            try {
                 if (this.target != null)
                 {
                     Files.deleteIfExists(Path.of(this.target + "-wal"));
@@ -128,8 +123,7 @@ public class RestoredSecretStartupTest
                 if (this.directory != null)
                     Files.deleteIfExists(this.directory);
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 throw new IllegalStateException("Could not clean up restored secret startup test", e);
             }
         }

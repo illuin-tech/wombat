@@ -1,9 +1,10 @@
 package tech.illuin.wombat.engine.impact.kubernetes;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
+import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 import tech.illuin.wombat.persistence.compaction.BucketCompactor;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.AssetIdentity;
@@ -20,15 +21,22 @@ import java.util.function.ToDoubleFunction;
 import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 @ApplicationScoped
-public class KubernetesMetricRepository implements PanacheRepositoryBase<KubernetesMetricEntity, Long>, KubernetesMetricResolver, BucketCompactor
+public class KubernetesMetricRepository extends Repository<KubernetesMetricEntity, Long> implements KubernetesMetricResolver, BucketCompactor
 {
     private static final String DATA = "data";
     private static final String SERVICE_ID = "serviceId";
 
     private final JsonPathDialect dialect;
 
+    public KubernetesMetricRepository()
+    {
+        this(null);
+    }
+
+    @Inject
     public KubernetesMetricRepository(JsonPathDialect dialect)
     {
+        super(KubernetesMetricEntity.class);
         this.dialect = dialect;
     }
 
@@ -45,9 +53,52 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     }
 
     @Transactional
+    public void deleteByAssetId(String assetId)
+    {
+        this.getEntityManager()
+            .createNativeQuery("DELETE FROM server_metrics WHERE asset_id = ?1")
+            .setParameter(1, assetId)
+            .executeUpdate();
+    }
+
+    @Transactional
+    public void deleteByAssetIds(List<String> assetIds)
+    {
+        if (assetIds.isEmpty())
+            return;
+        this.getEntityManager()
+            .createQuery("DELETE FROM KubernetesMetricEntity WHERE assetId IN :ids")
+            .setParameter("ids", assetIds)
+            .executeUpdate();
+    }
+
+    @Transactional
+    public List<KubernetesMetricEntity> listByAssetId(String assetId)
+    {
+        return getEntityManager()
+            .createQuery("FROM KubernetesMetricEntity WHERE assetId = :assetId", KubernetesMetricEntity.class)
+            .setParameter("assetId", assetId)
+            .getResultList();
+    }
+
+    @Transactional
+    public long countByAssetId(String assetId)
+    {
+        return ((Number) getEntityManager()
+            .createQuery("SELECT COUNT(m) FROM KubernetesMetricEntity m WHERE m.assetId = :assetId")
+            .setParameter("assetId", assetId)
+            .getSingleResult()
+        ).longValue();
+    }
+
+    @Transactional
     public List<KubernetesMetricEntity> findByRange(long startMs, long endMs)
     {
-        return find("instantMs >= ?1 AND instantMs <= ?2", startMs, endMs).list();
+        return getEntityManager()
+            .createQuery("FROM KubernetesMetricEntity WHERE instantMs >= :start AND instantMs <= :end", KubernetesMetricEntity.class)
+            .setParameter("start", startMs)
+            .setParameter("end", endMs)
+            .getResultList();
     }
 
     @Transactional
@@ -173,8 +224,11 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
     public int compactBucket(long bucketStartMs, long stepMs)
     {
         long bucketEndMs = bucketStartMs + stepMs;
-        List<KubernetesMetricEntity> rows = find(
-            "instantMs >= ?1 AND instantMs < ?2", bucketStartMs, bucketEndMs).list();
+        List<KubernetesMetricEntity> rows = this.getEntityManager()
+            .createQuery("FROM KubernetesMetricEntity WHERE instantMs >= :start AND instantMs < :end", KubernetesMetricEntity.class)
+            .setParameter("start", bucketStartMs)
+            .setParameter("end", bucketEndMs)
+            .getResultList();
         if (rows.stream().allMatch(row -> row.compacted))
             return 0;
 
@@ -196,7 +250,11 @@ public class KubernetesMetricRepository implements PanacheRepositoryBase<Kuberne
             folded.add(row);
         });
 
-        delete("instantMs >= ?1 AND instantMs < ?2", bucketStartMs, bucketEndMs);
+        getEntityManager()
+            .createNativeQuery("DELETE FROM server_metrics WHERE instant_ms >= ?1 AND instant_ms < ?2")
+            .setParameter(1, bucketStartMs)
+            .setParameter(2, bucketEndMs)
+            .executeUpdate();
         getEntityManager().clear();
 
         folded.forEach(this::persist);

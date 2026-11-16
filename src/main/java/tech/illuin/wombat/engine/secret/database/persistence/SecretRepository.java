@@ -1,15 +1,20 @@
 package tech.illuin.wombat.engine.secret.database.persistence;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.Query;
 import tech.illuin.wombat.core.secret.SecretMetadata;
+import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
 import java.util.List;
 
 @ApplicationScoped
-public class SecretRepository implements PanacheRepositoryBase<SecretEntity, String>
+public class SecretRepository extends Repository<SecretEntity, String>
 {
+    public SecretRepository()
+    {
+        super(SecretEntity.class);
+    }
+
     public List<SecretMetadata> listMetadata()
     {
         return getEntityManager().createQuery(
@@ -51,6 +56,9 @@ public class SecretRepository implements PanacheRepositoryBase<SecretEntity, Str
 
     public long countNeedingRewrap(String activeKekId)
     {
-        return count("kekId <> ?1", activeKekId);
+        Query query = getEntityManager().createQuery(
+            "SELECT COUNT(s) FROM SecretEntity s WHERE s.kekId <> :activeKekId");
+        query.setParameter("activeKekId", activeKekId);
+        return ((Number) query.getSingleResult()).longValue();
     }
 }

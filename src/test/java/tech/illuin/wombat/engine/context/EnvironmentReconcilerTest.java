@@ -88,7 +88,7 @@ class EnvironmentReconcilerTest
     void softDeletesAssetAbsentFromYaml_withDeleteHistory()
     {
         AssetEntity orphan = AssetEntity.from("e1", k8s("gone", Lifetime.ofYears(5)));
-        when(this.assets.list("deletedAt is null")).thenReturn(List.of(orphan));
+        when(this.assets.findActive()).thenReturn(List.of(orphan));
 
         this.reconcile(desired("e1", "Env 1")); // env kept, but no assets -> "gone" must be removed
 
@@ -109,7 +109,7 @@ class EnvironmentReconcilerTest
         orphan.type = "tech.illuin.unknown";
         orphan.properties = unrecognized;
 
-        when(this.assets.list("deletedAt is null")).thenReturn(List.of(orphan));
+        when(this.assets.findActive()).thenReturn(List.of(orphan));
 
         this.reconcile(desired("e1", "Env 1"));
 
@@ -207,7 +207,7 @@ class EnvironmentReconcilerTest
         AssetEntity local = AssetEntity.from("e1", k8s("local", Lifetime.ofYears(5)));
         AssetEntity mine = owned("east", AssetEntity.from("e1", k8s("mine", Lifetime.ofYears(5))));
         AssetEntity theirs = owned("west", AssetEntity.from("e1", k8s("theirs", Lifetime.ofYears(5))));
-        when(this.assets.list("deletedAt is null")).thenReturn(List.of(local, mine, theirs));
+        when(this.assets.findActive()).thenReturn(List.of(local, mine, theirs));
 
         this.reconciler().reconcile("east", Map.of());
 
@@ -222,7 +222,7 @@ class EnvironmentReconcilerTest
         AssetEntity pushed = owned("east", AssetEntity.from("pushed-env", k8s("pushed", Lifetime.ofYears(5))));
         EnvironmentEntity pushedEnvironment = new EnvironmentEntity();
         pushedEnvironment.id = "pushed-env";
-        when(this.assets.list("deletedAt is null")).thenReturn(List.of(pushed));
+        when(this.assets.findActive()).thenReturn(List.of(pushed));
         when(this.environments.findActive()).thenReturn(List.of(pushedEnvironment));
 
         this.reconcile(desired("e1", "Env 1"));
@@ -251,7 +251,7 @@ class EnvironmentReconcilerTest
         pushedEnvironment.id = "pushed-env";
         EnvironmentEntity yamlEnvironment = new EnvironmentEntity();
         yamlEnvironment.id = "e1";
-        when(this.assets.list("deletedAt is null")).thenReturn(List.of(gone, alsoGone));
+        when(this.assets.findActive()).thenReturn(List.of(gone, alsoGone));
         when(this.environments.findActive()).thenReturn(List.of(pushedEnvironment, yamlEnvironment));
 
         new EnvironmentReconciler(this.environments, this.assets, this.history, new MonitoredEnvironments(desired("e1", "Env 1")))

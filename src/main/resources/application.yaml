@@ -49,19 +49,20 @@ quarkus:
   swagger-ui:
     path: /api/swagger
     always-include: true
-
-  # Database configuration is handled dynamically by PersistenceBackendConfigSourceFactory
-  # based on persistence.backend.mode. The values below are build-time defaults only
-  # and are overridden at runtime with priority Integer.MAX_VALUE - 1000.
+  # Named datasources for runtime backend switching. They are explicitly declared so Quarkus compiles the correct JDBC drivers and dialects.
+  # At runtime, PersistenceBackendConfigSourceFactory picks the backend based on persistence.backend.mode ; only the active backend is then instantiated.
   datasource:
-    db-kind: sqlite
-    jdbc:
-      url: "jdbc:sqlite::memory:"
-  hibernate-orm:
-    schema-management:
-      strategy: none
+    sqlite:
+      active: false
+      db-kind: sqlite
+    postgresql:
+      active: false
+      db-kind: postgresql
   flyway:
-    locations: classpath:db/migration/sqlite
+    sqlite:
+      locations: classpath:db/migration/sqlite
+    postgresql:
+      locations: classpath:db/migration/postgresql
   scheduler:
     enabled: true
   kubernetes-client:
@@ -136,9 +137,9 @@ wombat:
       path: "extensions"
 
   ## Secret Resolution Configuration
-  # Write mode defaults to DISABLED; DATABASE is selected at startup and requires a restart to change.
-  # Supply KEKs through external configuration (e.g. environment-variable
-  # interpolation); each value must be Base64 for a 32-byte AES key. Never commit actual KEK material.
+  # Write mode defaults to "disabled".
+  # Supply KEKs through external configuration (e.g. environment-variable interpolation); each value must be Base64 for a 32-byte AES key.
+  # Never commit actual KEK material.
   #secret:
   #  write-mode: database
   #  directory:

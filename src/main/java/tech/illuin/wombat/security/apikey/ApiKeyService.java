@@ -84,7 +84,7 @@ public class ApiKeyService
         String token = ApiKeyTokens.generate();
         ApiKeyEntity key = this.newKey(owner, name, granted, expiresAt);
         key.keyHash = ApiKeyTokens.hash(token);
-        key.persist();
+        this.keys.persist(key);
         return new Issued(key, token);
     }
 
@@ -107,7 +107,8 @@ public class ApiKeyService
         List<String> ownerIds = listed.stream().map(key -> key.ownerId).distinct().toList();
         Map<String, UserEntity> owners = ownerIds.isEmpty()
             ? Map.of()
-            : this.users.list("id in ?1", ownerIds).stream().collect(Collectors.toMap(user -> user.id, Function.identity()));
+            : this.users.findByIds(ownerIds)
+                .stream().collect(Collectors.toMap(user -> user.id, Function.identity()));
 
         return listed.stream()
             .map(key -> new Listed(key, displayName(owners.get(key.ownerId), key.ownerId)))

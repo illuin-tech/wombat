@@ -28,7 +28,11 @@ class EnvironmentRepositoryTest
     @AfterEach
     void clean()
     {
-        QuarkusTransaction.requiringNew().run(() -> this.repository.delete("id in ?1", List.of("env-prod", "env-staging")));
+        QuarkusTransaction.requiringNew().run(() -> {
+            for (EnvironmentEntity e : this.repository.listAll())
+                if (List.of("env-prod", "env-staging").contains(e.id))
+                    this.repository.delete(e);
+        });
     }
 
     @Test
@@ -41,7 +45,7 @@ class EnvironmentRepositoryTest
             this.repository.persist(entity);
         });
 
-        EnvironmentEntity found = QuarkusTransaction.requiringNew().call(() -> this.repository.findById("env-prod"));
+        EnvironmentEntity found = QuarkusTransaction.requiringNew().call(() -> this.repository.findByIdOptional("env-prod").orElse(null));
         assertNotNull(found);
         assertNotNull(found.uuid);
         assertEquals("Production", found.name);
@@ -60,14 +64,14 @@ class EnvironmentRepositoryTest
             this.repository.persist(entity);
         });
 
-        Instant createdAt = QuarkusTransaction.requiringNew().call(() -> this.repository.findById("env-staging")).createdAt;
+        Instant createdAt = QuarkusTransaction.requiringNew().call(() -> this.repository.findByIdOptional("env-staging").orElse(null)).createdAt;
 
         QuarkusTransaction.requiringNew().run(() -> {
-            EnvironmentEntity entity = this.repository.findById("env-staging");
+            EnvironmentEntity entity = this.repository.findByIdOptional("env-staging").orElse(null);
             entity.disabledAt = Instant.now();
         });
 
-        EnvironmentEntity found = QuarkusTransaction.requiringNew().call(() -> this.repository.findById("env-staging"));
+        EnvironmentEntity found = QuarkusTransaction.requiringNew().call(() -> this.repository.findByIdOptional("env-staging").orElse(null));
         assertEquals(createdAt, found.createdAt);
         assertNotNull(found.disabledAt);
         assertFalse(found.updatedAt.isBefore(found.createdAt));

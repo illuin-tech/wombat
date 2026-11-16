@@ -183,7 +183,7 @@ public class EnvironmentReconciler
     private List<AssetEntity> deleteMissingAssets(String owner, Set<String> desiredAssetIds)
     {
         List<AssetEntity> deleted = new ArrayList<>();
-        for (AssetEntity entity : this.assetRepository.list("deletedAt is null"))
+        for (AssetEntity entity : this.assetRepository.findActive())
         {
             if (desiredAssetIds.contains(entity.id) || !Objects.equals(entity.owner, owner))
                 continue;
@@ -202,7 +202,7 @@ public class EnvironmentReconciler
             declared.addAll(this.monitoredEnvironments.environments().keySet());
 
         Set<String> withAssets = new HashSet<>();
-        for (AssetEntity entity : this.assetRepository.list("deletedAt is null"))
+        for (AssetEntity entity : this.assetRepository.findActive())
         {
             if (entity.deletedAt == null)
                 withAssets.add(entity.environmentId);

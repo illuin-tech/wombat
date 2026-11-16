@@ -1,8 +1,10 @@
 package tech.illuin.wombat.persistence.backend.sqlite;
 
 import io.agroal.api.AgroalDataSource;
+import io.quarkus.agroal.DataSource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -40,7 +42,7 @@ class SQLiteBackupProducerTest
 
     private static LocalStackContainer localstack;
 
-    @Inject AgroalDataSource dataSource;
+    @Inject @DataSource("sqlite") AgroalDataSource dataSource;
 
     @BeforeAll
     static void startLocalStack()

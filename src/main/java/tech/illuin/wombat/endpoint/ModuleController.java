@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -13,12 +14,14 @@ import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.Permission;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 
 @Path("api/modules")
+@EndpointDisabled(name = Feature.Keys.API_READ, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_MODULE_READ)
 public class ModuleController
 {

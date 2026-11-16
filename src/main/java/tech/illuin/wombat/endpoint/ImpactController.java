@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -21,6 +22,7 @@ import tech.illuin.wombat.engine.impact.timeline.ImpactTimeline;
 import tech.illuin.wombat.engine.impact.timeline.TimelineStep;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.Permission;
 
 import java.time.Duration;
@@ -33,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Path("api/impact")
+@EndpointDisabled(name = Feature.Keys.API_READ, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_IMPACT_READ)
 public class ImpactController
 {

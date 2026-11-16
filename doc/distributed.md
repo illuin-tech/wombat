@@ -28,7 +28,23 @@ Every instance runs the same image, in one of three modes set by `wombat.mode` (
 | `aggregator`           |                          | its database        | ✓                           |
 | `worker`               | ✓                        | the aggregator      |                             |
 
-Outside of the aggregator mode, `POST /api/workers/{worker}/metrics` and `PUT /api/workers/{worker}/environments` answer `404`.
+### Features
+
+The mode also sets which functionalities an instance serves:
+
+| Feature     | Serves                                                                         | `standalone` | `aggregator` | `worker` |
+|-------------|--------------------------------------------------------------------------------|--------------|--------------|----------|
+| `ui`        | the web UI and its dashboards, `GET /api/app`                                  | ✓            | ✓            |          |
+| `api-read`  | `/api/impact`, `/api/simulation`, `/api/environments`, `/api/modules`          | ✓            | ✓            |          |
+| `api-write` | `POST /api/workers/{worker}/metrics`, `PUT /api/workers/{worker}/environments` |              | ✓            |          |
+| `admin`     | `/api/users`, `/api/keys`, `/api/secrets`                                      | ✓            | ✓            |          |
+
+`api-write` only covers what workers push, so only an aggregator serves it. The endpoints managing an instance (users,
+API keys, secrets) write too, but fall under `admin`, so that a standalone instance can still be administered.
+
+The endpoints of a disabled feature are not registered: they answer `404` and are left out of the OpenAPI document
+(`/api/openapi`). `/q/*` is never gated: a worker serves nothing else, so it needs no authentication. The features are
+resolved once at startup and logged.
 
 ## Aggregator
 

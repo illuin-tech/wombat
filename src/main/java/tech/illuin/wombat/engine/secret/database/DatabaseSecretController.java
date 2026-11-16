@@ -16,11 +16,12 @@ import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.secret.database.crypto.SecretRewrap;
 import tech.illuin.wombat.engine.secret.database.crypto.SecretRewrapService;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.Permission;
 
 @ApplicationScoped
 @Path("api/secrets/database")
-@EndpointDisabled(name = "wombat.secret.write-mode", stringValue = "DISABLED", disableIfMissing = true)
+@EndpointDisabled(name = Feature.Keys.ADMIN_SECRETS, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_SECRET_MANAGE)
 @Blocking
 public class DatabaseSecretController

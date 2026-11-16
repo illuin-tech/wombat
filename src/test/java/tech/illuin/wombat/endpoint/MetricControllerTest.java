@@ -13,6 +13,7 @@ import tech.illuin.wombat.persistence.model.LLMMetricEntity;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -33,6 +34,16 @@ class MetricControllerTest
     void setUp()
     {
         QuarkusTransaction.requiringNew().run(() -> this.llm.delete("assetId in ?1", List.of("east.pushed-llm", "east.a")));
+    }
+
+    @Test
+    void openApi_listsTheWorkerEndpoints()
+    {
+        given().queryParam("format", "json")
+            .when().get("/api/openapi")
+            .then().statusCode(200)
+            .body("paths", hasKey("/api/workers/{worker}/metrics"))
+            .body("paths", hasKey("/api/workers/{worker}/environments"));
     }
 
     @Test

@@ -17,13 +17,14 @@ import tech.illuin.wombat.core.secret.SecretMetadata;
 import tech.illuin.wombat.core.secret.SecretWriter;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.Permission;
 
 import java.util.List;
 
 @ApplicationScoped
 @Path("api/secrets")
-@EndpointDisabled(name = "wombat.secret.write-mode", stringValue = "DISABLED", disableIfMissing = true)
+@EndpointDisabled(name = Feature.Keys.ADMIN_SECRETS, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_SECRET_MANAGE)
 @Blocking
 public class SecretController

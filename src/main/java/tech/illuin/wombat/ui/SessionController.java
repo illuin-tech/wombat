@@ -3,6 +3,7 @@ package tech.illuin.wombat.ui;
 import io.quarkus.oidc.IdTokenCredential;
 import io.quarkus.oidc.OidcConfigurationMetadata;
 import io.quarkus.oidc.OidcSession;
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.GET;
@@ -12,12 +13,14 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.AuthProperties;
 
 import java.net.URI;
 import java.util.Optional;
 
 @Path("logout")
+@EndpointDisabled(name = Feature.Keys.UI, stringValue = "false")
 public class SessionController
 {
     /** {@code io.quarkus.oidc.runtime.OidcUtils#CONFIG_METADATA_ATTRIBUTE} */

@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint.access;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.*;
@@ -10,6 +11,7 @@ import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.AuthProperties;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
@@ -17,6 +19,7 @@ import tech.illuin.wombat.security.user.RoleGrantService;
 
 /** Admin-only: grants and removes Wombat roles held on top of the identity provider's (see the users page). */
 @Path("api/users/{userId}/roles/{role}")
+@EndpointDisabled(name = Feature.Keys.ADMIN, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_USER_MANAGE)
 public class UserRoleController
 {

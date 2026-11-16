@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -16,6 +17,7 @@ import tech.illuin.wombat.engine.context.persistence.AssetConfigHistoryRepositor
 import tech.illuin.wombat.engine.context.persistence.AssetRepository;
 import tech.illuin.wombat.engine.context.persistence.EnvironmentEntity;
 import tech.illuin.wombat.engine.context.persistence.EnvironmentRepository;
+import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.Permission;
 
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.List;
  * this controller exposes the current state and the per-asset change history but never mutates config.
  */
 @Path("api/environments")
+@EndpointDisabled(name = Feature.Keys.API_READ, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_ENVIRONMENT_READ)
 public class EnvironmentController
 {

@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -20,7 +21,6 @@ import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.feature.Feature;
-import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
 import tech.illuin.wombat.persistence.backend.api.store.MetricSample;
 import tech.illuin.wombat.persistence.backend.api.store.MetricStoreContainer;
@@ -41,7 +41,7 @@ import java.util.Map;
  * are saved.
  */
 @Path("api/workers/{worker}/metrics")
-@RequiresFeature(Feature.API_WRITE)
+@EndpointDisabled(name = Feature.Keys.API_WRITE, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_METRIC_WRITE)
 public class MetricController
 {

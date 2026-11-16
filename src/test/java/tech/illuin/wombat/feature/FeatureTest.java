@@ -29,6 +29,15 @@ class FeatureTest
         assertEquals(Set.of(), enabled(NodeMode.worker));
     }
 
+    @Test
+    void configKeysMatchTheConstants()
+    {
+        assertEquals(Feature.Keys.UI, Feature.UI.configKey());
+        assertEquals(Feature.Keys.API_READ, Feature.API_READ.configKey());
+        assertEquals(Feature.Keys.API_WRITE, Feature.API_WRITE.configKey());
+        assertEquals(Feature.Keys.ADMIN, Feature.ADMIN.configKey());
+    }
+
     private static Set<Feature> enabled(NodeMode mode)
     {
         return Arrays.stream(Feature.values())

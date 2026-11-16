@@ -30,4 +30,28 @@ public enum Feature
     {
         return this.enabled.test(mode);
     }
+
+    public String configKey()
+    {
+        return Keys.PREFIX + this.flag;
+    }
+
+    /**
+     * Config keys set to whether a feature is enabled, see {@link FeatureConfigSourceFactory}. Endpoints are gated with
+     * {@link io.quarkus.resteasy.reactive.server.EndpointDisabled} on them, so a disabled endpoint is neither served nor
+     * listed in the OpenAPI document.
+     */
+    public static final class Keys
+    {
+        static final String PREFIX = "_internal.feature.";
+
+        public static final String UI = PREFIX + "ui";
+        public static final String API_READ = PREFIX + "api-read";
+        public static final String API_WRITE = PREFIX + "api-write";
+        public static final String ADMIN = PREFIX + "admin";
+        /** The {@link #ADMIN} feature with a secret write mode: {@code @EndpointDisabled} only takes a single key. */
+        public static final String ADMIN_SECRETS = PREFIX + "admin-secrets";
+
+        private Keys() {}
+    }
 }

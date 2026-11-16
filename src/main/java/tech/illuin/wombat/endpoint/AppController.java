@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -9,18 +10,15 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.feature.Feature;
-import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.security.AuthProperties;
-import tech.illuin.wombat.endpoint.UIProperties;
 
 import java.util.Locale;
 
 @Path("api/app")
-@RequiresFeature(Feature.UI)
+@EndpointDisabled(name = Feature.Keys.UI, stringValue = "false")
 public class AppController
 {
     private final SecurityIdentity identity;

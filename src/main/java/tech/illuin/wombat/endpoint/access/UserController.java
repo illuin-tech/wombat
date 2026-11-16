@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint.access;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.GET;
@@ -15,7 +16,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.feature.Feature;
-import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.security.AuthProperties;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Path("api/users")
-@RequiresFeature(Feature.ADMIN)
+@EndpointDisabled(name = Feature.Keys.ADMIN, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_USER_READ)
 public class UserController
 {

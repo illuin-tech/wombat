@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.anEmptyMap;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /** A worker serves none of the features, only {@code /q/*}, whatever the flag configuration. */
@@ -57,6 +58,12 @@ class WorkerFeaturesTest
         // Served to anonymous callers without authentication, when the feature is enabled
         given().when().get("/api/secrets").then().statusCode(404);
         given().when().post("/api/secrets/database/rewrap").then().statusCode(404);
+    }
+
+    @Test
+    void openApiListsNoEndpoint()
+    {
+        given().queryParam("format", "json").when().get("/api/openapi").then().statusCode(200).body("paths", anEmptyMap());
     }
 
     @Test

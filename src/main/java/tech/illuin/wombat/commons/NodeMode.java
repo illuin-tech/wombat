@@ -8,4 +8,10 @@ public enum NodeMode
     aggregator,
     /** Samples its environments and pushes the metrics to an aggregator instead of its own database. */
     worker,
+    ;
+
+    public static NodeMode parse(String mode)
+    {
+        return NodeMode.valueOf(mode.trim().replace('-', '_').toLowerCase());
+    }
 }

@@ -3,6 +3,7 @@ package tech.illuin.wombat.endpoint;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -27,7 +28,6 @@ import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.feature.Feature;
-import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
 import tech.illuin.wombat.security.Permission;
 
@@ -41,7 +41,7 @@ import java.util.Map;
  * Served with the {@link Feature#API_WRITE}, by an aggregator by default.
  */
 @Path("api/workers")
-@RequiresFeature(Feature.API_WRITE)
+@EndpointDisabled(name = Feature.Keys.API_WRITE, stringValue = "false")
 public class WorkerController
 {
     private final EnvironmentReconciler reconciler;

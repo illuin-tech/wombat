@@ -20,9 +20,7 @@ flowchart LR
     AGGREGATOR ==> DB
 ```
 
-Every instance runs the same image, in one of three modes set by `wombat.mode` (`WOMBAT_MODE`), or by the `--mode`
-argument, which takes precedence (e.g. `java -jar quarkus-run.jar --mode worker`, or `command: ["--mode", "worker"]`
-in a compose file):
+Every instance runs the same image, in one of three modes set by `wombat.mode` (`WOMBAT_MODE`):
 
 | Mode                   | Samples its environments | Writes metrics to   | Accepts `POST /api/workers/{worker}/metrics` |
 |------------------------|--------------------------|---------------------|-----------------------------|
@@ -44,9 +42,10 @@ The mode also sets which functionalities an instance serves:
 `api-write` only covers what workers push, so only an aggregator serves it. The endpoints managing an instance (users,
 API keys, secrets) write too, but fall under `admin`, so that a standalone instance can still be administered.
 
-A disabled feature answers `404`, and `/q/*` is never gated: by default, a worker serves nothing else, so it needs no
-authentication. The features are served as [quarkus-flags](https://docs.quarkiverse.io/quarkus-flags/dev) flags
-named after them, resolved once at startup and logged.
+The endpoints of a disabled feature are not registered: they answer `404` and are left out of the OpenAPI document
+(`/api/openapi`). `/q/*` is never gated: a worker serves nothing else, so it needs no authentication. The features are
+also served as [quarkus-flags](https://docs.quarkiverse.io/quarkus-flags/dev) flags named after them, resolved once at
+startup and logged.
 
 ## Aggregator
 
@@ -171,7 +170,7 @@ holding `api.metric.write` and `api.environment.write` on its **API keys** page,
 For development purposes, you can use this sample distributed configuration to your advantage by running the aggregator as a dev instance, and launching workers as configured in the docker compose demo:
 
 ```sh
-./mvnw quarkus:dev -Dquarkus.args="--mode aggregator" -Dmonitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
+./mvnw quarkus:dev -Dwombat.mode=aggregator -Dmonitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
 
 WOMBAT_AGGREGATOR_URL=http://host.docker.internal:8080 docker compose -f compose/demo-distributed/compose.yaml up --no-deps worker-east worker-west ;
 ```

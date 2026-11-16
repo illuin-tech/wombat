@@ -1,5 +1,6 @@
 package tech.illuin.wombat.endpoint.access;
 
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.quarkus.security.PermissionsAllowed;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.ws.rs.*;
@@ -12,7 +13,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.feature.Feature;
-import tech.illuin.wombat.feature.RequiresFeature;
 import tech.illuin.wombat.security.AuthProperties;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
@@ -22,7 +22,7 @@ import java.util.List;
 
 /** Users manage their own API keys; admins also list ({@code ?all=true}) and revoke everyone's. */
 @Path("api/keys")
-@RequiresFeature(Feature.ADMIN)
+@EndpointDisabled(name = Feature.Keys.ADMIN, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_APIKEY_MANAGE)
 public class ApiKeyController
 {

@@ -27,7 +27,7 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context)
     {
         ConfigValue value = context.getValue("wombat.mode");
-        NodeMode mode = value.getValue() == null ? null : parse(value.getValue());
+        NodeMode mode = value.getValue() == null ? null : NodeMode.parse(value.getValue());
 
         Map<String, String> properties = new HashMap<>();
         if (mode == NodeMode.worker)
@@ -48,10 +48,5 @@ public class NodeModeConfigSourceFactory implements ConfigSourceFactory
             NodeModeConfigSourceFactory.class.getSimpleName(),
             Integer.MAX_VALUE
         ));
-    }
-
-    private static NodeMode parse(String mode)
-    {
-        return NodeMode.valueOf(mode.trim().replace('-', '_').toLowerCase());
     }
 }

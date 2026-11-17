@@ -4,6 +4,7 @@ import {useRouter} from 'vue-router'
 import type {ServicesSelection} from '@/pages/impact/model/servicesQuery'
 import type {AssetInfo, LiveEnvironment} from '@/domain/environment'
 import {encodeFilters, includedServices} from '@/pages/impact/model/dashboard'
+import {applyDates, applyFilters} from '@/pages/impact/model/useDashboardQuery'
 import DropdownPicker from '@/components/DropdownPicker.vue'
 import DateRangePicker from '@/components/DateRangePicker.vue'
 
@@ -48,33 +49,23 @@ function sync(): void {
 
 watch(() => [props.environmentId, props.from, props.to, props.selection, props.services, props.assets], sync, {deep: true, immediate: true})
 
-function dateQuery(): Record<string, string> {
-  const query: Record<string, string> = {}
-  if (from.value) query.from = from.value
-  if (to.value) query.to = to.value
-  return query
-}
-
 function selectEnvironment(values: string[]): void {
   const selected = values[0]
   if (!selected || selected === environmentId.value) return
   environmentId.value = selected
-  void router.push({name: 'impact', params: {environment: selected}, query: dateQuery()})
+  applyDates(from.value, to.value)
+  void router.push({name: 'impact', params: {environment: selected}})
 }
 
 function selectAssets(values: string[]): void {
   assetIds.value = values
-  const query: Record<string, string | string[]> = dateQuery()
-  if (values.length > 0) query.services = values
-  void router.push({name: 'impact', params: {environment: environmentId.value}, query})
+  applyFilters(environmentId.value, from.value, to.value, values)
 }
 
 function apply(): void {
   const selectedServices = props.services.filter(service => serviceValues.value.includes(service))
   const services = encodeFilters(assetIds.value, selectedServices, props.services)
-  const query: Record<string, string | string[]> = dateQuery()
-  if (services.length > 0) query.services = services
-  void router.push({name: 'impact', params: {environment: environmentId.value}, query})
+  applyFilters(environmentId.value, from.value, to.value, services)
 }
 </script>
 

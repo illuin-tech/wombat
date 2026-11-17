@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.context.persistence;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -19,7 +18,7 @@ import java.time.Instant;
  */
 @Entity
 @Table(name = "asset_config_history")
-public class AssetConfigHistory extends PanacheEntityBase
+public class AssetConfigHistory
 {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

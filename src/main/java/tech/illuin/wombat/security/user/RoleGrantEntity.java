@@ -1,6 +1,5 @@
 package tech.illuin.wombat.security.user;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -15,7 +14,7 @@ import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.no
 /** A Wombat role granted to a user by an admin, held on top of the roles mapped from the identity provider. */
 @Entity
 @Table(name = "role_grants")
-public class RoleGrantEntity extends PanacheEntityBase
+public class RoleGrantEntity
 {
     @Id @Column(nullable = false)
     public String id;

@@ -1,12 +1,11 @@
 package tech.illuin.wombat.persistence.model;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 
 @MappedSuperclass
-public abstract class MetricEntity extends PanacheEntityBase
+public abstract class MetricEntity
 {
     @Column(name = "asset_id", nullable = false)
     public String assetId;

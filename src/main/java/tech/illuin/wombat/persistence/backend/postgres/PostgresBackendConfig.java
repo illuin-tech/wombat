@@ -2,6 +2,9 @@ package tech.illuin.wombat.persistence.backend.postgres;
 
 import io.agroal.api.AgroalDataSource;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.agroal.DataSource;
+import io.quarkus.arc.InjectableInstance;
+import io.quarkus.flyway.FlywayDataSource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Singleton;
@@ -27,8 +30,8 @@ public class PostgresBackendConfig
     @Produces @Singleton
     public PersistenceBackend providePostgresBackend(
         PersistenceBackendProperties backendProps,
-        Instance<AgroalDataSource> dataSources,
-        Instance<Flyway> flyway,
+        @DataSource("postgresql") InjectableInstance<AgroalDataSource> dataSources,
+        @FlywayDataSource("postgresql") InjectableInstance<Flyway> flyway,
         Instance<MeterRegistry> registry,
         MetricStoreContainer databaseStores
     ) {

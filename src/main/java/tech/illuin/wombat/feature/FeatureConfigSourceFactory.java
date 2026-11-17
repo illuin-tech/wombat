@@ -10,6 +10,10 @@ import tech.illuin.wombat.commons.NodeMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
+
+import static tech.illuin.wombat.commons.ConfigSourceFactories.BACKEND_MODE;
+import static tech.illuin.wombat.commons.ConfigSourceFactories.FEATURE_FLAG;
 
 /** Sets the {@link Feature.Keys} from the node mode, so endpoints are gated before the application starts. */
 @StaticInitSafe
@@ -35,7 +39,13 @@ public class FeatureConfigSourceFactory implements ConfigSourceFactory
         return List.of(new PropertiesConfigSource(
             properties,
             FeatureConfigSourceFactory.class.getSimpleName(),
-            Integer.MAX_VALUE
+            FEATURE_FLAG.priority()
         ));
+    }
+
+    @Override
+    public OptionalInt getPriority()
+    {
+        return OptionalInt.of(FEATURE_FLAG.priority());
     }
 }

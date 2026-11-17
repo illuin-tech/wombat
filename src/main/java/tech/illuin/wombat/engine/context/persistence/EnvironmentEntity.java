@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.context.persistence;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -14,7 +13,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "environments")
-public class EnvironmentEntity extends PanacheEntityBase
+public class EnvironmentEntity
 {
     @Id @Column(nullable = false)
     public String id;

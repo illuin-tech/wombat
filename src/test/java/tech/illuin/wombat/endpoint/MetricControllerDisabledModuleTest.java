@@ -30,8 +30,8 @@ class MetricControllerDisabledModuleTest
     void setUp()
     {
         QuarkusTransaction.requiringNew().run(() -> {
-            this.kubernetes.delete("assetId", "east.pushed-cluster");
-            this.llm.delete("assetId", "east.pushed-llm");
+            this.kubernetes.deleteByAssetId("east.pushed-cluster");
+            this.llm.deleteByAssetId("east.pushed-llm");
         });
     }
 
@@ -55,7 +55,7 @@ class MetricControllerDisabledModuleTest
             .body("status.metadata.errors[0].reason", is("No active module for asset type tech.illuin.wombat-module.kubernetes-api"))
             .body("status.metadata.errors[0].count", is(2));
 
-        assertEquals(0, this.kubernetes.count("assetId", "east.pushed-cluster"));
-        assertEquals(1, this.llm.count("assetId", "east.pushed-llm"));
+        assertEquals(0, this.kubernetes.countByAssetId("east.pushed-cluster"));
+        assertEquals(1, this.llm.countByAssetId("east.pushed-llm"));
     }
 }

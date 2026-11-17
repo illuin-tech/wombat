@@ -2,6 +2,9 @@ package tech.illuin.wombat.persistence.backend.sqlite;
 
 import io.agroal.api.AgroalDataSource;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.quarkus.agroal.DataSource;
+import io.quarkus.arc.InjectableInstance;
+import io.quarkus.flyway.FlywayDataSource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Singleton;
@@ -32,8 +35,8 @@ public class SQLiteBackendConfig
     @Produces @Singleton
     public PersistenceBackend provideSQLiteBackend(
         PersistenceBackendProperties backendProps,
-        Instance<AgroalDataSource> dataSources,
-        Instance<Flyway> flyway,
+        @DataSource("sqlite") InjectableInstance<AgroalDataSource> dataSources,
+        @FlywayDataSource("sqlite") InjectableInstance<Flyway> flyway,
         Instance<MeterRegistry> registry,
         MetricStoreContainer databaseStores
     ) {
@@ -73,4 +76,5 @@ public class SQLiteBackendConfig
 
         return PersistenceBackend.of(DBKIND_SQLITE, hooks, processes, databaseStores);
     }
+
 }

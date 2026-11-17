@@ -1,9 +1,10 @@
 package tech.illuin.wombat.engine.impact.llm;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
+import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 import tech.illuin.wombat.persistence.compaction.BucketCompactor;
 import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
@@ -25,13 +26,20 @@ import java.util.Map;
 import static tech.illuin.wombat.core.activity.commons.TimeRange.toEpochMs;
 
 @ApplicationScoped
-public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetricEntity, Long>, LLMMetricResolver, BucketCompactor
+public class LLMModelMetricRepository extends Repository<LLMMetricEntity, Long> implements LLMMetricResolver, BucketCompactor
 {
     private final JsonPathDialect dialect;
 
+    @Inject
     public LLMModelMetricRepository(JsonPathDialect dialect)
     {
+        super(LLMMetricEntity.class);
         this.dialect = dialect;
+    }
+
+    public LLMModelMetricRepository()
+    {
+        this(null);
     }
 
     @Transactional
@@ -44,6 +52,44 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     public void save(Collection<LLMMetricEntity> entities)
     {
         this.persist(entities);
+    }
+
+    @Transactional
+    public void deleteByAssetId(String assetId)
+    {
+        this.getEntityManager()
+            .createNativeQuery("DELETE FROM model_metrics WHERE asset_id = ?1")
+            .setParameter(1, assetId)
+            .executeUpdate();
+    }
+
+    @Transactional
+    public void deleteByAssetIds(List<String> assetIds)
+    {
+        if (assetIds.isEmpty())
+            return;
+        this.getEntityManager()
+            .createQuery("DELETE FROM LLMMetricEntity WHERE assetId IN :ids")
+            .setParameter("ids", assetIds)
+            .executeUpdate();
+    }
+
+    @Transactional
+    public List<LLMMetricEntity> listByAssetId(String assetId)
+    {
+        return this.getEntityManager()
+            .createQuery("FROM LLMMetricEntity WHERE assetId = :assetId", LLMMetricEntity.class)
+            .setParameter("assetId", assetId)
+            .getResultList();
+    }
+
+    @Transactional
+    public long countByAssetId(String assetId)
+    {
+        return ((Number) this.getEntityManager()
+            .createQuery("SELECT COUNT(m) FROM LLMMetricEntity m WHERE m.assetId = :assetId")
+            .setParameter("assetId", assetId)
+            .getSingleResult()).longValue();
     }
 
     @Override @Transactional
@@ -63,7 +109,12 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
     public int compactBucket(long bucketStartMs, long stepMs)
     {
         long bucketEndMs = bucketStartMs + stepMs;
-        List<LLMMetricEntity> rows = find("instantMs >= ?1 AND instantMs < ?2", bucketStartMs, bucketEndMs).list();
+        List<LLMMetricEntity> rows = this.getEntityManager()
+            .createQuery("FROM LLMMetricEntity WHERE instantMs >= :start AND instantMs < :end", LLMMetricEntity.class)
+            .setParameter("start", bucketStartMs)
+            .setParameter("end", bucketEndMs)
+            .getResultList();
+
         if (rows.stream().allMatch(row -> row.compacted))
             return 0;
 
@@ -83,8 +134,12 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
             folded.add(row);
         });
 
-        delete("instantMs >= ?1 AND instantMs < ?2", bucketStartMs, bucketEndMs);
-        getEntityManager().clear();
+        this.getEntityManager()
+            .createNativeQuery("DELETE FROM model_metrics WHERE instant_ms >= ?1 AND instant_ms < ?2")
+            .setParameter(1, bucketStartMs)
+            .setParameter(2, bucketEndMs)
+            .executeUpdate();
+        this.getEntityManager().clear();
 
         folded.forEach(this::persist);
         return folded.size();
@@ -116,7 +171,7 @@ public class LLMModelMetricRepository implements PanacheRepositoryBase<LLMMetric
             ORDER BY %5$s
         """.formatted(serviceIdCol, providerCol, modelCol, locationCol, bucket);
 
-        Query query = getEntityManager().createNativeQuery(sql);
+        Query query = this.getEntityManager().createNativeQuery(sql);
         query.setParameter("start", startMs);
         query.setParameter("end", endMs);
         query.setParameter("assetId", assetId);

@@ -45,11 +45,11 @@ class PushBackendTest
         PushMetricStore<KubernetesData> store = new PushMetricStore<>(client, "east", this.mapper);
         AssetIdentity asset = AssetIdentity.of("pushed-cluster", "remote", "Pushed Cluster", "tech.illuin.wombat-module.kubernetes-api");
         AssetIdentity saved = AssetIdentity.of("east.pushed-cluster", "remote", "Pushed Cluster", "tech.illuin.wombat-module.kubernetes-api");
-        QuarkusTransaction.requiringNew().run(() -> this.kubernetesMetrics.delete("assetId", saved.id()));
+        QuarkusTransaction.requiringNew().run(() -> this.kubernetesMetrics.deleteByAssetId(saved.id()));
 
         store.save(List.of(MetricSample.of(asset, 1_700_000_100_000L, 300_000L, new KubernetesData("api", "cluster", "ns", "pod", 250.0, 4096.0))));
 
-        List<KubernetesMetricEntity> rows = this.kubernetesMetrics.list("assetId", saved.id());
+        List<KubernetesMetricEntity> rows = this.kubernetesMetrics.listByAssetId(saved.id());
         assertEquals(1, rows.size());
         assertEquals(saved, rows.getFirst().identity());
         assertEquals(1_700_000_100_000L, rows.getFirst().instantMs);

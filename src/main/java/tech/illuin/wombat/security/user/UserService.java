@@ -32,8 +32,8 @@ public class UserService
         user.email = caller.email();
         user.roles = caller.roles().isEmpty() ? EnumSet.noneOf(Role.class) : EnumSet.copyOf(caller.roles());
         user.lastSeenAt = now();
-        if (!user.isPersistent())
-            user.persist();
+        if (!this.users.isPersistent(user))
+            this.users.persist(user);
         return user;
     }
 
@@ -45,12 +45,12 @@ public class UserService
     public UserEntity ensure(Caller caller)
     {
         UserEntity user = this.findOrNew(caller);
-        if (!user.isPersistent())
+        if (!this.users.isPersistent(user))
         {
             user.name = caller.name();
             user.email = caller.email();
             user.roles = caller.roles().isEmpty() ? EnumSet.noneOf(Role.class) : EnumSet.copyOf(caller.roles());
-            user.persist();
+            this.users.persist(user);
         }
         return user;
     }

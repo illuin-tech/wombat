@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.secret.database.persistence;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -15,7 +14,7 @@ import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.no
 
 @Entity
 @Table(name = "secrets")
-public class SecretEntity extends PanacheEntityBase
+public class SecretEntity
 {
     @Id
     @Column(name = "secret_key", nullable = false, columnDefinition = "TEXT")

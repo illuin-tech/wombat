@@ -98,7 +98,7 @@ public class RoleGrantService
             grant.userId = user.id;
             grant.role = role.value();
             grant.grantedBy = this.userService.ensure(admin).id;
-            grant.persist();
+            this.grants.persist(grant);
             logger.info("{} granted role {} to {}", admin.name(), role.value(), user.name);
         });
         this.reload();
@@ -113,7 +113,7 @@ public class RoleGrantService
                 throw new ClientErrorException("You cannot remove your own admin role", Response.Status.CONFLICT);
 
             this.grants.findByUserAndRole(userId, role.value()).ifPresent(grant -> {
-                grant.delete();
+                this.grants.delete(grant);
                 logger.info("{} removed role {} from {}", admin.name(), role.value(), user.name);
             });
         });

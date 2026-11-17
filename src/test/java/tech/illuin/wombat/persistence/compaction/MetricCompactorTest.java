@@ -119,7 +119,7 @@ class MetricCompactorTest
         assertEquals(1, report.modelRows());
         assertEquals(30L, servedTokens());
 
-        LLMMetricEntity compacted = llmRepository.findAll().firstResult();
+        LLMMetricEntity compacted = llmRepository.listAll().get(0);
         assertEquals(30L, compacted.outputTokens);
         assertEquals(5L, compacted.requestCount);
         assertEquals(5L, compacted.data.requests());

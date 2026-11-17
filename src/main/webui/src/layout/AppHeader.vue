@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
 import { useTheme } from '@/layout/theme/useTheme'
+import { lastDashboardLocation } from '@/pages/impact/model/useDashboardQuery'
 
 const { isDark, toggleTheme } = useTheme()
 </script>
 
 <template>
   <div class="header">
-    <a class="header-home" href="/" title="Back to the report">
+    <RouterLink class="header-home" :to="lastDashboardLocation" title="Back to the report">
       <img src="/icons/wombat-large-mask.png" alt="Wombat" class="header-logo" />
       <h1>Wombat — <span>Environmental Impact</span></h1>
-    </a>
+    </RouterLink>
     <slot name="nav" />
     <slot name="headerExtra" />
     <slot name="userMenu" />

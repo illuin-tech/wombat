@@ -4,7 +4,7 @@ import {permissionGuard} from '@/services/auth/guard'
 import {loadAppInfo} from '@/services/auth/session'
 import HomeRedirectView from '@/pages/impact/HomeRedirectPage.vue'
 import ImpactView from '@/pages/impact/ImpactPage.vue'
-import {importQueryFilters} from '@/pages/impact/model/useDashboardQuery'
+import {importQueryServices} from '@/pages/impact/model/useDashboardQuery'
 import ApiKeysView from '@/pages/api-keys/ApiKeysPage.vue'
 import SignedOutView from '@/pages/system/SignedOutPage.vue'
 import ForbiddenView from '@/pages/system/ForbiddenPage.vue'
@@ -29,7 +29,7 @@ export const routes: RouteRecordRaw[] = [
         name: 'impact',
         component: ImpactView,
         meta: {permission: 'ui.dashboard.read'},
-        beforeEnter: importQueryFilters,
+        beforeEnter: importQueryServices,
     },
     {
         path: '/users',

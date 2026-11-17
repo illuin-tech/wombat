@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { settingsLinks } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
 import { useDropdown } from '@/layout/useDropdown'
+import { lastDashboardLocation } from '@/pages/impact/model/useDashboardQuery'
 
 const { appInfo } = useAppInfo()
 const route = useRoute()
@@ -15,7 +16,7 @@ const { open, root } = useDropdown()
 
 <template>
   <nav v-if="links.length > 0" class="header-nav" aria-label="Main">
-    <RouterLink class="header-nav-link" to="/" :aria-current="onReport ? 'page' : undefined">Report</RouterLink>
+    <RouterLink class="header-nav-link" :to="lastDashboardLocation" :aria-current="onReport ? 'page' : undefined">Report</RouterLink>
     <div ref="root" class="header-nav-menu" :class="{ open }" id="settingsMenu">
       <button
         class="header-nav-link header-nav-trigger"

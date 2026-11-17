@@ -3,7 +3,7 @@ import {flushPromises, mount} from '@vue/test-utils'
 import {createMemoryHistory, createRouter} from 'vue-router'
 import FilterBar from '@/pages/impact/components/FilterBar.vue'
 import type {AssetInfo, LiveEnvironment} from '@/domain/environment'
-import {dashboardSelection, resetFilters} from '@/pages/impact/model/useDashboardQuery'
+import {resetServices, servicesState} from '@/pages/impact/model/useDashboardQuery'
 
 const assetA: AssetInfo = {id: 'a', name: 'Asset A', namespace: 'one', type: 'container'}
 const assetB: AssetInfo = {id: 'b', name: 'Asset B', namespace: 'two', type: 'container'}
@@ -23,7 +23,7 @@ function makeRouter() {
 
 async function mountFilter(selection = new Map<string, string[]>()) {
   const router = makeRouter()
-  await router.push({name: 'impact', params: {environment: 'env'}})
+  await router.push({name: 'impact', params: {environment: 'env'}, query: {from, to}})
   await router.isReady()
   const wrapper = mount(FilterBar, {
     props: {environments, environmentId: 'env', assets: [assetA, assetB], services: ['api', 'worker'], selection, from, to, maxSpanMs: 120 * 86_400_000},
@@ -35,10 +35,10 @@ async function mountFilter(selection = new Map<string, string[]>()) {
 describe('FilterBar selection', () => {
   afterEach(() => {
     document.body.innerHTML = ''
-    resetFilters()
+    resetServices()
   })
 
-  it('navigates to the environment, keeping the dates out of the URL', async () => {
+  it('navigates to the environment, keeping the dates in the URL', async () => {
     const {router, wrapper} = await mountFilter()
     wrapper.element.querySelector('#envTrigger')?.dispatchEvent(new MouseEvent('click', {bubbles: true}))
     const radio = wrapper.get('input[name="environment"][value="next"]')
@@ -47,8 +47,7 @@ describe('FilterBar selection', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/impact/next')
-    expect(router.currentRoute.value.query).toEqual({})
-    expect(dashboardSelection.value).toMatchObject({from, to, services: []})
+    expect(router.currentRoute.value.query).toEqual({from, to})
     wrapper.unmount()
   })
 
@@ -58,13 +57,13 @@ describe('FilterBar selection', () => {
     ;(asset.element as HTMLInputElement).checked = false
     await asset.trigger('change')
     await flushPromises()
-    expect(dashboardSelection.value.services).toEqual(['a'])
+    expect(servicesState.value.services).toEqual(['a'])
 
     const secondAsset = wrapper.get('input[name="assets"][value="b"]')
     ;(secondAsset.element as HTMLInputElement).checked = true
     await secondAsset.trigger('change')
     await flushPromises()
-    expect(dashboardSelection.value.services).toEqual(['a', 'b'])
+    expect(servicesState.value.services).toEqual(['a', 'b'])
 
     await wrapper.get('#serviceTrigger').trigger('click')
     const worker = wrapper.get('input[name="containers"][value="worker"]')
@@ -73,8 +72,8 @@ describe('FilterBar selection', () => {
     await wrapper.get('form').trigger('submit')
     await flushPromises()
 
-    expect(dashboardSelection.value).toEqual({from, to, environment: 'env', services: ['a=api', 'b=api']})
-    expect(router.currentRoute.value.query).toEqual({})
+    expect(servicesState.value).toEqual({environment: 'env', services: ['a=api', 'b=api']})
+    expect(router.currentRoute.value.query).toEqual({from, to})
     wrapper.unmount()
   })
 })

@@ -7,7 +7,7 @@ import { asLocalDateTime } from '@/services/format/formatters'
 import { ApiError } from '@/services/api/client'
 import { NO_DATA_REASON } from '@/services/api/impact'
 import { useAppInfo } from '@/services/auth/session'
-import { dashboardSelection, filtersFor, resetFilters } from '@/pages/impact/model/useDashboardQuery'
+import { datesQuery, filtersFor, rememberDashboard, resetServices, servicesState } from '@/pages/impact/model/useDashboardQuery'
 import { aggregateDashboard, buildDashboardRequests, serviceOptions } from '@/pages/impact/model/dashboard'
 import { computeTimeRange } from '@/pages/impact/model/timeRange'
 import { useDashboardData } from '@/pages/impact/useDashboardData'
@@ -27,7 +27,7 @@ const dashboard = useDashboardData()
 const environments = computed(() => dashboard.liveEnvironments.data.value ?? [])
 const requestedEnvironmentId = computed(() => String(route.params.environment ?? ''))
 const environment = computed(() => environments.value.find(candidate => candidate.id === requestedEnvironmentId.value) ?? environments.value[0] ?? null)
-const currentFilters = computed(() => filtersFor(requestedEnvironmentId.value))
+const currentFilters = computed(() => filtersFor(requestedEnvironmentId.value, route.query))
 const maxSpanMs = computed(() => appInfo.value?.ui.maxDateRange.millis ?? DEFAULT_MAX_DATE_RANGE_MS)
 const range = computed(() => computeTimeRange(currentFilters.value.from, currentFilters.value.to, maxSpanMs.value))
 const from = computed(() => asLocalDateTime(range.value.start))
@@ -53,7 +53,9 @@ const pickerAssets = computed(() => withOwners(environment.value?.assets ?? [], 
 
 watch(() => [
   route.params.environment,
-  dashboardSelection,
+  route.query.from,
+  route.query.to,
+  servicesState,
   dashboard.liveEnvironments.data.value,
   appInfo.value?.ui.maxDateRange.millis,
 ], () => {
@@ -62,17 +64,25 @@ watch(() => [
   const requestedId = requestedEnvironmentId.value
   const selected = available.find(candidate => candidate.id === requestedId) ?? available[0]
   if (!selected) return
-  if (selected.id !== requestedId) {
-    void router.replace({ name: 'impact', params: { environment: selected.id } })
+  const filters = filtersFor(selected.id, route.query)
+  const selectedRange = computeTimeRange(filters.from, filters.to, maxSpanMs.value)
+  // Always show the effective range in the URL, so the default one can be shared as is.
+  if (selected.id !== requestedId || !filters.from || !filters.to) {
+    const query = { ...route.query, ...datesQuery(asLocalDateTime(selectedRange.start), asLocalDateTime(selectedRange.end)) }
+    void router.replace({ name: 'impact', params: { environment: selected.id }, query })
     return
   }
-  const filters = filtersFor(selected.id)
-  const selectedRange = computeTimeRange(filters.from, filters.to, maxSpanMs.value)
+  rememberDashboard(selected.id, filters.from, filters.to)
   const requests = buildDashboardRequests(selected.id, selected.assets, filters.services, selectedRange.start, selectedRange.end)
   dashboard.loadEvaluation(selected.id, requests)
 }, { immediate: true, deep: true })
 
 onMounted(dashboard.loadEnvironments)
+
+function resetFilters(): void {
+  resetServices()
+  void router.push({ name: 'impact', params: { environment: requestedEnvironmentId.value } })
+}
 </script>
 
 <template>

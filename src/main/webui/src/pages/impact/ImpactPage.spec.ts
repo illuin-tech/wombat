@@ -5,7 +5,7 @@ import type { AssetImpact, TimelineResponse } from '@/domain/impact'
 import App from '@/App.vue'
 import { router } from '@/router'
 import { ApiError } from '@/services/api/client'
-import { applyFilters, resetFilters } from '@/pages/impact/model/useDashboardQuery'
+import { applyServices, resetServices } from '@/pages/impact/model/useDashboardQuery'
 
 const api = vi.hoisted(() => ({
   fetchAppInfo: vi.fn(),
@@ -143,7 +143,7 @@ describe('ImpactPage errors', () => {
 describe('ImpactPage API requests', () => {
   afterEach(() => {
     document.body.innerHTML = ''
-    resetFilters()
+    resetServices()
   })
 
   it('builds separate requests from the selected filters and reloads them when they change', async () => {
@@ -166,8 +166,8 @@ describe('ImpactPage API requests', () => {
       series: [{ key: 'gwp', label: 'GWP', unit: 'kgCO2eq', buckets: [{ embedded: 1, use: 2 }] }],
     })
 
-    applyFilters('test', '2026-03-01T12:15', '2026-03-02T00:00', ['test-api=cpu,queue', 'test-worker=database'])
-    await router.push({ name: 'impact', params: { environment: 'test' } })
+    applyServices('test', ['test-api=cpu,queue', 'test-worker=database'])
+    await router.push({ name: 'impact', params: { environment: 'test' }, query: { from: '2026-03-01T12:15', to: '2026-03-02T00:00' } })
     await router.isReady()
     const wrapper = mount(App, { global: { plugins: [router], stubs: { ChartCanvas: { template: '<canvas />' } } } })
     await flushPromises()
@@ -187,20 +187,20 @@ describe('ImpactPage API requests', () => {
     expect(wrapper.find('.chart-title').text()).toContain('Impact over time — day')
     expect(wrapper.find('.chart-wrap.timeline .skeleton-block').exists()).toBe(false)
 
-    await router.push({ name: 'impact', params: { environment: 'prod' } })
-    await flushPromises()
-
-    expect(router.currentRoute.value.fullPath).toBe('/impact/prod')
-    expect(api.fetchImpact).toHaveBeenCalledTimes(2)
-    expect(api.fetchImpact).toHaveBeenLastCalledWith({
-      sourceTimeRange: firstRange,
-      environments: [{ id: 'prod', assets: [{ id: 'prod-api' }, { id: 'prod-db' }] }],
-    })
-
-    applyFilters('prod', '2026-04-04T00:00', '2026-04-05T00:00', ['prod-db=postgres'])
+    await router.push({ name: 'impact', params: { environment: 'prod' }, query: { from: '2026-04-04T00:00', to: '2026-04-05T00:00' } })
     await flushPromises()
 
     const updatedRange = { start: '2026-04-04T00:00:00Z', end: '2026-04-05T00:00:00Z' }
+    expect(api.fetchImpact).toHaveBeenCalledTimes(2)
+    expect(api.fetchImpact).toHaveBeenLastCalledWith({
+      sourceTimeRange: updatedRange,
+      environments: [{ id: 'prod', assets: [{ id: 'prod-api' }, { id: 'prod-db' }] }],
+    })
+
+    applyServices('prod', ['prod-db=postgres'])
+    await flushPromises()
+
+    expect(router.currentRoute.value.query).toEqual({ from: '2026-04-04T00:00', to: '2026-04-05T00:00' })
     expect(api.fetchImpact).toHaveBeenCalledTimes(3)
     expect(api.fetchImpact).toHaveBeenLastCalledWith({
       sourceTimeRange: updatedRange,
@@ -213,5 +213,26 @@ describe('ImpactPage API requests', () => {
     })
     expect(wrapper.find('.chart-title').text()).toContain('Impact over time — day')
     wrapper.unmount()
+  })
+
+  it('writes the default date range into the URL', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(Date.UTC(2026, 5, 10, 8, 30)) })
+    api.fetchImpact.mockClear()
+    try {
+      await router.push({ name: 'impact', params: { environment: 'test' } })
+      await router.isReady()
+      const wrapper = mount(App, { global: { plugins: [router], stubs: { ChartCanvas: { template: '<canvas />' } } } })
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({ from: '2026-03-13T00:00', to: '2026-06-11T00:00' })
+      expect(api.fetchImpact).toHaveBeenCalledTimes(1)
+      expect(api.fetchImpact).toHaveBeenLastCalledWith({
+        sourceTimeRange: { start: '2026-03-13T00:00:00Z', end: '2026-06-11T00:00:00Z' },
+        environments: [{ id: 'test', assets: [{ id: 'test-api' }, { id: 'test-worker' }] }],
+      })
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

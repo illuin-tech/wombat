@@ -4,7 +4,7 @@ import {useRouter} from 'vue-router'
 import type {ServicesSelection} from '@/pages/impact/model/servicesQuery'
 import type {AssetInfo, LiveEnvironment} from '@/domain/environment'
 import {encodeFilters, includedServices} from '@/pages/impact/model/dashboard'
-import {applyDates, applyFilters} from '@/pages/impact/model/useDashboardQuery'
+import {applyServices, datesQuery} from '@/pages/impact/model/useDashboardQuery'
 import DropdownPicker from '@/components/DropdownPicker.vue'
 import DateRangePicker from '@/components/DateRangePicker.vue'
 
@@ -53,19 +53,25 @@ function selectEnvironment(values: string[]): void {
   const selected = values[0]
   if (!selected || selected === environmentId.value) return
   environmentId.value = selected
-  applyDates(from.value, to.value)
-  void router.push({name: 'impact', params: {environment: selected}})
+  void router.push({name: 'impact', params: {environment: selected}, query: datesQuery(from.value, to.value)})
+}
+
+/** Stores the services and puts the picked dates in the URL, skipping the navigation when they did not change. */
+function applySelection(services: string[]): void {
+  applyServices(environmentId.value, services)
+  if (from.value !== props.from || to.value !== props.to)
+    void router.push({name: 'impact', params: {environment: environmentId.value}, query: datesQuery(from.value, to.value)})
 }
 
 function selectAssets(values: string[]): void {
   assetIds.value = values
-  applyFilters(environmentId.value, from.value, to.value, values)
+  applySelection(values)
 }
 
 function apply(): void {
   const selectedServices = props.services.filter(service => serviceValues.value.includes(service))
   const services = encodeFilters(assetIds.value, selectedServices, props.services)
-  applyFilters(environmentId.value, from.value, to.value, services)
+  applySelection(services)
 }
 </script>
 

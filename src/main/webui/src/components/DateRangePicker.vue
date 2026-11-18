@@ -59,6 +59,19 @@ function syncPicker(): void {
   if (start && end) picker.setDateRange(pickerDate(start), pickerDate(end))
 }
 
+/** A preset button is highlighted only when the current range is exactly its own, never for a custom one. */
+function highlightPreset(button: HTMLElement): void {
+  const active = !!props.from && !!props.to
+    && Number(button.dataset.start) === pickerDate(props.from.slice(0, 10)).getTime()
+    && Number(button.dataset.end) === pickerDate(endDay(props.to)).getTime()
+  button.classList.toggle('active', active)
+  button.setAttribute('aria-pressed', String(active))
+}
+
+function highlightPresets(): void {
+  picker?.ui.container.querySelectorAll<HTMLElement>('.preset-button').forEach(highlightPreset)
+}
+
 function monthStartBack(months: number, end: Date): Date {
   const month = end.getUTCMonth() - months
   const lastDay = new Date(Date.UTC(end.getUTCFullYear(), month + 1, 0)).getUTCDate()
@@ -105,6 +118,9 @@ function initialize(): void {
         },
       },
       setup: (instance) => {
+        instance.on('view', (event: { detail: { view: string; target: HTMLElement } }) => {
+          if (event.detail.view === 'PresetPluginButton') highlightPreset(event.detail.target)
+        })
         instance.on('select', (event: { detail: { start?: { toJSDate: () => Date }; end?: { toJSDate: () => Date } } }) => {
           const {start, end} = event.detail
           if (start && end) emitRange(pickerDay(start.toJSDate()), pickerDay(end.toJSDate()))
@@ -119,7 +135,10 @@ function initialize(): void {
 }
 
 onMounted(initialize)
-watch(() => [props.from, props.to], syncPicker)
+watch(() => [props.from, props.to], () => {
+  syncPicker()
+  highlightPresets()
+})
 onBeforeUnmount(() => picker?.destroy())
 </script>
 

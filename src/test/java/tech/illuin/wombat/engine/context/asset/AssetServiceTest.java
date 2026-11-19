@@ -145,7 +145,6 @@ class AssetServiceTest
 
         AssetEntity found = QuarkusTransaction.requiringNew().call(() -> this.assetRepository.findById("user-llm"));
         assertEquals("Renamed", found.name);
-        assertEquals("Renamed", found.properties.identity().name());
         assertEquals(ENVIRONMENT, found.environmentId);
         assertNull(found.description);
         assertNotNull(found.disabledAt);

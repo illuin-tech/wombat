@@ -152,7 +152,6 @@ public class EnvironmentReconciler
             entity.owner = owner;
             entity.provisioned = true;
             entity.environmentId = environmentId;
-            entity.name = properties.identity().name();
             entity.type = properties.type().name();
             entity.properties = properties;
             this.history.record(AssetConfigAction.CREATE, entity);
@@ -172,13 +171,11 @@ public class EnvironmentReconciler
         }
 
         boolean changed = !entity.environmentId.equals(environmentId)
-            || !entity.name.equals(properties.identity().name())
             || !Objects.equals(entity.type, properties.type().name())
             || !entity.properties.equals(properties);
         if (changed)
         {
             entity.environmentId = environmentId;
-            entity.name = properties.identity().name();
             entity.type = properties.type().name();
             entity.properties = properties;
             this.history.record(AssetConfigAction.UPDATE, entity);

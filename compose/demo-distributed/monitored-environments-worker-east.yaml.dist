@@ -7,7 +7,6 @@ environments:
       - type: tech.illuin.wombat-module.kubernetes-api
         id: east-cluster
         environment-id: east
-        name: East Cluster
         config-path: kubeconfig/east.config.yaml
         namespace: default
         profile:

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest'
-import {findUnrecognizedAssets, withOwners, type AssetInfo} from '@/domain/environment'
+import {findUnrecognizedAssets, withRecordDetails, type AssetInfo} from '@/domain/environment'
 
 describe('unrecognized asset derivation', () => {
   it('keeps only undeleted, enabled database assets missing from the live environment', () => {
@@ -15,14 +15,21 @@ describe('unrecognized asset derivation', () => {
   })
 })
 
-describe('asset owners', () => {
+describe('asset record details', () => {
   it('takes the owner of each live asset from its database record', () => {
     const databaseAssets: AssetInfo[] = [
       {id: 'east.cluster', name: 'Cluster', owner: 'east'},
       {id: 'local', name: 'Local'},
     ]
-    const liveAssets: AssetInfo[] = [{id: 'east.cluster', name: 'Cluster'}, {id: 'local', name: 'Local'}, {id: 'missing', name: 'Missing'}]
+    const liveAssets: AssetInfo[] = [{id: 'east.cluster'}, {id: 'local'}, {id: 'missing'}]
 
-    expect(withOwners(liveAssets, databaseAssets).map(asset => asset.owner)).toEqual(['east', undefined, undefined])
+    expect(withRecordDetails(liveAssets, databaseAssets).map(asset => asset.owner)).toEqual(['east', undefined, undefined])
+  })
+
+  it('takes the name of each live asset from its database record, live assets carrying none', () => {
+    const databaseAssets: AssetInfo[] = [{id: 'cluster', name: 'Cluster'}]
+    const liveAssets: AssetInfo[] = [{id: 'cluster'}, {id: 'missing'}]
+
+    expect(withRecordDetails(liveAssets, databaseAssets).map(asset => asset.name)).toEqual(['Cluster', undefined])
   })
 })

@@ -179,7 +179,7 @@ function serviceImpact(assetName: string, impact: RawServiceImpact): ServiceImpa
 export function aggregate(impacts: AssetImpact[], assets: AssetInfo[], requestedServices: string[] = []): DashboardModel {
   const assetNames = new Map<string, string>()
   for (const asset of assets)
-    if (!assetNames.has(asset.id)) assetNames.set(asset.id, asset.name)
+    if (!assetNames.has(asset.id)) assetNames.set(asset.id, asset.name ?? asset.id)
 
   const allServices = [...new Set(impacts.flatMap(impact => impact.serviceImpacts.map(service => service.serviceId)))].sort()
   const included = new Set(requestedServices.length === 0 ? allServices : allServices.filter(service => requestedServices.includes(service)))

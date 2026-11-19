@@ -37,14 +37,14 @@ class RepositoryContextProviderTest
         when(this.environmentRepository.findActive()).thenReturn(List.of(envEntity));
 
         LLMStaticAsset validAsset = new LLMStaticAsset(
-            AssetIdentity.of("valid-1", "env-1", "Valid Static", LLMStaticModule.TYPE),
+            AssetIdentity.of("valid-1", "env-1", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", FRANCE, List.of(
                 new ConstantScenario(100, 200, null)
             ))
         );
         AssetEntity validEntity = AssetEntity.from("env-1", validAsset);
 
-        UnrecognizedAsset unrecognizedAsset = new UnrecognizedAsset(AssetIdentity.of("unrec-1", "env-1", "Dropped Module Asset", "tech.illuin.dropped.Asset"), "{\"id\":\"unrec-1\"}"
+        UnrecognizedAsset unrecognizedAsset = new UnrecognizedAsset(AssetIdentity.of("unrec-1", "env-1", "tech.illuin.dropped.Asset"), "{\"id\":\"unrec-1\"}"
         );
         AssetEntity unrecognizedEntity = new AssetEntity();
         unrecognizedEntity.id = "unrec-1";

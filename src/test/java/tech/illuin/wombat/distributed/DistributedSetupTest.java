@@ -135,10 +135,10 @@ class DistributedSetupTest
     @Test
     void workers_pushTheirWindowsToTheAggregator_whichSavesThemAtTheWorkersInstant() throws Exception
     {
-        AssetIdentity eastCluster = AssetIdentity.of("cluster", "east", "Cluster", KUBERNETES_TYPE);
-        AssetIdentity eastLlm = AssetIdentity.of("llm", "east", "LLM", LLM_TYPE);
-        AssetIdentity westCluster = AssetIdentity.of("cluster", "west", "Cluster", KUBERNETES_TYPE);
-        AssetIdentity westLlm = AssetIdentity.of("llm", "west", "LLM", LLM_TYPE);
+        AssetIdentity eastCluster = AssetIdentity.of("cluster", "east", KUBERNETES_TYPE);
+        AssetIdentity eastLlm = AssetIdentity.of("llm", "east", LLM_TYPE);
+        AssetIdentity westCluster = AssetIdentity.of("cluster", "west", KUBERNETES_TYPE);
+        AssetIdentity westLlm = AssetIdentity.of("llm", "west", LLM_TYPE);
         List<String> assetIds = List.of("east.cluster", "east.llm", "west.cluster", "west.llm");
         QuarkusTransaction.requiringNew().run(() -> {
             this.kubernetesMetrics.deleteByAssetIds(assetIds);
@@ -247,7 +247,7 @@ class DistributedSetupTest
 
     private static AssetIdentity owned(String worker, AssetIdentity asset)
     {
-        return AssetIdentity.of(worker + "." + asset.id(), asset.environmentId(), asset.name(), asset.assetType());
+        return AssetIdentity.of(worker + "." + asset.id(), asset.environmentId(), asset.assetType());
     }
 
     private AssetEntity asset(String id)
@@ -263,7 +263,7 @@ class DistributedSetupTest
     private static KubernetesAPIAsset cluster(String environment, String id)
     {
         return new KubernetesAPIAsset(
-            AssetIdentity.of(id, environment, id, KubernetesAPIModule.TYPE),
+            AssetIdentity.of(id, environment, KubernetesAPIModule.TYPE),
             "kubeconfig/" + environment + ".config.yaml", "default", Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
@@ -272,7 +272,7 @@ class DistributedSetupTest
     private static LLMAnthropicAsset anthropic(String environment, String id, String adminKey)
     {
         return new LLMAnthropicAsset(
-            AssetIdentity.of(id, environment, id, LLMAnthropicModule.TYPE),
+            AssetIdentity.of(id, environment, LLMAnthropicModule.TYPE),
             null, null, adminKey,
             new LLMAnthropicProfile(FRANCE, 500, List.of(), List.of(), List.of())
         );
@@ -281,7 +281,7 @@ class DistributedSetupTest
     private static LLMPrometheusAsset prometheus(String environment, String id, String passwordKey)
     {
         return new LLMPrometheusAsset(
-            AssetIdentity.of(id, environment, id, LLMPrometheusModule.TYPE),
+            AssetIdentity.of(id, environment, LLMPrometheusModule.TYPE),
             "http://prometheus", null, "user", passwordKey, Period.ZERO,
             new LLMPrometheusProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );

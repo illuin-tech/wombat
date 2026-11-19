@@ -21,7 +21,7 @@ class MetricSampleJsonTest
 {
     private static final ObjectMapper MAPPER = JsonMapper.builder().findAndAddModules().build();
 
-    private static final AssetIdentity ASSET = AssetIdentity.of("asset", "env", "Asset", "tech.illuin.wombat-module.kubernetes-api");
+    private static final AssetIdentity ASSET = AssetIdentity.of("asset", "env", "tech.illuin.wombat-module.kubernetes-api");
     private static final long WINDOW_START_MS = 1_700_000_100_000L;
     private static final long WINDOW_MS = 300_000L;
 

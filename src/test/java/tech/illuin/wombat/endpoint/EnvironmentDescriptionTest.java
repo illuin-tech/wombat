@@ -31,12 +31,12 @@ class EnvironmentDescriptionTest
     {
         Environment environment = new Environment("Production", List.of(
             new KubernetesAPIAsset(
-                AssetIdentity.of("cluster-1", "Production", "Cluster One", KubernetesAPIModule.TYPE),
+                AssetIdentity.of("cluster-1", "Production", KubernetesAPIModule.TYPE),
                 "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
                 new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
             ),
             new LLMStaticAsset(
-                AssetIdentity.of("llm-1", "Production", "LLM One", LLMStaticModule.TYPE),
+                AssetIdentity.of("llm-1", "Production", LLMStaticModule.TYPE),
                 new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, List.of(
                     new ConstantScenario(500, 1000, null)
                 ))
@@ -50,8 +50,8 @@ class EnvironmentDescriptionTest
         assertEquals("Production", config.name());
         assertEquals(timeRange, config.timeRange());
         assertEquals(2, config.assets().size());
-        assertEquals(new EnvironmentDescription.AssetSummary("cluster-1", "Cluster One", KubernetesAPIModule.TYPE), config.assets().getFirst());
-        assertEquals(new EnvironmentDescription.AssetSummary("llm-1", "LLM One", LLMStaticModule.TYPE), config.assets().getLast());
+        assertEquals(new EnvironmentDescription.AssetSummary("cluster-1", "cluster-1", KubernetesAPIModule.TYPE), config.assets().getFirst());
+        assertEquals(new EnvironmentDescription.AssetSummary("llm-1", "llm-1", LLMStaticModule.TYPE), config.assets().getLast());
     }
 
     @Test

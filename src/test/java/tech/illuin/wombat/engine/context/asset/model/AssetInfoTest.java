@@ -66,10 +66,11 @@ class AssetInfoTest
     {
         KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5));
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K", KubernetesAPIModule.TYPE),
+            AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
         )));
 
+        entity.name = "K";
         AssetInfo info = AssetInfo.from(entity);
 
         assertEquals(entity.properties, info.properties());
@@ -105,7 +106,7 @@ class AssetInfoTest
         LLMPrometheusProfile profile = new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE,
             new LLMPrometheusProfile.DynamicProfile("q"));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P", LLMPrometheusModule.TYPE),
+            AssetIdentity.of("p", "env", LLMPrometheusModule.TYPE),
             "http://prometheus", null, "user", "PROM_PASSWORD", Period.ofSeconds(5), profile
         )));
 
@@ -134,10 +135,11 @@ class AssetInfoTest
             List.of(new ConstantScenario(500, 1000, null))
         );
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
             profile
         )));
 
+        entity.name = "S";
         AssetInfo info = AssetInfo.from(entity);
 
         assertInstanceOf(LLMStaticAsset.class, info.properties());
@@ -157,7 +159,8 @@ class AssetInfoTest
     {
         mapper.registerSubtypes(new NamedType(DynamicAsset.class, "tech.illuin.custom"));
 
-        AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset(AssetIdentity.of("dyn1", "env", "Dynamic", "tech.illuin.custom"), new DynamicProfile("prof-1", "test-val"), "custom-value")));
+        AssetEntity entity = stamp(AssetEntity.from("env", new DynamicAsset(AssetIdentity.of("dyn1", "env", "tech.illuin.custom"), new DynamicProfile("prof-1", "test-val"), "custom-value")));
+        entity.name = "Dynamic";
         AssetInfo info = AssetInfo.from(entity);
 
         JsonNode json = mapper.readTree(mapper.writeValueAsString(info));
@@ -190,7 +193,7 @@ class AssetInfoTest
     void serializesUnrecognizedAssetSafely() throws Exception
     {
         String rawJson = "{\"id\":\"unrec-1\",\"environment-id\":\"env\",\"name\":\"Unknown Asset\",\"type\":\"tech.illuin.unknown\",\"custom\":\"value\"}";
-        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("unrec-1", "env", "Unknown Asset", "tech.illuin.unknown"), rawJson);
+        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("unrec-1", "env", "tech.illuin.unknown"), rawJson);
         AssetEntity entity = new AssetEntity();
         entity.id = "unrec-1";
         entity.environmentId = "env";
@@ -218,7 +221,7 @@ class AssetInfoTest
     void exposesTheWorkerOwningTheAsset_onlyForAWorkerAsset() throws Exception
     {
         LLMStaticAsset asset = new LLMStaticAsset(
-            AssetIdentity.of("east.s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("east.s", "env", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000, null)))
         );
         AssetEntity declared = stamp(AssetEntity.from("env", asset));

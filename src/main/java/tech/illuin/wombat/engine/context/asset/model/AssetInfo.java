@@ -10,6 +10,7 @@ import java.time.Instant;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AssetInfo(
     @JsonUnwrapped Asset properties,
+    String name,
     String type,
     String uuid,
     String owner,
@@ -24,6 +25,7 @@ public record AssetInfo(
     {
         this(
             properties,
+            properties.identity().id(),
             properties.identity().assetType(),
             uuid,
             null,
@@ -40,6 +42,7 @@ public record AssetInfo(
     {
         return new AssetInfo(
             entity.properties,
+            entity.name,
             entity.type,
             entity.uuid,
             entity.owner,

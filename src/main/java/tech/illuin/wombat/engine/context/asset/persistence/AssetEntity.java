@@ -95,7 +95,8 @@ public class AssetEntity
         AssetEntity entity = new AssetEntity();
         entity.id = asset.identity().id();
         entity.environmentId = environmentId;
-        entity.name = asset.identity().name();
+        // Assets declared as configuration carry no name of their own, their id stands for it.
+        entity.name = asset.identity().id();
         entity.type = asset.identity().assetType();
         entity.properties = asset;
         entity.provisioned = true;

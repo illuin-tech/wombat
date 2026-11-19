@@ -36,7 +36,6 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     private static final Set<String> KUBERNETES_TAGS = Set.of(
         TAG_ENVIRONMENT,
         TAG_ASSET,
-        TAG_ASSET_NAME,
         TAG_ASSET_TYPE,
         TAG_SERVICE,
         TAG_K8S_CLUSTER,
@@ -51,7 +50,6 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
     private static final Set<String> LLM_TAGS = Set.of(
         TAG_ENVIRONMENT,
         TAG_ASSET,
-        TAG_ASSET_NAME,
         TAG_ASSET_TYPE,
         TAG_SERVICE,
         TAG_LLM_PROVIDER,
@@ -186,7 +184,6 @@ public class WombatStepMeterRegistry extends StepMeterRegistry
         return new AssetIdentity(
             group.tag(TAG_ASSET).orElseThrow(),
             group.tag(TAG_ENVIRONMENT).orElseThrow(),
-            group.tag(TAG_ASSET_NAME).orElseThrow(),
             group.tag(TAG_ASSET_TYPE).orElseThrow()
         );
     }

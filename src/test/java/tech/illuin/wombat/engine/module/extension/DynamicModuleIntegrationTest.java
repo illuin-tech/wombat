@@ -131,7 +131,7 @@ class DynamicModuleIntegrationTest
             AssetConverter converter = new AssetConverter(jsonMapper);
 
             CustomDynamicAsset customAsset = new CustomDynamicAsset(
-                AssetIdentity.of("dyn-asset-1", "dynamic-env", "Dynamic Asset One", CustomDynamicModule.TYPE),
+                AssetIdentity.of("dyn-asset-1", "dynamic-env", CustomDynamicModule.TYPE),
                 "http://custom-source:8080", Period.ONE_SECOND
             );
             dbJson = converter.convertToDatabaseColumn(customAsset);
@@ -147,7 +147,6 @@ class DynamicModuleIntegrationTest
 
         UnrecognizedAsset unrecognized = (UnrecognizedAsset) parsedAsset;
         assertEquals("dyn-asset-1", unrecognized.identity().id());
-        assertEquals("Dynamic Asset One", unrecognized.identity().name());
         assertEquals("tech.custom.extension.custom-source", unrecognized.rawType());
         assertEquals(dbJson, standardConverter.convertToDatabaseColumn(unrecognized));
 
@@ -171,7 +170,6 @@ class DynamicModuleIntegrationTest
         UnrecognizedAsset unrecognizedYaml = (UnrecognizedAsset) yamlAsset;
         assertEquals("dyn-asset-1", unrecognizedYaml.identity().id());
         assertEquals("dynamic-env", unrecognizedYaml.identity().environmentId());
-        assertEquals("Dynamic Asset One", unrecognizedYaml.identity().name());
         assertEquals("tech.custom.extension.custom-source", unrecognizedYaml.rawType());
     }
 

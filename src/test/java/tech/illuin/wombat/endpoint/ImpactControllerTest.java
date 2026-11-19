@@ -55,7 +55,7 @@ class ImpactControllerTest
         row.instantMs = instantMs;
         row.windowMs = 3_600_000L;
         row.compacted = true;
-        row.assign(new AssetIdentity("test-cluster", "test", "Test Cluster", "tech.illuin.wombat-module.kubernetes-api"));
+        row.assign(new AssetIdentity("test-cluster", "test", "tech.illuin.wombat-module.kubernetes-api"));
         row.data = new KubernetesData(container, "test-cluster", "test-ns", pod, cpu, 0.0);
         row.cpuNanocores = cpu;
         return row;
@@ -316,7 +316,7 @@ class ImpactControllerTest
             .statusCode(200)
             .body("payload.size()", is(2))
             .body("payload.type.name", containsInAnyOrder("tech.illuin.wombat-module.kubernetes-api", "tech.illuin.wombat-module.llm-static"))
-            .body("payload.find { it.id == 'test-cluster' }.name", is("Test Cluster"));
+            .body("payload.find { it.id == 'test-cluster' }.name", is("test-cluster"));
     }
 
     @Test

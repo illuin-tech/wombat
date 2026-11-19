@@ -181,7 +181,7 @@ class AssetMonitorServiceTest
     private static LLMPrometheusAsset prometheus(String id, Period period)
     {
         return new LLMPrometheusAsset(
-            AssetIdentity.of(id, "env", id, LLMPrometheusModule.TYPE),
+            AssetIdentity.of(id, "env", LLMPrometheusModule.TYPE),
             "http://prometheus", null, null, null, period,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );

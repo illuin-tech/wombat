@@ -9,10 +9,10 @@ export interface AssetType {
   family: ServiceFamily
 }
 
-/** GET /api/environments: the asset properties are unwrapped next to `type`. */
+/** GET /api/environments: the asset properties are unwrapped next to `type`, `name` is only known to database records. */
 export interface AssetInfo {
   id: string
-  name: string
+  name?: string
   environmentId?: string
   owner?: string | null
   type?: string | AssetType
@@ -48,8 +48,13 @@ export function findUnrecognizedAssets(databaseAssets: readonly AssetInfo[], liv
   return databaseAssets.filter(asset => asset.deletedAt == null && asset.disabledAt == null && !liveIds.has(asset.id))
 }
 
-/** The live assets with the worker owning each one, which only the database records know. */
-export function withOwners(liveAssets: readonly AssetInfo[], databaseAssets: readonly AssetInfo[]): AssetInfo[] {
-  const owners = new Map(databaseAssets.filter(asset => asset.owner).map(asset => [asset.id, asset.owner]))
-  return liveAssets.map(asset => owners.has(asset.id) ? {...asset, owner: owners.get(asset.id)} : asset)
+/** The live assets with what only the database records know: their name, and the worker owning each one. */
+export function withRecordDetails(liveAssets: readonly AssetInfo[], databaseAssets: readonly AssetInfo[]): AssetInfo[] {
+  const records = new Map(databaseAssets.map(asset => [asset.id, asset]))
+  return liveAssets.map(asset => {
+    const record = records.get(asset.id)
+    if (!record)
+      return asset
+    return {...asset, name: record.name ?? asset.name, ...(record.owner ? {owner: record.owner} : {})}
+  })
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { findUnrecognizedAssets, withOwners } from '@/domain/environment'
+import { findUnrecognizedAssets, withRecordDetails } from '@/domain/environment'
 import type { AssetImpact, TimelineResponse } from '@/domain/impact'
 import { asLocalDateTime } from '@/services/format/formatters'
 import { ApiError } from '@/services/api/client'
@@ -43,13 +43,13 @@ const impactError = computed(() => dashboard.impact.error.value)
 const noData = computed(() => impactError.value instanceof ApiError && impactError.value.reason === NO_DATA_REASON)
 const impactErrorMessage = computed(() => impactError.value instanceof Error ? impactError.value.message : 'Unexpected error, try again.')
 const model = computed(() => environment.value && impact.value !== null
-  ? aggregateDashboard(impact.value, environment.value.assets, currentFilters.value.services)
+  ? aggregateDashboard(impact.value, liveAssets.value, currentFilters.value.services)
   : null)
 const allServices = computed(() => serviceOptions(impact.value ?? []))
 const persistedEnvironments = computed(() => dashboard.persistedEnvironments.data.value ?? [])
 const persistedEnvironment = computed(() => persistedEnvironments.value.find(candidate => candidate.id === environment.value?.id))
 const unrecognizedAssets = computed(() => findUnrecognizedAssets(persistedEnvironment.value?.assets ?? [], environment.value?.assets ?? []))
-const pickerAssets = computed(() => withOwners(environment.value?.assets ?? [], persistedEnvironment.value?.assets ?? []))
+const liveAssets = computed(() => withRecordDetails(environment.value?.assets ?? [], persistedEnvironment.value?.assets ?? []))
 
 watch(() => [
   route.params.environment,
@@ -89,7 +89,7 @@ function resetFilters(): void {
   <FilterBar
     :environments="environments"
     :environment-id="requestedEnvironmentId"
-    :assets="pickerAssets"
+    :assets="liveAssets"
     :services="allServices"
     :selection="currentFilters.services"
     :from="from"

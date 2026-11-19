@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MetricStoreContainerTest
 {
-    private static final AssetIdentity ASSET = AssetIdentity.of("asset", "env", "Asset", "tech.illuin.wombat-module.test");
+    private static final AssetIdentity ASSET = AssetIdentity.of("asset", "env", "tech.illuin.wombat-module.test");
 
     private final List<MetricSample<KubernetesData>> kubernetes = new ArrayList<>();
     private final List<MetricSample<LLMData>> llm = new ArrayList<>();

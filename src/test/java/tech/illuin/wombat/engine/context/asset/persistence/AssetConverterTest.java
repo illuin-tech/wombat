@@ -39,7 +39,7 @@ class AssetConverterTest
     void kubernetesAsset_survivesARoundTrip()
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K", KubernetesAPIModule.TYPE),
+            AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
@@ -51,7 +51,7 @@ class AssetConverterTest
     void llmStaticAsset_survivesARoundTrip()
     {
         LLMStaticAsset asset = new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000, null)
             ))
@@ -63,7 +63,7 @@ class AssetConverterTest
     void llmPrometheusAsset_survivesARoundTrip()
     {
         LLMPrometheusAsset asset = new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P", LLMPrometheusModule.TYPE),
+            AssetIdentity.of("p", "env", LLMPrometheusModule.TYPE),
             "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", Period.ofSeconds(7),
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
@@ -74,7 +74,7 @@ class AssetConverterTest
     void storedJson_carriesTheAssetTypeDiscriminator()
     {
         LLMStaticAsset asset = new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000, null)
             ))
@@ -96,7 +96,6 @@ class AssetConverterTest
         UnrecognizedAsset unrecognized = (UnrecognizedAsset) parsed;
         assertEquals("unrec-1", unrecognized.identity().id());
         assertEquals("env-1", unrecognized.identity().environmentId());
-        assertEquals("Dropped Module Asset", unrecognized.identity().name());
         assertEquals("tech.illuin.dropped.Asset", unrecognized.rawType());
         assertEquals(rawJson, unrecognized.rawJson());
         assertEquals("tech.illuin.wombat-core.unknown", unrecognized.type().name());

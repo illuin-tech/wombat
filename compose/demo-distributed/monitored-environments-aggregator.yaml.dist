@@ -8,7 +8,6 @@ environments:
       - type: tech.illuin.wombat-module.llm-anthropic
         id: east-anthropic
         environment-id: east
-        name: East Anthropic
         admin-key: ANTHROPIC_ADMIN_KEY  # name of the secret holding the Anthropic admin key, see compose.yaml
         profile:
           location: USA

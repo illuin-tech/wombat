@@ -259,7 +259,7 @@ class RequiredSecretsCheckTest
     private static LLMPrometheusAsset prometheusAsset(String id, String username, String passwordEnv)
     {
         return new LLMPrometheusAsset(
-            AssetIdentity.of(id, "env", id, LLMPrometheusModule.TYPE),
+            AssetIdentity.of(id, "env", LLMPrometheusModule.TYPE),
             "http://prometheus", null, username, passwordEnv, Period.ZERO,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
@@ -268,7 +268,7 @@ class RequiredSecretsCheckTest
     private static LLMStaticAsset staticAsset()
     {
         return new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000)
             ))

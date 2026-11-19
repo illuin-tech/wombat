@@ -96,7 +96,7 @@ public class MetricController
             }
 
             AssetIdentity asset = sample.asset();
-            AssetIdentity owned = new AssetIdentity(worker + "." + asset.id(), asset.environmentId(), asset.name(), asset.assetType());
+            AssetIdentity owned = new AssetIdentity(worker + "." + asset.id(), asset.environmentId(), asset.assetType());
             accepted.add(new MetricSample<>(owned, sample.window(), sample.data()));
         }
 

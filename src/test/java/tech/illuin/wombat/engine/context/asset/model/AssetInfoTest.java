@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
@@ -107,7 +108,7 @@ class AssetInfoTest
             new LLMPrometheusProfile.DynamicProfile("q"));
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMPrometheusAsset(
             AssetIdentity.of("p", "env", LLMPrometheusModule.TYPE),
-            "http://prometheus", null, "user", "PROM_PASSWORD", Period.ofSeconds(5), profile
+            "http://prometheus", null, "user", SecretKey.of("PROM_PASSWORD"), Period.ofSeconds(5), profile
         )));
 
         AssetInfo info = AssetInfo.from(entity);

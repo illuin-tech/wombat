@@ -14,6 +14,7 @@ import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.secret.CompositeSecretResolver;
 import tech.illuin.wombat.core.secret.EnvironmentSecretResolver;
 import tech.illuin.wombat.core.secret.KeyStoreSecretResolver;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.secret.SecretProperties;
@@ -260,7 +261,7 @@ class RequiredSecretsCheckTest
     {
         return new LLMPrometheusAsset(
             AssetIdentity.of(id, "env", LLMPrometheusModule.TYPE),
-            "http://prometheus", null, username, passwordEnv, Period.ZERO,
+            "http://prometheus", null, username, SecretKey.of(passwordEnv), Period.ZERO,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
     }

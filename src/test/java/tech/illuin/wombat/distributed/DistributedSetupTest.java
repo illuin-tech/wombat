@@ -29,6 +29,7 @@ import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.module.WombatModule;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.core.source.data.LLMData;
 import tech.illuin.wombat.core.source.data.MetricData;
@@ -273,7 +274,7 @@ class DistributedSetupTest
     {
         return new LLMAnthropicAsset(
             AssetIdentity.of(id, environment, LLMAnthropicModule.TYPE),
-            null, null, adminKey,
+            null, null, SecretKey.of(adminKey),
             new LLMAnthropicProfile(FRANCE, 500, List.of(), List.of(), List.of())
         );
     }
@@ -282,7 +283,7 @@ class DistributedSetupTest
     {
         return new LLMPrometheusAsset(
             AssetIdentity.of(id, environment, LLMPrometheusModule.TYPE),
-            "http://prometheus", null, "user", passwordKey, Period.ZERO,
+            "http://prometheus", null, "user", SecretKey.of(passwordKey), Period.ZERO,
             new LLMPrometheusProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
     }

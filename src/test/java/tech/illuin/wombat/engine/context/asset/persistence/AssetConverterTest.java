@@ -3,6 +3,7 @@ package tech.illuin.wombat.engine.context.asset.persistence;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.Asset;
@@ -64,7 +65,7 @@ class AssetConverterTest
     {
         LLMPrometheusAsset asset = new LLMPrometheusAsset(
             AssetIdentity.of("p", "env", LLMPrometheusModule.TYPE),
-            "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", Period.ofSeconds(7),
+            "http://prometheus", "http://proxy:8080", "user", SecretKey.of("PROM_PASSWORD"), Period.ofSeconds(7),
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
         assertEquals(asset, this.roundTrip(asset));

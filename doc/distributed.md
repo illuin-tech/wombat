@@ -35,7 +35,7 @@ The mode also sets which functionalities an instance serves:
 | Feature     | Serves                                                                         | `standalone` | `aggregator` | `worker` |
 |-------------|--------------------------------------------------------------------------------|--------------|--------------|----------|
 | `ui`        | the web UI and its dashboards, `GET /api/app`                                  | ✓            | ✓            |          |
-| `api-read`  | `/api/impact`, `/api/simulation`, `/api/environments`, `/api/modules`          | ✓            | ✓            |          |
+| `api-read`  | `/api/impact`, `/api/simulation`, `/api/environments`, `/api/assets`, `/api/modules` | ✓            | ✓            |          |
 | `api-write` | `POST /api/workers/{worker}/metrics`, `PUT /api/workers/{worker}/environments` |              | ✓            |          |
 | `admin`     | `/api/users`, `/api/keys`, `/api/secrets`                                      | ✓            | ✓            |          |
 

@@ -1,12 +1,12 @@
 package tech.illuin.wombat.engine.context;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepository;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
-import tech.illuin.wombat.engine.context.persistence.AssetEntity;
-import tech.illuin.wombat.engine.context.persistence.AssetRepository;
-import tech.illuin.wombat.engine.context.persistence.EnvironmentEntity;
-import tech.illuin.wombat.engine.context.persistence.EnvironmentRepository;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;

@@ -2,17 +2,17 @@ package tech.illuin.wombat.engine.context;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
-import tech.illuin.wombat.engine.context.persistence.AssetEntity;
-import tech.illuin.wombat.engine.context.persistence.AssetRepository;
-import tech.illuin.wombat.engine.context.persistence.EnvironmentEntity;
-import tech.illuin.wombat.engine.context.persistence.EnvironmentRepository;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.context.ResolvedContext;
 import tech.illuin.wombat.core.context.WombatContext;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.secret.SecretResolver;
+import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepository;
 
 import java.util.ArrayList;
 import java.util.List;

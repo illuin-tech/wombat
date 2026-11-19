@@ -2,10 +2,19 @@ package tech.illuin.wombat.engine.context;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tech.illuin.wombat.engine.context.asset.AssetConflictException;
+import tech.illuin.wombat.engine.context.asset.AssetHistoryRecorder;
+import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetConfigAction;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetConfigHistory;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetConfigHistoryRepository;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
+import tech.illuin.wombat.engine.context.environment.EnvironmentConflictException;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepository;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
-import tech.illuin.wombat.engine.context.persistence.*;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
@@ -23,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
@@ -88,7 +98,7 @@ class EnvironmentReconcilerTest
     void softDeletesAssetAbsentFromYaml_withDeleteHistory()
     {
         AssetEntity orphan = AssetEntity.from("e1", k8s("gone", Lifetime.ofYears(5)));
-        when(this.assets.findActive()).thenReturn(List.of(orphan));
+        when(this.assets.findVisible()).thenReturn(List.of(orphan));
 
         this.reconcile(desired("e1", "Env 1")); // env kept, but no assets -> "gone" must be removed
 
@@ -108,8 +118,9 @@ class EnvironmentReconcilerTest
         orphan.name = "Gone Asset";
         orphan.type = "tech.illuin.unknown";
         orphan.properties = unrecognized;
+        orphan.provisioned = true;
 
-        when(this.assets.findActive()).thenReturn(List.of(orphan));
+        when(this.assets.findVisible()).thenReturn(List.of(orphan));
 
         this.reconcile(desired("e1", "Env 1"));
 
@@ -129,6 +140,7 @@ class EnvironmentReconcilerTest
         existing.name = "Old Unrecognized";
         existing.type = "tech.illuin.unknown";
         existing.properties = unrecognized;
+        existing.provisioned = true;
 
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(existing));
 
@@ -140,23 +152,19 @@ class EnvironmentReconcilerTest
     }
 
     @Test
-    void reEnablesReturningEnvironmentAndDisablesEnvironmentsAbsentFromYaml()
+    void restoresReturningEnvironmentAndSoftDeletesEnvironmentsAbsentFromYaml()
     {
-        EnvironmentEntity returning = new EnvironmentEntity();
-        returning.id = "e1";
-        returning.name = "Env 1";
-        returning.disabledAt = EnvironmentEntity.now();
+        EnvironmentEntity returning = provisioned("e1", "Env 1");
+        returning.deletedAt = EnvironmentEntity.now();
         when(this.environments.findByIdOptional("e1")).thenReturn(Optional.of(returning));
 
-        EnvironmentEntity orphan = new EnvironmentEntity();
-        orphan.id = "old";
-        orphan.name = "Old";
-        when(this.environments.findActive()).thenReturn(List.of(orphan));
+        EnvironmentEntity orphan = provisioned("old", "Old");
+        when(this.environments.findVisible()).thenReturn(List.of(orphan));
 
         this.reconcile(desired("e1", "Env 1")); // no assets
 
-        assertNull(returning.disabledAt);
-        assertNotNull(orphan.disabledAt);
+        assertNull(returning.deletedAt);
+        assertNotNull(orphan.deletedAt);
     }
 
     /* Ownership: a worker's declaration and the YAML each manage their own assets of a shared environment. */
@@ -175,7 +183,7 @@ class EnvironmentReconcilerTest
         AssetEntity local = AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5)));
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(local));
 
-        assertThrows(EnvironmentConflictException.class, () -> this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
+        assertThrows(AssetConflictException.class, () -> this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
         assertNull(local.owner);
     }
 
@@ -185,7 +193,7 @@ class EnvironmentReconcilerTest
         AssetEntity other = owned("west", AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5))));
         when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(other));
 
-        assertThrows(EnvironmentConflictException.class, () -> this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
+        assertThrows(AssetConflictException.class, () -> this.reconcileAsWorker("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
     }
 
     @Test
@@ -207,7 +215,7 @@ class EnvironmentReconcilerTest
         AssetEntity local = AssetEntity.from("e1", k8s("local", Lifetime.ofYears(5)));
         AssetEntity mine = owned("east", AssetEntity.from("e1", k8s("mine", Lifetime.ofYears(5))));
         AssetEntity theirs = owned("west", AssetEntity.from("e1", k8s("theirs", Lifetime.ofYears(5))));
-        when(this.assets.findActive()).thenReturn(List.of(local, mine, theirs));
+        when(this.assets.findVisible()).thenReturn(List.of(local, mine, theirs));
 
         this.reconciler().reconcile("east", Map.of());
 
@@ -220,15 +228,14 @@ class EnvironmentReconcilerTest
     void yaml_keepsTheAssetsOfWorkers_andTheEnvironmentsHoldingThem()
     {
         AssetEntity pushed = owned("east", AssetEntity.from("pushed-env", k8s("pushed", Lifetime.ofYears(5))));
-        EnvironmentEntity pushedEnvironment = new EnvironmentEntity();
-        pushedEnvironment.id = "pushed-env";
-        when(this.assets.findActive()).thenReturn(List.of(pushed));
-        when(this.environments.findActive()).thenReturn(List.of(pushedEnvironment));
+        EnvironmentEntity pushedEnvironment = provisioned("pushed-env", "pushed-env");
+        when(this.assets.findVisible()).thenReturn(List.of(pushed));
+        when(this.environments.findVisible()).thenReturn(List.of(pushedEnvironment));
 
         this.reconcile(desired("e1", "Env 1"));
 
         assertNull(pushed.deletedAt);
-        assertNull(pushedEnvironment.disabledAt);
+        assertNull(pushedEnvironment.deletedAt);
     }
 
     @Test
@@ -243,22 +250,112 @@ class EnvironmentReconcilerTest
     }
 
     @Test
-    void worker_disablesTheEnvironmentItEmptied_unlessTheYamlDeclaresIt()
+    void worker_softDeletesTheEnvironmentItEmptied_unlessTheYamlDeclaresIt()
     {
         AssetEntity gone = owned("east", AssetEntity.from("pushed-env", k8s("gone", Lifetime.ofYears(5))));
         AssetEntity alsoGone = owned("east", AssetEntity.from("e1", k8s("also-gone", Lifetime.ofYears(5))));
-        EnvironmentEntity pushedEnvironment = new EnvironmentEntity();
-        pushedEnvironment.id = "pushed-env";
-        EnvironmentEntity yamlEnvironment = new EnvironmentEntity();
-        yamlEnvironment.id = "e1";
-        when(this.assets.findActive()).thenReturn(List.of(gone, alsoGone));
-        when(this.environments.findActive()).thenReturn(List.of(pushedEnvironment, yamlEnvironment));
+        EnvironmentEntity pushedEnvironment = provisioned("pushed-env", "pushed-env");
+        EnvironmentEntity yamlEnvironment = provisioned("e1", "e1");
+        when(this.assets.findVisible()).thenReturn(List.of(gone, alsoGone));
+        when(this.environments.findVisible()).thenReturn(List.of(pushedEnvironment, yamlEnvironment));
 
-        new EnvironmentReconciler(this.environments, this.assets, this.history, new MonitoredEnvironments(desired("e1", "Env 1")))
+        new EnvironmentReconciler(this.environments, this.assets, new AssetHistoryRecorder(this.history), new MonitoredEnvironments(desired("e1", "Env 1")))
             .reconcile("east", Map.of());
 
-        assertNotNull(pushedEnvironment.disabledAt);
-        assertNull(yamlEnvironment.disabledAt);
+        assertNotNull(pushedEnvironment.deletedAt);
+        assertNull(yamlEnvironment.deletedAt);
+    }
+
+    /* Environments and assets created through the API: never touched by a declaration, which must not clash with them. */
+
+    @Test
+    void yaml_failsOnAnEnvironmentCreatedThroughTheApi()
+    {
+        when(this.environments.findByIdOptional("e1")).thenReturn(Optional.of(created("e1")));
+
+        assertThrows(EnvironmentConflictException.class, () -> this.reconcile(desired("e1", "Env 1")));
+    }
+
+    @Test
+    void worker_failsOnAnEnvironmentCreatedThroughTheApi()
+    {
+        when(this.environments.findByIdOptional("e1")).thenReturn(Optional.of(created("e1")));
+
+        assertThrows(EnvironmentConflictException.class, () -> this.reconciler().reconcile("east", desired("e1", "Env 1")));
+    }
+
+    @Test
+    void yaml_failsOnAnAssetCreatedThroughTheApi()
+    {
+        AssetEntity user = created(AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5))));
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(user));
+
+        assertThrows(AssetConflictException.class, () -> this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
+        verify(this.history, never()).persist(any(AssetConfigHistory.class));
+    }
+
+    @Test
+    void worker_failsOnAnAssetCreatedThroughTheApi()
+    {
+        AssetEntity user = created(AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5))));
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(user));
+
+        assertThrows(AssetConflictException.class, () -> this.reconciler().reconcile("east", desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5)))));
+    }
+
+    @Test
+    void takesOverSoftDeletedRowsCreatedThroughTheApi()
+    {
+        EnvironmentEntity environment = created("e1");
+        environment.deletedAt = EnvironmentEntity.now();
+        AssetEntity asset = created(AssetEntity.from("e1", k8s("a1", Lifetime.ofYears(5))));
+        asset.deletedAt = EnvironmentEntity.now();
+        when(this.environments.findByIdOptional("e1")).thenReturn(Optional.of(environment));
+        when(this.assets.findByIdOptional("a1")).thenReturn(Optional.of(asset));
+
+        this.reconcile(desired("e1", "Env 1", k8s("a1", Lifetime.ofYears(5))));
+
+        assertNull(environment.deletedAt);
+        assertTrue(environment.provisioned);
+        assertNull(asset.deletedAt);
+        assertTrue(asset.provisioned);
+    }
+
+    @Test
+    void yaml_keepsTheAssetsCreatedThroughTheApi()
+    {
+        // Same owner as the YAML (null): only the provisioned flag tells them apart.
+        AssetEntity user = created(AssetEntity.from("e1", k8s("user", Lifetime.ofYears(5))));
+        when(this.assets.findVisible()).thenReturn(List.of(user));
+
+        this.reconcile(desired("e1", "Env 1"));
+
+        assertNull(user.deletedAt);
+        verify(this.history, never()).persist(any(AssetConfigHistory.class));
+    }
+
+    @Test
+    void yaml_keepsTheEnvironmentsCreatedThroughTheApi()
+    {
+        EnvironmentEntity user = created("user-env");
+        when(this.environments.findVisible()).thenReturn(List.of(user));
+
+        this.reconcile(desired("e1", "Env 1"));
+
+        assertNull(user.deletedAt);
+    }
+
+    @Test
+    void yaml_keepsAnUndeclaredEnvironmentHoldingAssetsCreatedThroughTheApi()
+    {
+        EnvironmentEntity old = provisioned("old", "Old");
+        AssetEntity user = created(AssetEntity.from("old", k8s("user", Lifetime.ofYears(5))));
+        when(this.environments.findVisible()).thenReturn(List.of(old));
+        when(this.assets.findVisible()).thenReturn(List.of(user));
+
+        this.reconcile(desired("e1", "Env 1"));
+
+        assertNull(old.deletedAt);
     }
 
     private AssetEntity reconcileAsWorker(String worker, Map<String, Environment> desired)
@@ -272,7 +369,30 @@ class EnvironmentReconcilerTest
     /* A reconciler whose YAML declares nothing, so only the worker's declaration is at play. */
     private EnvironmentReconciler reconciler()
     {
-        return new EnvironmentReconciler(this.environments, this.assets, this.history, new MonitoredEnvironments(Map.of()));
+        return new EnvironmentReconciler(this.environments, this.assets, new AssetHistoryRecorder(this.history), new MonitoredEnvironments(Map.of()));
+    }
+
+    private static EnvironmentEntity provisioned(String id, String name)
+    {
+        EnvironmentEntity entity = new EnvironmentEntity();
+        entity.id = id;
+        entity.name = name;
+        entity.provisioned = true;
+        return entity;
+    }
+
+    private static EnvironmentEntity created(String id)
+    {
+        EnvironmentEntity entity = new EnvironmentEntity();
+        entity.id = id;
+        entity.name = id;
+        return entity;
+    }
+
+    private static AssetEntity created(AssetEntity entity)
+    {
+        entity.provisioned = false;
+        return entity;
     }
 
     private static AssetEntity owned(String owner, AssetEntity entity)
@@ -283,7 +403,7 @@ class EnvironmentReconcilerTest
 
     private void reconcile(Map<String, Environment> desired)
     {
-        new EnvironmentReconciler(this.environments, this.assets, this.history, new MonitoredEnvironments(desired))
+        new EnvironmentReconciler(this.environments, this.assets, new AssetHistoryRecorder(this.history), new MonitoredEnvironments(desired))
             .onStart(null);
     }
 

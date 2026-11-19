@@ -14,7 +14,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
+import static tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity.now;
 
 /**
  * A user who signed in at least once. {@code roles} are the ones mapped from the identity provider and {@code auth.roles.*}

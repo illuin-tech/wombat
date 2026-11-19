@@ -14,6 +14,9 @@ import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
+import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepository;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
@@ -32,9 +35,6 @@ import tech.illuin.wombat.core.source.data.MetricData;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.core.source.persistence.micrometer.MicrometerMetricPersister;
-import tech.illuin.wombat.engine.context.persistence.AssetEntity;
-import tech.illuin.wombat.engine.context.persistence.AssetRepository;
-import tech.illuin.wombat.engine.context.persistence.EnvironmentRepository;
 import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
@@ -177,8 +177,8 @@ class DistributedSetupTest
         assertEquals("east.declared", this.asset("east.declared").properties.identity().id());
         assertEquals("west", this.asset("west.declared").owner);
         assertNull(this.asset("declared"));
-        assertNull(this.environments.findById("east").disabledAt);
-        assertNull(this.environments.findById("west").disabledAt);
+        assertNull(this.environments.findById("east").deletedAt);
+        assertNull(this.environments.findById("west").deletedAt);
     }
 
     @Test

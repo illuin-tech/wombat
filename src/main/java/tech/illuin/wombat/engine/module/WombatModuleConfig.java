@@ -16,7 +16,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAssetProblemHandler;
+import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAssetProblemHandler;
 import tech.illuin.wombat.core.activity.WombatActivityResolver;
 import tech.illuin.wombat.core.activity.commons.ActivityData;
 import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityResolver;

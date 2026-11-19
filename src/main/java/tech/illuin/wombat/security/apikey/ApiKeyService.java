@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
+import static tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity.now;
 
 /** Every user manages their own API keys, admins see and revoke everyone's; a key never grants more than its owner holds. */
 @ApplicationScoped

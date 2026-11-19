@@ -12,6 +12,8 @@ public enum Permission
     API_SIMULATION_READ(Names.API_SIMULATION_READ, true),
     API_ENVIRONMENT_READ(Names.API_ENVIRONMENT_READ, true),
     API_ENVIRONMENT_WRITE(Names.API_ENVIRONMENT_WRITE, true),
+    API_ASSET_READ(Names.API_ASSET_READ, true),
+    API_ASSET_WRITE(Names.API_ASSET_WRITE, true),
     API_METRIC_WRITE(Names.API_METRIC_WRITE, true),
     API_MODULE_READ(Names.API_MODULE_READ, true),
     API_APIKEY_MANAGE(Names.API_APIKEY_MANAGE, false),
@@ -57,6 +59,8 @@ public enum Permission
         public static final String API_MODULE_READ = "api.module.read";
         public static final String API_ENVIRONMENT_READ = "api.environment.read";
         public static final String API_ENVIRONMENT_WRITE = "api.environment.write";
+        public static final String API_ASSET_READ = "api.asset.read";
+        public static final String API_ASSET_WRITE = "api.asset.write";
         public static final String API_METRIC_WRITE = "api.metric.write";
         public static final String API_APIKEY_MANAGE = "api.apikey.manage";
         public static final String API_APIKEY_ADMIN = "api.apikey.admin";

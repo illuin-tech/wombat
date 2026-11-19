@@ -8,7 +8,7 @@ import tech.illuin.wombat.security.Role;
 import java.util.EnumSet;
 import java.util.List;
 
-import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
+import static tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity.now;
 
 @ApplicationScoped
 public class UserService

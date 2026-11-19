@@ -13,7 +13,7 @@ import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.engine.context.persistence.AssetRepository;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;

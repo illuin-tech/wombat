@@ -10,7 +10,7 @@ import jakarta.persistence.Version;
 
 import java.time.Instant;
 
-import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
+import static tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity.now;
 
 @Entity
 @Table(name = "secrets")

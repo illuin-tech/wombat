@@ -13,7 +13,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
-import static tech.illuin.wombat.engine.context.persistence.EnvironmentEntity.now;
+import static tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity.now;
 
 /** A key belongs to the user who created it, and never grants more than its owner currently holds. */
 @Entity

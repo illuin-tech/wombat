@@ -31,7 +31,7 @@ public class LLMMetricEntity extends MetricEntity
     @Column(name = "request_count", nullable = false, columnDefinition = "INTEGER")
     public long requestCount;
 
-    @Convert(converter = CompactionFlagConverter.class)
+    @Convert(converter = BooleanFlagConverter.class)
     @Column(name = "compacted", nullable = false, columnDefinition = "INTEGER")
     public boolean compacted;
 }

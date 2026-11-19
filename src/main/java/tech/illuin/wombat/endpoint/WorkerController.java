@@ -14,18 +14,16 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.source.Monitorable;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
-import tech.illuin.wombat.engine.context.EnvironmentConflictException;
 import tech.illuin.wombat.engine.context.EnvironmentReconciler;
-import tech.illuin.wombat.engine.context.model.UnrecognizedAsset;
-import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
-import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.engine.context.asset.AssetConflictException;
+import tech.illuin.wombat.engine.context.asset.AssetValidator;
+import tech.illuin.wombat.engine.context.asset.InvalidAssetException;
+import tech.illuin.wombat.engine.context.environment.EnvironmentConflictException;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.persistence.backend.push.PushBackendConfig;
@@ -45,18 +43,16 @@ import java.util.Map;
 public class WorkerController
 {
     private final EnvironmentReconciler reconciler;
-    private final ModuleRegistry modules;
+    private final AssetValidator validator;
     private final JsonMapper assetMapper;
-
-    private static final Logger logger = LoggerFactory.getLogger(WorkerController.class);
 
     public WorkerController(
         EnvironmentReconciler reconciler,
-        ModuleRegistry modules,
+        AssetValidator validator,
         JsonMapper assetMapper
     ) {
         this.reconciler = reconciler;
-        this.modules = modules;
+        this.validator = validator;
         this.assetMapper = assetMapper;
     }
 
@@ -92,7 +88,7 @@ public class WorkerController
         try {
             return Response.success(this.reconciler.reconcile(worker, this.qualify(worker, environments)));
         }
-        catch (EnvironmentConflictException e) {
+        catch (EnvironmentConflictException | AssetConflictException e) {
             throw new ClientErrorException(e.getMessage(), jakarta.ws.rs.core.Response.Status.CONFLICT);
         }
     }
@@ -120,19 +116,18 @@ public class WorkerController
     }
 
     /**
-     * This instance evaluates the asset, so it needs its module, and a worker only declares what it samples. A module
-     * disabled here does not reject the asset: its metrics are skipped when pushed, see {@link MetricController}. The
-     * asset's secrets are not checked: those of its source are resolved on the worker, and this instance may not know
-     * them.
+     * This instance evaluates the asset, so it needs its module, and a worker only declares what it samples, see
+     * {@link AssetValidator}. The asset's secrets are not checked: those of its source are resolved on the worker, and
+     * this instance may not know them.
      */
     private void validate(Asset asset)
     {
-        if (asset instanceof UnrecognizedAsset unrecognized)
-            throw new BadRequestException("Unknown asset type " + unrecognized.rawType() + " for asset " + asset.identity().id());
-
-        ModuleMetadata module = this.modules.getModule(asset.type()).orElseThrow(() -> new BadRequestException("No module for asset type " + asset.type().name() + " of asset " + asset.identity().id()));
-        if (!module.enabled())
-            logger.debug("Asset {} is declared with asset type {} whose module is disabled, its metrics will be skipped", asset.identity().id(), asset.type().name());
+        try {
+            this.validator.validate(asset);
+        }
+        catch (InvalidAssetException e) {
+            throw new BadRequestException(e.getMessage());
+        }
 
         if (!(asset instanceof Monitorable))
             throw new BadRequestException("Asset " + asset.identity().id() + " of type " + asset.type().name() + " is not monitorable, declare it in the aggregator's environments file");

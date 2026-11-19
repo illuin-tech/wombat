@@ -34,7 +34,7 @@ public class KubernetesMetricEntity extends MetricEntity
     @Column(name = "ram_bytes", nullable = false, columnDefinition = "REAL")
     public double ramBytes;
 
-    @Convert(converter = CompactionFlagConverter.class)
+    @Convert(converter = BooleanFlagConverter.class)
     @Column(name = "compacted", nullable = false, columnDefinition = "INTEGER")
     public boolean compacted;
 }

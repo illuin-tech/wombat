@@ -31,3 +31,5 @@ graphify-out/
 .quinoa/
 src/main/webui/node_modules/
 src/main/webui/dist/
+
+.gitattributes

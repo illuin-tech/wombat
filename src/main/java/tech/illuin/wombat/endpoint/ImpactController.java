@@ -10,6 +10,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import tech.illuin.wombat.engine.context.environment.UnknownEnvironmentException;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.activity.commons.AssetFilter;

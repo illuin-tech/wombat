@@ -18,6 +18,9 @@ export interface AssetInfo {
   type?: string | AssetType
   namespace?: string | null
   profile?: unknown
+  description?: string | null
+  provisioned?: boolean
+  disabledAt?: string | null
   deletedAt?: string | null
   [key: string]: unknown
 }
@@ -26,6 +29,9 @@ export interface EnvironmentInfo {
   id: string
   uuid?: string
   name: string | null
+  description?: string | null
+  provisioned?: boolean
+  disabledAt?: string | null
   assets: AssetInfo[]
 }
 
@@ -36,10 +42,10 @@ export interface LiveEnvironment {
   assets: AssetInfo[]
 }
 
-/** Database assets outside the active runtime context, excluding soft-deleted records. */
+/** Database assets outside the active runtime context, excluding soft-deleted and disabled records (left out on purpose). */
 export function findUnrecognizedAssets(databaseAssets: readonly AssetInfo[], liveAssets: readonly AssetInfo[]): AssetInfo[] {
   const liveIds = new Set(liveAssets.map(asset => asset.id))
-  return databaseAssets.filter(asset => asset.deletedAt == null && !liveIds.has(asset.id))
+  return databaseAssets.filter(asset => asset.deletedAt == null && asset.disabledAt == null && !liveIds.has(asset.id))
 }
 
 /** The live assets with the worker owning each one, which only the database records know. */

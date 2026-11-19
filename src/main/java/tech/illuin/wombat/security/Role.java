@@ -60,6 +60,7 @@ public enum Role
             API_IMPACT_READ,
             API_SIMULATION_READ,
             API_ENVIRONMENT_READ,
+            API_ASSET_READ,
             API_MODULE_READ
         ));
 

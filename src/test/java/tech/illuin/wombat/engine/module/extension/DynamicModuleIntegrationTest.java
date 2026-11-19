@@ -18,6 +18,7 @@ import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.context.ResolvedContext;
+import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.Monitorable;
@@ -221,9 +222,9 @@ class DynamicModuleIntegrationTest
         }
 
         @Override
-        public Optional<WombatSource> createSource(tech.illuin.wombat.core.context.WombatContext context)
+        public Optional<ProcessorFactory<WombatSource>> source()
         {
-            return Optional.of(this.source);
+            return Optional.of((services, asset) -> this.source);
         }
 
         public CustomDynamicSource getSource()

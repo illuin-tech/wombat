@@ -8,6 +8,8 @@ import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.context.ResolvedContext;
 import tech.illuin.wombat.core.context.WombatContextProvider;
+import tech.illuin.wombat.core.module.WombatServices;
+import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.core.source.WombatSource;
@@ -140,6 +142,7 @@ class AssetMonitorServiceTest
         RecordingSource source = new RecordingSource();
         try (AssetMonitor monitor = new AssetMonitor(
             contextOf(prometheus("orphan", Period.ZERO)),
+            new WombatServices(SecretResolver.standard()),
             (asset, type, metrics) -> {}
         )) {
             beat(monitor, 3, DEFAULT_HEARTBEAT_SECONDS);
@@ -150,8 +153,8 @@ class AssetMonitorServiceTest
 
     private static AssetMonitor monitorFor(RecordingSource source, LLMPrometheusAsset... assets)
     {
-        AssetMonitor monitor = new AssetMonitor(contextOf(assets), (asset, type, metrics) -> {});
-        monitor.register(assets[0].type(), source);
+        AssetMonitor monitor = new AssetMonitor(contextOf(assets), new WombatServices(SecretResolver.standard()), (asset, type, metrics) -> {});
+        monitor.register(assets[0].type(), (services, asset) -> source);
         return monitor;
     }
 

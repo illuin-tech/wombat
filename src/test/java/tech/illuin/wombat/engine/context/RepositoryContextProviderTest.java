@@ -11,7 +11,6 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.context.WombatContext;
-import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
 import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
@@ -27,7 +26,6 @@ class RepositoryContextProviderTest
 {
     private final EnvironmentRepository environmentRepository = mock(EnvironmentRepository.class);
     private final AssetRepository assetRepository = mock(AssetRepository.class);
-    private final SecretResolver secretResolver = mock(SecretResolver.class);
 
     @Test
     void provide_filtersOutUnrecognizedAssetsFromActiveContext()
@@ -57,7 +55,7 @@ class RepositoryContextProviderTest
 
         when(this.assetRepository.findByEnvironment("env-1")).thenReturn(List.of(validEntity, unrecognizedEntity));
 
-        RepositoryContextProvider provider = new RepositoryContextProvider(this.environmentRepository, this.assetRepository, this.secretResolver);
+        RepositoryContextProvider provider = new RepositoryContextProvider(this.environmentRepository, this.assetRepository);
         WombatContext context = provider.provide();
 
         List<Environment> environments = context.environments();

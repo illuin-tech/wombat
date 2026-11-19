@@ -17,6 +17,7 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
+import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
 import java.time.Duration;
@@ -297,35 +298,54 @@ class CachedAssetEvaluatorTest
     }
 
     @Test
+    void refreshForwardsToTheDelegateAndDropsTheAssetsCachedResults() throws Exception
+    {
+        AssetActivity activity = mock(AssetActivity.class);
+        when(this.delegate.computeActivity(this.asset, this.timeRange, this.filter)).thenReturn(Optional.of(activity));
+        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(mock(AssetEvaluation.class)));
+
+        this.evaluator.computeActivity(this.asset, this.timeRange, this.filter);
+        this.evaluator.evaluate(this.timeRange, this.filter);
+        this.evaluator.refresh(this.identity);
+        this.evaluator.computeActivity(this.asset, this.timeRange, this.filter);
+        this.evaluator.evaluate(this.timeRange, this.filter);
+
+        verify(this.delegate).refresh(this.identity);
+        verify(this.delegate, times(2)).computeActivity(this.asset, this.timeRange, this.filter);
+        verify(this.delegate, times(2)).evaluate(this.timeRange, this.filter);
+    }
+
+    @Test
     void onlyConfiguredActivityResolverModulesAreCached()
     {
         AssetType matchingType = mock(AssetType.class);
         when(matchingType.name()).thenReturn("configured-module");
         AssetType otherType = mock(AssetType.class);
         when(otherType.name()).thenReturn("other-module");
-        WombatActivityResolver matchingResolver = mock(WombatActivityResolver.class);
-        WombatActivityResolver otherResolver = mock(WombatActivityResolver.class);
+        ProcessorFactory<WombatActivityResolver> matchingFactory = (services, asset) -> mock(WombatActivityResolver.class);
+        ProcessorFactory<WombatActivityResolver> otherFactory = (services, asset) -> mock(WombatActivityResolver.class);
         ResolverCacheProperties resolverCache = new TestResolverCacheProperties("configured-module", 100, Duration.ofMinutes(10));
         CachedAssetEvaluator evaluator = new CachedAssetEvaluator(
             this.delegate,
             new TestCachedAssetEvaluatorProperties(true, 1000L, Duration.ofMinutes(10), List.of(resolverCache))
         );
 
-        evaluator.registerActivityResolver(matchingType, matchingResolver);
-        evaluator.registerActivityResolver(otherType, otherResolver);
+        evaluator.registerActivityResolver(matchingType, matchingFactory);
+        evaluator.registerActivityResolver(otherType, otherFactory);
 
-        ArgumentCaptor<WombatActivityResolver> resolverCaptor = ArgumentCaptor.forClass(WombatActivityResolver.class);
-        verify(this.delegate, times(2)).registerActivityResolver(org.mockito.ArgumentMatchers.any(), resolverCaptor.capture());
-        assertInstanceOf(CachedActivityResolver.class, resolverCaptor.getAllValues().getFirst());
-        assertSame(otherResolver, resolverCaptor.getAllValues().getLast());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<ProcessorFactory<WombatActivityResolver>> factoryCaptor = ArgumentCaptor.forClass(ProcessorFactory.class);
+        verify(this.delegate, times(2)).registerActivityResolver(org.mockito.ArgumentMatchers.any(), factoryCaptor.capture());
+        assertInstanceOf(CachedActivityResolver.class, factoryCaptor.getAllValues().getFirst().create(null, this.asset));
+        assertSame(otherFactory, factoryCaptor.getAllValues().getLast());
     }
 
     @Test
     void resolverRegistrationsAndCloseAreForwarded() throws Exception
     {
         AssetType assetType = mock(AssetType.class);
-        WombatActivityResolver activityResolver = mock(WombatActivityResolver.class);
-        WombatEvaluationResolver evaluationResolver = mock(WombatEvaluationResolver.class);
+        ProcessorFactory<WombatActivityResolver> activityResolver = (services, asset) -> mock(WombatActivityResolver.class);
+        ProcessorFactory<WombatEvaluationResolver> evaluationResolver = (services, asset) -> mock(WombatEvaluationResolver.class);
 
         assertSame(this.evaluator, this.evaluator.registerActivityResolver(assetType, activityResolver));
         assertSame(this.evaluator, this.evaluator.registerCostResolver(assetType, evaluationResolver));

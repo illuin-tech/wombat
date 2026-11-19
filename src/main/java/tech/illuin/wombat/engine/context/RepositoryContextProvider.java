@@ -7,7 +7,6 @@ import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.context.ResolvedContext;
 import tech.illuin.wombat.core.context.WombatContext;
 import tech.illuin.wombat.core.context.WombatContextProvider;
-import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
@@ -21,23 +20,19 @@ public class RepositoryContextProvider implements WombatContextProvider
 {
     private final EnvironmentRepository repository;
     private final AssetRepository assetRepository;
-    private final SecretResolver secrets;
 
     private static final Logger logger = LoggerFactory.getLogger(RepositoryContextProvider.class);
 
-    public RepositoryContextProvider(EnvironmentRepository repository, AssetRepository assetRepository, SecretResolver secrets)
+    public RepositoryContextProvider(EnvironmentRepository repository, AssetRepository assetRepository)
     {
         this.repository = repository;
         this.assetRepository = assetRepository;
-        this.secrets = secrets;
     }
 
     @Override
     public WombatContext provide()
     {
-        // The assets come from the database, the credentials they reference from the environment — the two are
-        // resolved together so a module never has to reach outside the context for either.
-        return new ResolvedContext(this.environments(), this.secrets);
+        return new ResolvedContext(this.environments());
     }
 
     private List<Environment> environments()

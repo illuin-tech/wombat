@@ -15,6 +15,7 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
+import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public class CachedAssetEvaluator extends AssetEvaluator
 
     public CachedAssetEvaluator(AssetEvaluator delegate, CachedAssetEvaluatorProperties properties)
     {
-        super(null);
+        super(null, null);
         this.delegate = delegate;
         this.properties = properties;
         this.evaluateCache = createCache(properties);
@@ -96,27 +97,38 @@ public class CachedAssetEvaluator extends AssetEvaluator
     }
 
     @Override
-    public AssetEvaluator registerActivityResolver(AssetType type, WombatActivityResolver resolver)
+    public AssetEvaluator registerActivityResolver(AssetType type, ProcessorFactory<WombatActivityResolver> factory)
     {
         this.hasModuleCache(type).ifPresentOrElse(
-            cache -> this.delegate.registerActivityResolver(type, new CachedActivityResolver(resolver, cache)),
-            () -> this.delegate.registerActivityResolver(type, resolver)
+            cache -> this.delegate.registerActivityResolver(type, (services, asset) -> new CachedActivityResolver(factory.create(services, asset), cache)),
+            () -> this.delegate.registerActivityResolver(type, factory)
         );
         return this;
     }
 
     @Override
-    public AssetEvaluator registerCostResolver(AssetType type, WombatEvaluationResolver resolver)
+    public AssetEvaluator registerCostResolver(AssetType type, ProcessorFactory<WombatEvaluationResolver> factory)
     {
-        this.delegate.registerCostResolver(type, resolver);
+        this.delegate.registerCostResolver(type, factory);
         return this;
     }
 
     @Override
-    public AssetEvaluator registerImpactResolver(AssetType type, WombatEvaluationResolver resolver)
+    public AssetEvaluator registerImpactResolver(AssetType type, ProcessorFactory<WombatEvaluationResolver> factory)
     {
-        this.delegate.registerImpactResolver(type, resolver);
+        this.delegate.registerImpactResolver(type, factory);
         return this;
+    }
+
+    @Override
+    public void refresh(AssetIdentity identity)
+    {
+        this.delegate.refresh(identity);
+        this.activityCache.asMap().keySet().removeIf(key -> key.identity().equals(identity));
+        this.impactCache.asMap().keySet().removeIf(key -> key.identity().equals(identity));
+        this.costCache.asMap().keySet().removeIf(key -> key.identity().equals(identity));
+        // Evaluations are cached for whole ranges across all assets, the refreshed asset's share cannot be singled out.
+        this.evaluateCache.invalidateAll();
     }
 
     private Optional<ResolverCacheProperties> hasModuleCache(AssetType type)

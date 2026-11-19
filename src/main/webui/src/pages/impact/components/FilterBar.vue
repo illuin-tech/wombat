@@ -31,7 +31,7 @@ const serviceValues = ref<string[]>([])
 const environmentOptions = computed(() => props.environments.map(environment => ({value: environment.id, label: environment.name ?? environment.id})))
 const assetOptions = computed(() => props.assets.map(asset => ({
   value: asset.id,
-  label: `${asset.name} — ${asset.id}${asset.namespace ? ` / ${asset.namespace}` : ''}`,
+  label: `${asset.name && asset.name !== asset.id ? `${asset.name} — ` : ''}${asset.id}${asset.namespace ? ` / ${asset.namespace}` : ''}`,
   badge: asset.owner ?? undefined,
 })))
 const environmentSummary = computed(() => props.environmentsLoading ? 'Loading environments…' : props.environments.find(environment => environment.id === environmentId.value)?.name ?? environmentId.value)

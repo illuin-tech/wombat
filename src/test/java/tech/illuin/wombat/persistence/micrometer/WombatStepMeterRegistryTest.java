@@ -101,13 +101,11 @@ class WombatStepMeterRegistryTest
         MetricSample<KubernetesData> kubernetesRow = this.captureKubernetesRow();
         assertEquals("asset", kubernetesRow.asset().id());
         assertEquals("env", kubernetesRow.asset().environmentId());
-        assertEquals("Asset", kubernetesRow.asset().name());
         assertEquals("tech.illuin.wombat-module.kubernetes-api", kubernetesRow.asset().assetType());
 
         MetricSample<LLMData> llmRow = this.captureLLMRow();
         assertEquals("asset", llmRow.asset().id());
         assertEquals("env", llmRow.asset().environmentId());
-        assertEquals("Asset", llmRow.asset().name());
         assertEquals("tech.illuin.wombat-module.llm-prometheus", llmRow.asset().assetType());
     }
 
@@ -221,7 +219,6 @@ class WombatStepMeterRegistryTest
         return List.of(
             Tag.of(TAG_ENVIRONMENT, "env"),
             Tag.of(TAG_ASSET, "asset"),
-            Tag.of(TAG_ASSET_NAME, "Asset"),
             Tag.of(TAG_ASSET_TYPE, "tech.illuin.wombat-module.kubernetes-api"),
             Tag.of(TAG_SERVICE, "api"),
             Tag.of(TAG_K8S_CLUSTER, "cluster"),
@@ -236,7 +233,6 @@ class WombatStepMeterRegistryTest
         return List.of(
             Tag.of(TAG_ENVIRONMENT, "env"),
             Tag.of(TAG_ASSET, "asset"),
-            Tag.of(TAG_ASSET_NAME, "Asset"),
             Tag.of(TAG_ASSET_TYPE, "tech.illuin.wombat-module.llm-prometheus"),
             Tag.of(TAG_SERVICE, "mistral-large-latest"),
             Tag.of(TAG_LLM_PROVIDER, "mistralai"),

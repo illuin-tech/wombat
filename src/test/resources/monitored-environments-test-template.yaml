@@ -5,7 +5,6 @@ environments:
       - type: tech.illuin.wombat-module.kubernetes-api
         id: my-cluster
         environment-id: preprod
-        name: My cluster (preprod)
         namespace: my-namespace
         config-path: /path/to/kubeconfig
         heartbeat-skip: 1
@@ -17,7 +16,6 @@ environments:
       - type: tech.illuin.wombat-module.llm-static
         id: my-llm
         environment-id: preprod
-        name: My LLM (preprod)
         profile:
           models:
             - provider: mistralai
@@ -30,7 +28,6 @@ environments:
       - type: tech.illuin.wombat-module.llm-prometheus
         id: my-served-llm
         environment-id: preprod
-        name: My served LLM (preprod)
         prometheus-url: http://prometheus.my-namespace:9090/
         heartbeat-skip: 10
         username: prometheus

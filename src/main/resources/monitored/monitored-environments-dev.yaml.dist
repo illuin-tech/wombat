@@ -7,7 +7,6 @@ environments:
       - type: tech.illuin.wombat-module.kubernetes-static
         id: my-cluster
         environment-id: preprod
-        name: My cluster (preprod)
         profile:
           provider: aws
           instance-type: c5a.4xlarge
@@ -36,7 +35,6 @@ environments:
       - type: tech.illuin.wombat-module.llm-static
         id: my-llm
         environment-id: preprod
-        name: My LLM (preprod)
         resolvers:
           cost: csv-my-llm-a-con
         profile:

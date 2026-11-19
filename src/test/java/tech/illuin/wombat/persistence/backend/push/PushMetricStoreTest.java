@@ -32,8 +32,8 @@ class PushMetricStoreTest
     @Test
     void save_sendsTheSamplesOfAWindowInOneRequest_asTheyAre_asItsWorker()
     {
-        AssetIdentity first = AssetIdentity.of("first", "env", "First", TYPE);
-        AssetIdentity second = AssetIdentity.of("second", "env", "Second", TYPE);
+        AssetIdentity first = AssetIdentity.of("first", "env", TYPE);
+        AssetIdentity second = AssetIdentity.of("second", "env", TYPE);
         List<MetricSample<KubernetesData>> samples = List.of(sample(first, "a"), sample(second, "b"), sample(first, "c"));
 
         this.store.save(samples);
@@ -47,7 +47,7 @@ class PushMetricStoreTest
     @Test
     void save_readsTheMetricsTheAggregatorSkipped()
     {
-        AssetIdentity asset = AssetIdentity.of("first", "env", "First", TYPE);
+        AssetIdentity asset = AssetIdentity.of("first", "env", TYPE);
         Response<Integer> response = Response.success("Saved 0 metric(s), skipped 1", 0)
             .set(SkippedMetrics.STATUS_KEY, MAPPER.convertValue(List.of(new SkippedMetrics("first", TYPE, "No active module for asset type " + TYPE, 1)), List.class));
         PushMetricStore<KubernetesData> store = new PushMetricStore<>((worker, samples) -> response, "east", MAPPER);

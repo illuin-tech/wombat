@@ -72,7 +72,7 @@ class WorkerControllerDisabledModuleTest
     private static KubernetesAPIAsset cluster(String environment, String id)
     {
         return new KubernetesAPIAsset(
-            AssetIdentity.of(id, environment, id, KubernetesAPIModule.TYPE),
+            AssetIdentity.of(id, environment, KubernetesAPIModule.TYPE),
             "kubeconfig/" + environment + ".config.yaml", "default", Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );

@@ -100,7 +100,7 @@ class AssetRepositoryTest
     private static AssetEntity asset(String id, Instant disabledAt, Instant deletedAt)
     {
         AssetEntity entity = AssetEntity.from(ENVIRONMENT, new LLMStaticAsset(
-            AssetIdentity.of(id, ENVIRONMENT, id, LLMStaticModule.TYPE),
+            AssetIdentity.of(id, ENVIRONMENT, LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000)))
         ));
         entity.disabledAt = disabledAt;

@@ -177,7 +177,7 @@ class PostgresSchemaTest
     }
 
     /**
-     * The four identity fields left the JSON payload precisely so the database could constrain them; a nullable
+     * The identity fields left the JSON payload precisely so the database could constrain them; a nullable
      * column here would give back the guarantee the move was made for.
      */
     @Test
@@ -188,7 +188,7 @@ class PostgresSchemaTest
             Map<String, String> types = postgresColumnTypes(table);
             Set<String> nullable = postgresNullableColumns(table);
 
-            for (String column : List.of("asset_id", "environment_id", "asset_name", "asset_type"))
+            for (String column : List.of("asset_id", "environment_id", "asset_type"))
             {
                 assertEquals("text", types.get(column), table + "." + column);
                 assertFalse(nullable.contains(column), table + "." + column + " must be NOT NULL");
@@ -210,9 +210,9 @@ class PostgresSchemaTest
         String values = id == null ? "" : id + ", ";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(
-                 "INSERT INTO server_metrics (" + columns + "instant_ms, asset_id, environment_id, asset_name, asset_type,"
+                 "INSERT INTO server_metrics (" + columns + "instant_ms, asset_id, environment_id, asset_type,"
                  + " data, cpu_nanocores, ram_bytes)"
-                 + " VALUES (" + values + "1000, 'c1', 'env', 'Cluster One', 'tech.illuin.wombat-module.kubernetes-api',"
+                 + " VALUES (" + values + "1000, 'c1', 'env', 'tech.illuin.wombat-module.kubernetes-api',"
                  + " '{\"cluster\":\"c1\"}', 1, 1) RETURNING id"))
         {
             rs.next();

@@ -14,6 +14,7 @@ import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.secret.CompositeSecretResolver;
 import tech.illuin.wombat.core.secret.EnvironmentSecretResolver;
 import tech.illuin.wombat.core.secret.KeyStoreSecretResolver;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.secret.SecretProperties;
@@ -259,8 +260,8 @@ class RequiredSecretsCheckTest
     private static LLMPrometheusAsset prometheusAsset(String id, String username, String passwordEnv)
     {
         return new LLMPrometheusAsset(
-            AssetIdentity.of(id, "env", id, LLMPrometheusModule.TYPE),
-            "http://prometheus", null, username, passwordEnv, Period.ZERO,
+            AssetIdentity.of(id, "env", LLMPrometheusModule.TYPE),
+            "http://prometheus", null, username, SecretKey.of(passwordEnv), Period.ZERO,
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
     }
@@ -268,7 +269,7 @@ class RequiredSecretsCheckTest
     private static LLMStaticAsset staticAsset()
     {
         return new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
             new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
                 new ConstantScenario(500, 1000)
             ))

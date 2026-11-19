@@ -77,7 +77,6 @@ environments:
       - type: tech.illuin.wombat-module.kubernetes-static
         id: demo-cluster
         environment-id: demo
-        name: Demo Cluster
         profile:
           provider: aws
           instance-type: c5.xlarge
@@ -105,7 +104,6 @@ environments:
       - type: tech.illuin.wombat-module.llm-static
         id: demo-llm
         environment-id: demo
-        name: LLM Services
         profile:
           zone-id: Europe/Paris
           models:

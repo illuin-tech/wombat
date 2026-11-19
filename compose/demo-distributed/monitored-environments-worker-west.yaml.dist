@@ -7,7 +7,6 @@ environments:
       - type: tech.illuin.wombat-module.kubernetes-api
         id: west-cluster
         environment-id: west
-        name: West Cluster
         config-path: kubeconfig/west.config.yaml
         namespace: default
         profile:

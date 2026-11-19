@@ -321,7 +321,7 @@ class KubernetesMetricRepositoryTest
      */
     private static AssetIdentity identityOf(String assetId)
     {
-        return new AssetIdentity(assetId, "env", assetId + " name", "tech.illuin.wombat-module.kubernetes-api");
+        return new AssetIdentity(assetId, "env", "tech.illuin.wombat-module.kubernetes-api");
     }
 
     /**

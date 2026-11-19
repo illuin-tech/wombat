@@ -18,6 +18,7 @@ import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.context.ResolvedContext;
+import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.Monitorable;
@@ -130,7 +131,7 @@ class DynamicModuleIntegrationTest
             AssetConverter converter = new AssetConverter(jsonMapper);
 
             CustomDynamicAsset customAsset = new CustomDynamicAsset(
-                AssetIdentity.of("dyn-asset-1", "dynamic-env", "Dynamic Asset One", CustomDynamicModule.TYPE),
+                AssetIdentity.of("dyn-asset-1", "dynamic-env", CustomDynamicModule.TYPE),
                 "http://custom-source:8080", Period.ONE_SECOND
             );
             dbJson = converter.convertToDatabaseColumn(customAsset);
@@ -146,7 +147,6 @@ class DynamicModuleIntegrationTest
 
         UnrecognizedAsset unrecognized = (UnrecognizedAsset) parsedAsset;
         assertEquals("dyn-asset-1", unrecognized.identity().id());
-        assertEquals("Dynamic Asset One", unrecognized.identity().name());
         assertEquals("tech.custom.extension.custom-source", unrecognized.rawType());
         assertEquals(dbJson, standardConverter.convertToDatabaseColumn(unrecognized));
 
@@ -170,7 +170,6 @@ class DynamicModuleIntegrationTest
         UnrecognizedAsset unrecognizedYaml = (UnrecognizedAsset) yamlAsset;
         assertEquals("dyn-asset-1", unrecognizedYaml.identity().id());
         assertEquals("dynamic-env", unrecognizedYaml.identity().environmentId());
-        assertEquals("Dynamic Asset One", unrecognizedYaml.identity().name());
         assertEquals("tech.custom.extension.custom-source", unrecognizedYaml.rawType());
     }
 
@@ -221,9 +220,9 @@ class DynamicModuleIntegrationTest
         }
 
         @Override
-        public Optional<WombatSource> createSource(tech.illuin.wombat.core.context.WombatContext context)
+        public Optional<ProcessorFactory<WombatSource>> source()
         {
-            return Optional.of(this.source);
+            return Optional.of((services, asset) -> this.source);
         }
 
         public CustomDynamicSource getSource()

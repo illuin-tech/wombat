@@ -11,7 +11,7 @@ const emit = defineEmits<{ close: [] }>()
     <p class="unrecognized-modal-desc">The following assets are defined in the database with unknown or unregistered module types. They have been omitted from active metrics evaluation.</p>
     <div class="unrecognized-assets-list">
       <div v-for="asset in assets" :key="asset.id" class="unrecognized-asset-item">
-        <div class="unrecognized-asset-name">{{ asset.name }}</div>
+        <div class="unrecognized-asset-name">{{ asset.name ?? asset.id }}</div>
         <div class="unrecognized-asset-meta"><span class="unrecognized-meta-label">ID:</span> <code class="unrecognized-code">{{ asset.id }}</code> <span
             class="unrecognized-meta-label">Module / Type:</span> <code class="unrecognized-code">{{ asset.type }}</code></div>
       </div>

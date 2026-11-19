@@ -22,7 +22,7 @@ import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
 class AssetValidatorTest
 {
     private static final LLMStaticAsset ASSET = new LLMStaticAsset(
-        AssetIdentity.of("a1", "e1", "A1", LLMStaticModule.TYPE),
+        AssetIdentity.of("a1", "e1", LLMStaticModule.TYPE),
         new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000)))
     );
 
@@ -56,7 +56,7 @@ class AssetValidatorTest
     void rejectsAnUnrecognizedAsset()
     {
         AssetValidator validator = new AssetValidator(ModuleRegistries.enabled(List.of(new LLMStaticModule())));
-        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("u", "e1", "U", "tech.illuin.unknown"), "{}");
+        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("u", "e1", "tech.illuin.unknown"), "{}");
 
         InvalidAssetException e = assertThrows(InvalidAssetException.class, () -> validator.validate(unrecognized));
         assertTrue(e.getMessage().contains("Unknown asset type"));

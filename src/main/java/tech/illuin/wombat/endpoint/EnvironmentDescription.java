@@ -32,7 +32,8 @@ public record EnvironmentDescription(
     ) {
         public static AssetSummary from(Asset properties)
         {
-            return new AssetSummary(properties.identity().id(), properties.identity().name(), properties.type());
+            // The runtime context only knows assets by their id, which stands for their name here.
+            return new AssetSummary(properties.identity().id(), properties.identity().id(), properties.type());
         }
     }
 }

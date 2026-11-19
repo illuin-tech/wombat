@@ -110,7 +110,7 @@ class EnvironmentReconcilerTest
     void softDeletesUnrecognizedAssetAbsentFromYaml_withDeleteHistory()
     {
         String rawJson = "{\"id\":\"unrec-gone\",\"environment-id\":\"e1\",\"name\":\"Gone Asset\",\"type\":\"tech.illuin.unknown\"}";
-        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("unrec-gone", "e1", "Gone Asset", "tech.illuin.unknown"), rawJson
+        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("unrec-gone", "e1", "tech.illuin.unknown"), rawJson
         );
         AssetEntity orphan = new AssetEntity();
         orphan.id = "unrec-gone";
@@ -132,7 +132,7 @@ class EnvironmentReconcilerTest
     void updatesUnrecognizedAsset_withValidAssetFromYaml()
     {
         String rawJson = "{\"id\":\"a1\",\"environment-id\":\"e1\",\"name\":\"Old Unrecognized\",\"type\":\"tech.illuin.unknown\"}";
-        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("a1", "e1", "Old Unrecognized", "tech.illuin.unknown"), rawJson
+        UnrecognizedAsset unrecognized = new UnrecognizedAsset(AssetIdentity.of("a1", "e1", "tech.illuin.unknown"), rawJson
         );
         AssetEntity existing = new AssetEntity();
         existing.id = "a1";
@@ -422,7 +422,7 @@ class EnvironmentReconcilerTest
     private static KubernetesAPIAsset k8s(String id, Lifetime lifespan)
     {
         return new KubernetesAPIAsset(
-            AssetIdentity.of(id, "e1", id, KubernetesAPIModule.TYPE),
+            AssetIdentity.of(id, "e1", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, lifespan)
         );

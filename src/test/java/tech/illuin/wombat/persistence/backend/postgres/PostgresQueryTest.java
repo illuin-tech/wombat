@@ -46,22 +46,22 @@ class PostgresQueryTest
             // expectations below stay the plain sums and averages; weighting itself is covered by
             // KubernetesMetricRepositoryTest against the sqlite chain.
             stmt.executeUpdate(
-                "INSERT INTO server_metrics (instant_ms, window_ms, asset_id, environment_id, asset_name, asset_type, data, cpu_nanocores, ram_bytes, compacted) VALUES"
-                + " (1000, 1000, 'c1', 'env', 'Cluster One', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"api\"}', 1.5e9, 2e9, 1),"
-                + " (1000, 1000, 'c1', 'env', 'Cluster One', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"web\"}', 0.5e9, 1e9, 1),"
-                + " (2000, 1000, 'c2', 'env', 'Cluster Two', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c2\",\"namespace\":\"ns2\",\"pod\":\"p2\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
+                "INSERT INTO server_metrics (instant_ms, window_ms, asset_id, environment_id, asset_type, data, cpu_nanocores, ram_bytes, compacted) VALUES"
+                + " (1000, 1000, 'c1', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"api\"}', 1.5e9, 2e9, 1),"
+                + " (1000, 1000, 'c1', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c1\",\"namespace\":\"ns1\",\"pod\":\"p1\",\"container\":\"web\"}', 0.5e9, 1e9, 1),"
+                + " (2000, 1000, 'c2', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c2\",\"namespace\":\"ns2\",\"pod\":\"p2\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
                 // Windows of differing length, past the instant range every other test filters on.
-                + " (4000, 1000, 'c3', 'env', 'Cluster Three', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
-                + " (5000, 3000, 'c3', 'env', 'Cluster Three', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 3.0e9, 1e9, 1),"
+                + " (4000, 1000, 'c3', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 1.0e9, 1e9, 1),"
+                + " (5000, 3000, 'c3', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c3\",\"namespace\":\"ns3\",\"pod\":\"p3\",\"container\":\"api\"}', 3.0e9, 1e9, 1),"
                 // Sampling rows, under an asset of their own so only the tests about them see them.
-                + " (9000, 1000, 'c9', 'env', 'Cluster Nine', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0),"
-                + " (3700000, 1000, 'c9', 'env', 'Cluster Nine', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0)");
+                + " (9000, 1000, 'c9', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0),"
+                + " (3700000, 1000, 'c9', 'env', 'tech.illuin.wombat-module.kubernetes-api', '{\"cluster\":\"c9\",\"namespace\":\"ns9\",\"pod\":\"p9\",\"container\":\"api\"}', 7.0e9, 1e9, 0)");
             stmt.executeUpdate(
-                "INSERT INTO model_metrics (instant_ms, asset_id, environment_id, asset_name, asset_type, data, output_tokens, compacted) VALUES"
-                + " (1000, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 100, 1),"
-                + " (2000, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 200, 1),"
-                + " (1500, 'b2', 'env', 'Asset Two', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 999, 1),"
-                + " (2500, 'a1', 'env', 'Asset One', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 50, 0)");
+                "INSERT INTO model_metrics (instant_ms, asset_id, environment_id, asset_type, data, output_tokens, compacted) VALUES"
+                + " (1000, 'a1', 'env', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 100, 1),"
+                + " (2000, 'a1', 'env', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 200, 1),"
+                + " (1500, 'b2', 'env', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 999, 1),"
+                + " (2500, 'a1', 'env', 'tech.illuin.wombat-module.llm-prometheus', '{\"model\":\"m\"}', 50, 0)");
         }
     }
 

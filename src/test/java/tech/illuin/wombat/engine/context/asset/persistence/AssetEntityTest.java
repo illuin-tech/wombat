@@ -3,6 +3,7 @@ package tech.illuin.wombat.engine.context.asset.persistence;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
@@ -30,7 +31,7 @@ class AssetEntityTest
     void kubernetesPropertiesRoundTripThroughTheEntity()
     {
         KubernetesAPIAsset props = new KubernetesAPIAsset(
-            AssetIdentity.of("k", "env", "K", KubernetesAPIModule.TYPE),
+            AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
             "/kube/config", "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
@@ -46,7 +47,7 @@ class AssetEntityTest
     void llmStaticPropertiesRoundTripThroughTheEntity()
     {
         LLMStaticAsset props = new LLMStaticAsset(
-            AssetIdentity.of("s", "env", "S", LLMStaticModule.TYPE),
+            AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
             new LLMStaticProfile(
                 LLMProvider.mistralai, "m", FRANCE,
                 List.of(new ConstantScenario(500, 1000))
@@ -63,8 +64,8 @@ class AssetEntityTest
     void llmPrometheusPropertiesRoundTripThroughTheEntity()
     {
         LLMPrometheusAsset props = new LLMPrometheusAsset(
-            AssetIdentity.of("p", "env", "P", LLMPrometheusModule.TYPE),
-            "http://prometheus", "http://proxy:8080", "user", "PROM_PASSWORD", Period.ofSeconds(7),
+            AssetIdentity.of("p", "env", LLMPrometheusModule.TYPE),
+            "http://prometheus", "http://proxy:8080", "user", SecretKey.of("PROM_PASSWORD"), Period.ofSeconds(7),
             new LLMPrometheusProfile(LLMProvider.mistralai, "m", FRANCE, new LLMPrometheusProfile.DynamicProfile("q"))
         );
 

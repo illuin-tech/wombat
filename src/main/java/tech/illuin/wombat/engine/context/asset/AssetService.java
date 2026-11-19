@@ -8,6 +8,9 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import tech.illuin.wombat.core.asset.Asset;
+import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.evaluation.AssetEvaluator;
+import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetConfigAction;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
@@ -16,9 +19,12 @@ import tech.illuin.wombat.engine.context.environment.UnknownEnvironmentException
 import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity;
 import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepository;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +41,10 @@ public class AssetService
     private final AssetValidator assetValidator;
     private final Validator validator;
     private final JsonMapper assetMapper;
+    private final AssetMonitor monitor;
+    private final AssetEvaluator evaluator;
+
+    private static final Duration REFRESH_DELAY = Duration.ofSeconds(30);
 
     public AssetService(
         AssetRepository repository,
@@ -42,7 +52,9 @@ public class AssetService
         AssetHistoryRecorder history,
         AssetValidator assetValidator,
         Validator validator,
-        JsonMapper assetMapper
+        JsonMapper assetMapper,
+        AssetMonitor monitor,
+        AssetEvaluator evaluator
     ) {
         this.repository = repository;
         this.environmentRepository = environmentRepository;
@@ -50,6 +62,8 @@ public class AssetService
         this.assetValidator = assetValidator;
         this.validator = validator;
         this.assetMapper = assetMapper;
+        this.monitor = monitor;
+        this.evaluator = evaluator;
     }
 
     @Transactional
@@ -85,7 +99,7 @@ public class AssetService
         if (existing.isPresent() && existing.get().deletedAt == null)
             throw new AssetConflictException("Asset " + id + " already exists");
 
-        Asset asset = this.toAsset(id, environmentId, name, type, properties);
+        Asset asset = this.toAsset(id, environmentId, type, properties);
 
         AssetEntity entity = existing.orElseGet(AssetEntity::new);
         entity.id = id;
@@ -95,7 +109,7 @@ public class AssetService
         entity.deletedAt = null;
         entity.description = description;
         entity.disabledAt = disabled ? EnvironmentEntity.now() : null;
-        apply(entity, asset);
+        apply(entity, name, asset);
         if (existing.isEmpty())
             this.repository.persist(entity);
         this.history.record(AssetConfigAction.CREATE, entity);
@@ -106,15 +120,16 @@ public class AssetService
     public AssetEntity update(String id, String name, String description, boolean disabled, ObjectNode properties)
     {
         AssetEntity entity = this.editable(id);
-        Asset asset = this.toAsset(entity.id, entity.environmentId, name, entity.type, properties);
+        Asset asset = this.toAsset(entity.id, entity.environmentId, entity.type, properties);
 
         boolean changed = !entity.name.equals(name) || !entity.properties.equals(asset);
         entity.description = description;
         entity.disabledAt = EnvironmentService.disabledAt(entity.disabledAt, disabled);
         if (changed)
         {
-            apply(entity, asset);
+            apply(entity, name, asset);
             this.history.record(AssetConfigAction.UPDATE, entity);
+            this.refreshLater(asset.identity());
         }
         return entity;
     }
@@ -125,6 +140,19 @@ public class AssetService
         AssetEntity entity = this.editable(id);
         entity.deletedAt = EnvironmentEntity.now();
         this.history.record(AssetConfigAction.DELETE, entity);
+        this.refreshLater(entity.properties.identity());
+    }
+
+    /**
+     * Has the monitor and evaluator discard the components they built for the asset, after a delay leaving the change
+     * time to be committed: discarded any sooner, a component could be built again from the asset as it was before.
+     */
+    private void refreshLater(AssetIdentity identity)
+    {
+        CompletableFuture.runAsync(() -> {
+            this.monitor.refresh(identity);
+            this.evaluator.refresh(identity);
+        }, CompletableFuture.delayedExecutor(REFRESH_DELAY.toSeconds(), TimeUnit.SECONDS));
     }
 
     private AssetEntity editable(String id)
@@ -144,12 +172,11 @@ public class AssetService
      * Reads the properties as the asset of the given type, its identity taking precedence over the one they may carry,
      * then checks it as a declared one would be.
      */
-    private Asset toAsset(String id, String environmentId, String name, String type, ObjectNode properties)
+    private Asset toAsset(String id, String environmentId, String type, ObjectNode properties)
     {
         ObjectNode node = properties.deepCopy();
         node.put("id", id);
         node.put("environment-id", environmentId);
-        node.put("name", name);
         node.put("type", type);
 
         try {
@@ -172,9 +199,9 @@ public class AssetService
         }
     }
 
-    private static void apply(AssetEntity entity, Asset properties)
+    private static void apply(AssetEntity entity, String name, Asset properties)
     {
-        entity.name = properties.identity().name();
+        entity.name = name;
         entity.type = properties.type().name();
         entity.properties = properties;
     }

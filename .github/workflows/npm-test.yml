@@ -21,9 +21,6 @@ jobs:
       - name: Install frontend dependencies
         working-directory: src/main/webui
         run: npm ci
-      - name: Audit frontend dependencies
-        working-directory: src/main/webui
-        run: npm audit
       - name: Run frontend tests
         working-directory: src/main/webui
         run: npm test

@@ -2,6 +2,7 @@ import {afterEach, describe, expect, it} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {createMemoryHistory, createRouter} from 'vue-router'
 import FilterBar from '@/pages/impact/components/FilterBar.vue'
+import DateRangePicker from '@/components/DateRangePicker.vue'
 import type {AssetInfo, LiveEnvironment} from '@/domain/environment'
 import {resetServices, servicesState} from '@/pages/impact/model/useDashboardQuery'
 
@@ -48,6 +49,31 @@ describe('FilterBar selection', () => {
 
     expect(router.currentRoute.value.path).toBe('/impact/next')
     expect(router.currentRoute.value.query).toEqual({from, to})
+    wrapper.unmount()
+  })
+
+  it('applies a picked date range immediately, keeping the stored services', async () => {
+    const {router, wrapper} = await mountFilter(new Map([['a', []]]))
+    const picker = wrapper.findComponent(DateRangePicker)
+    picker.vm.$emit('update:from', '2026-11-01T00:00')
+    picker.vm.$emit('update:to', '2026-11-08T00:00')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/impact/env')
+    expect(router.currentRoute.value.query).toEqual({from: '2026-11-01T00:00', to: '2026-11-08T00:00'})
+    expect(servicesState.value.services).toEqual([])
+    wrapper.unmount()
+  })
+
+  it('does not navigate when the picked range is the current one', async () => {
+    const {router, wrapper} = await mountFilter()
+    const before = router.currentRoute.value.fullPath
+    const picker = wrapper.findComponent(DateRangePicker)
+    picker.vm.$emit('update:from', from)
+    picker.vm.$emit('update:to', to)
+    await flushPromises()
+
+    expect(router.currentRoute.value.fullPath).toBe(before)
     wrapper.unmount()
   })
 

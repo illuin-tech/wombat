@@ -15,12 +15,17 @@ vi.mock('@easepick/bundle', () => {
     toJSDate(): Date {
       return this.date
     }
+
+    getTime(): number {
+      return this.date.getTime()
+    }
   }
 
   class Picker {
     private readonly listeners = new Map<string, (event: any) => void>()
     setDateRange = vi.fn()
     destroy = vi.fn()
+    ui = {container: document.createElement('div')}
 
     constructor(options: any) {
       if (easepick.shouldThrow) throw new Error('Picker unavailable')
@@ -36,6 +41,21 @@ vi.mock('@easepick/bundle', () => {
     select(detail: any): void {
       this.listeners.get('select')?.({detail})
     }
+
+    /** Renders the preset buttons the way PresetPlugin does: timestamps of the range in data attributes. */
+    renderPresets(): HTMLElement[] {
+      const presets = easepick.options.at(-1).PresetPlugin.customPreset as Record<string, Array<{getTime: () => number}>>
+      return Object.entries(presets).map(([label, [start, end]]) => {
+        const button = document.createElement('button')
+        button.className = 'preset-button unit'
+        button.textContent = label
+        button.dataset.start = String(start.getTime())
+        button.dataset.end = String(end.getTime())
+        this.ui.container.appendChild(button)
+        this.listeners.get('view')?.({detail: {view: 'PresetPluginButton', target: button}})
+        return button
+      })
+    }
   }
 
   return {create: Picker, DateTime, LockPlugin: {}, PresetPlugin: {}, RangePlugin: {}}
@@ -49,10 +69,14 @@ function dateLabel(value: {toJSDate: () => Date}): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-function mountPicker(maxDays = 7) {
+function mountPicker(maxDays = 7, from = '2025-01-01T00:00', to = '2025-01-08T00:00') {
   return mount(DateRangePicker, {
-    props: {from: '2025-01-01T00:00', to: '2025-01-08T00:00', maxSpanMs: maxDays * DAY_MS},
+    props: {from, to, maxSpanMs: maxDays * DAY_MS},
   })
+}
+
+function activePresets(buttons: HTMLElement[]): string[] {
+  return buttons.filter(button => button.classList.contains('active')).map(button => button.textContent ?? '')
 }
 
 describe('DateRangePicker', () => {
@@ -103,6 +127,20 @@ describe('DateRangePicker', () => {
 
     expect(wrapper.emitted('update:from')).toEqual([['2025-01-24T00:00']])
     expect(wrapper.emitted('update:to')).toEqual([['2025-01-31T00:00']])
+    wrapper.unmount()
+  })
+
+  it('highlights the preset matching the current range, and none for a custom one', async () => {
+    const wrapper = mountPicker(400, '2025-03-25T00:00', '2025-04-01T00:00')
+    const buttons: HTMLElement[] = easepick.instances[0].renderPresets()
+    expect(activePresets(buttons)).toEqual(['Last 7 days'])
+    expect(buttons.find(button => button.textContent === 'Last 7 days')?.getAttribute('aria-pressed')).toBe('true')
+
+    await wrapper.setProps({from: '2025-03-31T00:00', to: '2025-04-01T00:00'})
+    expect(activePresets(buttons)).toEqual(['Today'])
+
+    await wrapper.setProps({from: '2025-03-20T00:00', to: '2025-03-27T00:00'})
+    expect(activePresets(buttons)).toEqual([])
     wrapper.unmount()
   })
 })

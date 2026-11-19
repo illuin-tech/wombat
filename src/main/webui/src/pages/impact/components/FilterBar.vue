@@ -56,11 +56,21 @@ function selectEnvironment(values: string[]): void {
   void router.push({name: 'impact', params: {environment: selected}, query: datesQuery(from.value, to.value)})
 }
 
-/** Stores the services and puts the picked dates in the URL, skipping the navigation when they did not change. */
-function applySelection(services: string[]): void {
-  applyServices(environmentId.value, services)
+/** Puts the picked dates in the URL, skipping the navigation when they did not change. */
+function applyDates(): void {
   if (from.value !== props.from || to.value !== props.to)
     void router.push({name: 'impact', params: {environment: environmentId.value}, query: datesQuery(from.value, to.value)})
+}
+
+/** The picker emits `from` then `to`, so the range is complete, and applied right away, once `to` arrives. */
+function selectDates(value: string): void {
+  to.value = value
+  applyDates()
+}
+
+function applySelection(services: string[]): void {
+  applyServices(environmentId.value, services)
+  applyDates()
 }
 
 function selectAssets(values: string[]): void {
@@ -79,7 +89,7 @@ function apply(): void {
   <form id="filterForm" class="filter-bar" method="get" action="" @submit.prevent="apply">
     <div class="filter-group date-range-group">
       <span class="filter-label">Date range</span>
-      <DateRangePicker v-model:from="from" v-model:to="to" :max-span-ms="maxSpanMs" />
+      <DateRangePicker v-model:from="from" :to="to" :max-span-ms="maxSpanMs" @update:to="selectDates" />
     </div>
     <div class="filter-group">
       <span class="filter-label">Environment</span>

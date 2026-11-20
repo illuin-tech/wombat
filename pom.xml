@@ -71,7 +71,7 @@
         <record-builder.version>53</record-builder.version>
         <feign.version>13.18</feign.version>
         <jsonschema.version>4.38.0</jsonschema.version>
-        <json-schema-validator.version>2.0.1</json-schema-validator.version>
+        <json-schema-validator.version>3.0.9</json-schema-validator.version>
         <slf4j.version>2.0.20</slf4j.version>
         <!-- Test deps -->
         <junit-jupiter.version>6.1.3</junit-jupiter.version>

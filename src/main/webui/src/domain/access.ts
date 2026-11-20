@@ -2,6 +2,8 @@ export type Permission =
   | 'ui.dashboard.read'
   | 'ui.apikeys.manage'
   | 'ui.users.read'
+  | 'ui.environments.read'
+  | 'ui.environments.manage'
   | 'api.impact.read'
   | 'api.simulation.read'
   | 'api.environment.read'
@@ -9,10 +11,13 @@ export type Permission =
   | 'api.asset.read'
   | 'api.asset.write'
   | 'api.metric.write'
+  | 'api.module.read'
   | 'api.apikey.manage'
   | 'api.apikey.admin'
   | 'api.user.manage'
   | 'api.user.read'
+  | 'api.secret.read'
+  | 'api.secret.manage'
 
 export interface ApiKeyInfo {
   id: string

@@ -1,0 +1,12 @@
+{
+  "configPath": "/path/to/kubeconfig",
+  "namespace": "my-namespace",
+  "readTimeout": "PT30S",
+  "period": "2s",
+  "profile": {
+    "provider": "aws",
+    "instanceType": "c5a.4xlarge",
+    "location": "FRA",
+    "lifespan": "5y"
+  }
+}

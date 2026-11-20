@@ -24,10 +24,13 @@ describe('request errors', () => {
     const error = await failure()
     expect(error.status).toBe(400)
     expect(error.reason).toBe('no-data')
+    expect(error.serverMessage).toBe('No assets matched scope')
   })
 
   it('has no reason without a JSON body', async () => {
     respond(400, '')
-    expect((await failure()).reason).toBeNull()
+    const error = await failure()
+    expect(error.reason).toBeNull()
+    expect(error.serverMessage).toBeNull()
   })
 })

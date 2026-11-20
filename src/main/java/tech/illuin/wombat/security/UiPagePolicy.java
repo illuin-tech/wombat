@@ -45,6 +45,10 @@ public class UiPagePolicy implements HttpSecurityPolicy
             return Permission.UI_USERS_READ;
         if (path.equals("/api-keys") || path.startsWith("/api-keys/"))
             return Permission.UI_APIKEYS_MANAGE;
+        if (path.equals("/environments/new"))
+            return Permission.UI_ENVIRONMENTS_MANAGE;
+        if (path.equals("/environments") || path.startsWith("/environments/"))
+            return Permission.UI_ENVIRONMENTS_READ;
         return Permission.UI_DASHBOARD_READ;
     }
 }

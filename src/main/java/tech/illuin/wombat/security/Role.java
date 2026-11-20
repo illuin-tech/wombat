@@ -56,6 +56,7 @@ public enum Role
         static final Set<Permission> PERMISSIONS = Collections.unmodifiableSet(EnumSet.of(
             UI_DASHBOARD_READ,
             UI_APIKEYS_MANAGE,
+            UI_ENVIRONMENTS_READ,
             API_APIKEY_MANAGE,
             API_IMPACT_READ,
             API_SIMULATION_READ,

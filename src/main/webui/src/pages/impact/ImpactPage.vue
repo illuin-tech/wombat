@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { findUnrecognizedAssets, withRecordDetails } from '@/domain/environment'
+import { findUnrecognizedAssets, withEnvironmentNames, withRecordDetails } from '@/domain/environment'
 import type { AssetImpact, TimelineResponse } from '@/domain/impact'
 import { asLocalDateTime } from '@/services/format/formatters'
 import { ApiError } from '@/services/api/client'
@@ -24,7 +24,7 @@ const route = useRoute()
 const router = useRouter()
 const { appInfo } = useAppInfo()
 const dashboard = useDashboardData()
-const environments = computed(() => dashboard.liveEnvironments.data.value ?? [])
+const environments = computed(() => withEnvironmentNames(dashboard.liveEnvironments.data.value ?? [], dashboard.persistedEnvironments.data.value ?? []))
 const requestedEnvironmentId = computed(() => String(route.params.environment ?? ''))
 const environment = computed(() => environments.value.find(candidate => candidate.id === requestedEnvironmentId.value) ?? environments.value[0] ?? null)
 const currentFilters = computed(() => filtersFor(requestedEnvironmentId.value, route.query))

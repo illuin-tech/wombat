@@ -1,0 +1,14 @@
+{
+  "prometheusUrl": "http://prometheus.my-namespace:9090/",
+  "period": "30s",
+  "username": "prometheus",
+  "passwordKey": "WOMBAT_PROMETHEUS_PASSWORD",
+  "profile": {
+    "provider": "mistralai",
+    "model": "mistral-large-latest",
+    "location": "FRA",
+    "dynamicProfile": {
+      "query": "sum(increase(generation_tokens_total[10s]))"
+    }
+  }
+}

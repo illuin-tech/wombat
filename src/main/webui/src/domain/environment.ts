@@ -18,8 +18,11 @@ export interface AssetInfo {
   type?: string | AssetType
   namespace?: string | null
   profile?: unknown
+  uuid?: string
   description?: string | null
   provisioned?: boolean
+  createdAt?: string | null
+  updatedAt?: string | null
   disabledAt?: string | null
   deletedAt?: string | null
   [key: string]: unknown
@@ -31,8 +34,25 @@ export interface EnvironmentInfo {
   name: string | null
   description?: string | null
   provisioned?: boolean
+  createdAt?: string | null
+  updatedAt?: string | null
   disabledAt?: string | null
   assets: AssetInfo[]
+}
+
+/** The asset's type name: the API serves it as a string, the live context as the full type. */
+export function assetTypeName(asset: AssetInfo): string | null {
+  if (typeof asset.type === 'string')
+    return asset.type
+  return asset.type?.name ?? null
+}
+
+/** The asset's family, from its type when served in full, otherwise from the type registry (`typesByName`). */
+export function assetFamily(asset: AssetInfo, typesByName: ReadonlyMap<string, AssetType>): ServiceFamily {
+  if (asset.type && typeof asset.type === 'object')
+    return asset.type.family
+  const name = assetTypeName(asset)
+  return (name && typesByName.get(name)?.family) || 'UNKNOWN'
 }
 
 /** GET /api/impact/environments: the active runtime environment and its recognized assets. */
@@ -57,4 +77,10 @@ export function withRecordDetails(liveAssets: readonly AssetInfo[], databaseAsse
       return asset
     return {...asset, name: record.name ?? asset.name, ...(record.owner ? {owner: record.owner} : {})}
   })
+}
+
+/** The live environments with the names only their database records know. */
+export function withEnvironmentNames(liveEnvironments: readonly LiveEnvironment[], records: readonly EnvironmentInfo[]): LiveEnvironment[] {
+  const names = new Map(records.map(record => [record.id, record.name]))
+  return liveEnvironments.map(environment => ({ ...environment, name: environment.name ?? names.get(environment.id) ?? null }))
 }

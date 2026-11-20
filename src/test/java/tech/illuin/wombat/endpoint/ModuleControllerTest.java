@@ -54,7 +54,8 @@ class ModuleControllerTest
             .statusCode(200)
             .body("status.message", is("Success"))
             .body("payload.type.name", is(MODULE_ID))
-            .body("payload.enabled", is(true));
+            .body("payload.enabled", is(true))
+            .body("payload.creatable", is(false));
     }
 
     @Test

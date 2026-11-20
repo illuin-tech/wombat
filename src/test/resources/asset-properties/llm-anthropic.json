@@ -1,0 +1,8 @@
+{
+  "adminKey": "ANTHROPIC_ADMIN_KEY",
+  "profile": {
+    "location": "USA",
+    "outputTokensPerRequest": 500,
+    "workspaceIds": ["wrkspc_01"]
+  }
+}

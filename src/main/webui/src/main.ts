@@ -6,6 +6,7 @@ import '@fontsource/dm-sans/700.css'
 import '@/layout/styles/impact.css'
 import '@/layout/styles/loading.css'
 import '@/layout/styles/easepick-theme.css'
+import '@/layout/styles/environments.css'
 import App from '@/App.vue'
 import { router } from '@/router'
 

@@ -1,3 +1,8 @@
+<script lang="ts">
+/* The open modals, innermost last: a confirmation can open over a modal, and only the innermost one answers Escape */
+const openModals: symbol[] = []
+</script>
+
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, ref, watch} from 'vue'
 
@@ -9,26 +14,32 @@ const props = withDefaults(defineProps<{open: boolean; title: string; warning?: 
 })
 const emit = defineEmits<{ close: [] }>()
 const closeButton = ref<HTMLButtonElement | null>(null)
+const self = Symbol(props.overlayId)
 
 function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape' && props.open) emit('close')
+  if (event.key === 'Escape' && props.open && openModals.at(-1) === self) emit('close')
+}
+
+function release(): void {
+  const index = openModals.indexOf(self)
+  if (index >= 0) openModals.splice(index, 1)
+  document.removeEventListener('keydown', onKeydown)
+  document.body.classList.toggle('modal-open', openModals.length > 0)
 }
 
 watch(() => props.open, async (open) => {
-  document.body.classList.toggle('modal-open', open)
   if (open) {
+    openModals.push(self)
+    document.body.classList.add('modal-open')
     document.addEventListener('keydown', onKeydown)
     await nextTick()
     closeButton.value?.focus()
   } else {
-    document.removeEventListener('keydown', onKeydown)
+    release()
   }
 }, {immediate: true})
 
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onKeydown)
-  document.body.classList.remove('modal-open')
-})
+onBeforeUnmount(release)
 </script>
 
 <template>

@@ -8,6 +8,8 @@ public enum Permission
     UI_DASHBOARD_READ(Names.UI_DASHBOARD_READ, false),
     UI_APIKEYS_MANAGE(Names.UI_APIKEYS_MANAGE, false),
     UI_USERS_READ(Names.UI_USERS_READ, false),
+    UI_ENVIRONMENTS_READ(Names.UI_ENVIRONMENTS_READ, false),
+    UI_ENVIRONMENTS_MANAGE(Names.UI_ENVIRONMENTS_MANAGE, false),
     API_IMPACT_READ(Names.API_IMPACT_READ, true),
     API_SIMULATION_READ(Names.API_SIMULATION_READ, true),
     API_ENVIRONMENT_READ(Names.API_ENVIRONMENT_READ, true),
@@ -20,6 +22,7 @@ public enum Permission
     API_APIKEY_ADMIN(Names.API_APIKEY_ADMIN, false),
     API_USER_MANAGE(Names.API_USER_MANAGE, false),
     API_USER_READ(Names.API_USER_READ, false),
+    API_SECRET_READ(Names.API_SECRET_READ, false),
     API_SECRET_MANAGE(Names.API_SECRET_MANAGE, false),
     ;
 
@@ -54,6 +57,8 @@ public enum Permission
         public static final String UI_DASHBOARD_READ = "ui.dashboard.read";
         public static final String UI_APIKEYS_MANAGE = "ui.apikeys.manage";
         public static final String UI_USERS_READ = "ui.users.read";
+        public static final String UI_ENVIRONMENTS_READ = "ui.environments.read";
+        public static final String UI_ENVIRONMENTS_MANAGE = "ui.environments.manage";
         public static final String API_IMPACT_READ = "api.impact.read";
         public static final String API_SIMULATION_READ = "api.simulation.read";
         public static final String API_MODULE_READ = "api.module.read";
@@ -66,6 +71,7 @@ public enum Permission
         public static final String API_APIKEY_ADMIN = "api.apikey.admin";
         public static final String API_USER_MANAGE = "api.user.manage";
         public static final String API_USER_READ = "api.user.read";
+        public static final String API_SECRET_READ = "api.secret.read";
         public static final String API_SECRET_MANAGE = "api.secret.manage";
 
         private Names() {}

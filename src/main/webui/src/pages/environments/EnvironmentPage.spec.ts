@@ -48,6 +48,10 @@ const anthropic: ModuleMetadata = {
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-anthropic', name: 'tech.illuin.wombat-module.llm-anthropic', regime: 'MEASURED', family: 'LLM' },
   assetClass: 'LLMAnthropicAsset', enabled: true, creatable: true,
 }
+const disabled: ModuleMetadata = {
+  type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-vertexai', name: 'tech.illuin.wombat-module.llm-vertexai', regime: 'MEASURED', family: 'LLM' },
+  assetClass: 'LLMVertexAIAsset', enabled: false, creatable: true,
+}
 const simulated: ModuleMetadata = {
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-simulated', name: 'tech.illuin.wombat-module.llm-simulated', regime: 'MODELED', family: 'LLM' },
   assetClass: 'LLMSimulatedAsset', enabled: true, creatable: false,
@@ -84,7 +88,7 @@ async function render(path: string, permissions: string[]): Promise<void> {
 }
 
 beforeEach(() => {
-  vi.mocked(fetchModules).mockResolvedValue([anthropic, simulated])
+  vi.mocked(fetchModules).mockResolvedValue([anthropic, disabled, simulated])
   vi.mocked(fetchModuleSchema).mockResolvedValue(llmAnthropicSchema)
   vi.mocked(fetchLiveEnvironments).mockResolvedValue([{ id: 'lab', assets: [] }])
   vi.mocked(checkSecretKey).mockImplementation(async key => ({ key, exists: true }))
@@ -179,7 +183,7 @@ describe('EnvironmentPage', () => {
     expect(wrapper.find('.asset-card-add').exists()).toBe(true)
   })
 
-  it('creates an asset of a type picked among the creatable ones', async () => {
+  it('creates an asset of a type picked among the creatable and enabled ones', async () => {
     vi.mocked(createAsset).mockImplementation(async body => ({ ...body, ...body.properties }))
     await render('/environments/empty', ADMIN)
 

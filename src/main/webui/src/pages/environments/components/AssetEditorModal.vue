@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, provide, ref, shallowRef, watch } from 'vue'
-import { FAMILIES, FAMILY_ORDER, REGIME_LABELS } from '@/domain/assetTypeDisplay'
+import { FAMILIES, FAMILY_ORDER } from '@/domain/assetTypeDisplay'
 import { assetTypeName, displayName, type AssetInfo } from '@/domain/environment'
 import type { JsonSchema, ModuleMetadata } from '@/domain/module'
 import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
@@ -9,6 +9,7 @@ import { fetchModuleSchema } from '@/services/api/modules'
 import { checkSecretKey } from '@/services/api/secrets'
 import { AssetForm, AssetFormPlaceholder, defaultProperties, isSameProperties, SECRET_CHECKER_KEY, toAssetProperties, type AssetFormValidity, type AssetProperties } from '@/components/asset-forms'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
+import RegimePill from '@/components/RegimePill.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import LockBadge from '@/components/LockBadge.vue'
@@ -64,7 +65,8 @@ const deleteError = ref<string | null>(null)
 
 const readonly = computed(() => !props.canEdit)
 const creatableModules = computed(() => {
-  const creatable = props.modules.filter(candidate => candidate.creatable)
+  /* A disabled module accepts assets, but is not offered for new ones */
+  const creatable = props.modules.filter(candidate => candidate.creatable && candidate.enabled)
   return FAMILY_ORDER
     .map(family => ({
       family,
@@ -200,8 +202,7 @@ async function remove(): Promise<void> {
             >
               <AssetTypeTag :family="candidate.type.family" />
               <span class="asset-type-option-name">{{ candidate.type.localName }}</span>
-              <span class="asset-type-option-meta">{{ REGIME_LABELS[candidate.type.regime] }}</span>
-              <span v-if="!candidate.enabled" class="env-status disabled" title="Its assets are saved, but their metrics are skipped until the module is enabled">Module disabled</span>
+              <RegimePill :regime="candidate.type.regime" />
             </button>
           </div>
         </div>

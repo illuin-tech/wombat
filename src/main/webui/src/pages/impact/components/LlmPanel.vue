@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {REGIME_LABELS} from '@/domain/assetTypeDisplay'
 import type {LLMPanel as Panel} from '@/pages/impact/model/aggregate'
 import LlmDetails from '@/pages/impact/components/LlmDetails.vue'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
+import RegimePill from '@/components/RegimePill.vue'
 
 const props = withDefaults(defineProps<{panel: Panel; modal?: boolean}>(), {modal: false})
 const emit = defineEmits<{expand: []}>()
@@ -20,7 +20,7 @@ function expand(): void {
       <span class="asset-id">{{ panel.name }}</span>
       <div class="asset-tags">
         <AssetTypeTag family="LLM" />
-        <span class="asset-type-tag measure">{{ REGIME_LABELS[panel.regime] }}</span>
+        <RegimePill :regime="panel.regime" />
       </div>
       <span class="asset-count">{{ panel.serviceIds.length }} {{ panel.serviceIds.length === 1 ? 'service' : 'services' }}</span>
     </div>

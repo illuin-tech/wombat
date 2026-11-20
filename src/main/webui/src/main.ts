@@ -8,6 +8,7 @@ import '@/layout/styles/components.css'
 import '@/layout/styles/loading.css'
 import '@/layout/styles/easepick-theme.css'
 import '@/layout/styles/environments.css'
+import '@/layout/styles/modules.css'
 import App from '@/App.vue'
 import { router } from '@/router'
 

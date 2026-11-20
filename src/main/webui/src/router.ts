@@ -11,6 +11,8 @@ import ForbiddenView from '@/pages/system/ForbiddenPage.vue'
 import UsersView from '@/pages/users/UsersPage.vue'
 import EnvironmentsView from '@/pages/environments/EnvironmentsPage.vue'
 import EnvironmentView from '@/pages/environments/EnvironmentPage.vue'
+import ModulesView from '@/pages/modules/ModulesPage.vue'
+import ModuleView from '@/pages/modules/ModulePage.vue'
 
 declare module 'vue-router' {
     interface RouteMeta {
@@ -51,6 +53,18 @@ export const routes: RouteRecordRaw[] = [
         name: 'environment',
         component: EnvironmentView,
         meta: {permission: 'ui.environments.read'},
+    },
+    {
+        path: '/modules',
+        name: 'modules',
+        component: ModulesView,
+        meta: {permission: 'ui.modules.read'},
+    },
+    {
+        path: '/modules/:type',
+        name: 'module',
+        component: ModuleView,
+        meta: {permission: 'ui.modules.read'},
     },
     {
         path: '/users',

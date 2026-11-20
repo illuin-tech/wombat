@@ -64,7 +64,7 @@ class CoreDeploymentRepositoryTest
         stale.instanceId = "stale";
         stale.deployedVersion = 1;
         stale.deployedAt = Instant.now().minus(Duration.ofHours(1));
-        stale.status = CoreInstanceEntity.Status.ok;
+        stale.status = CoreInstanceEntity.InstanceStatus.ok;
         stale.detectedModules = Set.of("a.b");
         stale.missingModules = Set.of();
         stale.heartbeatAt = Instant.now().minus(Duration.ofSeconds(91));

@@ -84,7 +84,7 @@ public class ModuleService
     public DeploymentInfo deployment()
     {
         CoreDeploymentEntity latest = this.latest();
-        List<DeploymentInfo.Instance> instances = this.deployments.liveInstances().stream()
+        List<DeploymentInfo.CoreInstance> instances = this.deployments.liveInstances().stream()
             .map(this::instance)
             .toList();
         List<DeploymentInfo.PendingModule> pending = this.registry.listModules().stream()
@@ -94,7 +94,7 @@ public class ModuleService
             .toList();
 
         return new DeploymentInfo(
-            new DeploymentInfo.Latest(latest.version, latest.id, latest.requestedAt, latest.requestedBy, latest.enabledModules),
+            new DeploymentInfo.LatestDeployment(latest.version, latest.id, latest.requestedAt, latest.requestedBy, latest.enabledModules),
             instances,
             pending,
             this.deployments.pollInterval().toSeconds()
@@ -119,9 +119,9 @@ public class ModuleService
             .orElseThrow(() -> new IllegalStateException("No core deployment is recorded, the startup records one"));
     }
 
-    private DeploymentInfo.Instance instance(CoreInstanceEntity entity)
+    private DeploymentInfo.CoreInstance instance(CoreInstanceEntity entity)
     {
-        return new DeploymentInfo.Instance(
+        return new DeploymentInfo.CoreInstance(
             entity.instanceId,
             entity.deployedVersion,
             this.deployments.find(entity.deployedVersion).map(deployment -> deployment.id).orElse(null),

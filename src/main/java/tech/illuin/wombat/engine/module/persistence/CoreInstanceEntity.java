@@ -30,7 +30,7 @@ public class CoreInstanceEntity
     /** Whether the latest deployment failed to build here; the instance then keeps running its deployed version. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "TEXT")
-    public Status status;
+    public InstanceStatus status;
 
     @Column
     public String error;
@@ -47,7 +47,7 @@ public class CoreInstanceEntity
     @Column(name = "heartbeat_at", nullable = false, columnDefinition = "INTEGER")
     public Instant heartbeatAt;
 
-    public enum Status
+    public enum InstanceStatus
     {
         ok,
         failed,

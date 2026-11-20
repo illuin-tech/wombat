@@ -180,18 +180,18 @@ public class CoreDeploymentService
 
     /* A build failure is reported rather than thrown: the running deployment is kept, and the heartbeat tells it */
     @SuppressWarnings("IllegalCatch")
-    private Result deployHere(CoreDeploymentEntity deployment)
+    private DeployResult deployHere(CoreDeploymentEntity deployment)
     {
         Set<String> before = CoreRuntime.names(this.runtime.current().types());
         try {
             Set<String> after = CoreRuntime.names(this.runtime.deploy(deployment.version, deployment.id, deployment.enabledModules).types());
             this.failure = null;
-            return Result.ok(difference(after, before), difference(before, after));
+            return DeployResult.ok(difference(after, before), difference(before, after));
         }
         catch (RuntimeException e) {
             logger.error("Could not deploy wombat core {} (#{}), keeping the running one: {}", CoreRuntime.shortId(deployment.id), deployment.version, e.getMessage(), e);
             this.failure = new Failure(deployment.version, e.getMessage());
-            return Result.failed(e.getMessage());
+            return DeployResult.failed(e.getMessage());
         }
         finally {
             this.writeHeartbeat();
@@ -209,7 +209,7 @@ public class CoreDeploymentService
         entity.instanceId = this.instanceId;
         entity.deployedVersion = current.version();
         entity.deployedAt = current.deployedAt();
-        entity.status = failed == null ? CoreInstanceEntity.Status.ok : CoreInstanceEntity.Status.failed;
+        entity.status = failed == null ? CoreInstanceEntity.InstanceStatus.ok : CoreInstanceEntity.InstanceStatus.failed;
         entity.error = failed == null ? null : failed.error();
         entity.detectedModules = this.detected;
         entity.missingModules = current.missing();
@@ -237,22 +237,22 @@ public class CoreDeploymentService
     /**
      * A redeploy recorded, and the outcome of deploying it on the instance which recorded it.
      */
-    public record Redeploy(CoreDeploymentEntity deployment, Result local) {}
+    public record Redeploy(CoreDeploymentEntity deployment, DeployResult local) {}
 
     /**
      * @param added   the asset-types the new core holds, and the previous one did not
      * @param removed the asset-types the previous core held, and the new one does not
      */
-    public record Result(CoreInstanceEntity.Status status, String error, Set<String> added, Set<String> removed)
+    public record DeployResult(CoreInstanceEntity.InstanceStatus status, String error, Set<String> added, Set<String> removed)
     {
-        static Result ok(Set<String> added, Set<String> removed)
+        static DeployResult ok(Set<String> added, Set<String> removed)
         {
-            return new Result(CoreInstanceEntity.Status.ok, null, added, removed);
+            return new DeployResult(CoreInstanceEntity.InstanceStatus.ok, null, added, removed);
         }
 
-        static Result failed(String error)
+        static DeployResult failed(String error)
         {
-            return new Result(CoreInstanceEntity.Status.failed, error, Set.of(), Set.of());
+            return new DeployResult(CoreInstanceEntity.InstanceStatus.failed, error, Set.of(), Set.of());
         }
     }
 }

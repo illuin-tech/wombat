@@ -43,6 +43,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -251,6 +252,23 @@ class ModuleControllerTest
     void aRedeployIsForbiddenToUsers()
     {
         given().when().post("/api/modules/deployment").then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void openApi_describesTheModuleRoutesAndTheirPayloads()
+    {
+        given().queryParam("format", "json")
+            .when().get("/api/openapi")
+            .then()
+            .statusCode(200)
+            .body("paths.'/api/modules/{id}'.keySet()", hasItems("get", "put", "delete"))
+            .body("paths.'/api/modules/deployment'.keySet()", hasItems("get", "post"))
+            .body("paths.'/api/modules/deployment'.post.responses.keySet()", hasItems("201", "409"))
+            .body("components.schemas.ModuleInfo.properties.keySet()", hasItems("type", "enabled", "deployed", "pending", "missing", "source", "assetCount"))
+            .body("components.schemas.DeploymentInfo.properties.keySet()", hasItems("latest", "instances", "pending", "pollIntervalSeconds"))
+            .body("components.schemas.Redeployed.properties.keySet()", hasItems("version", "id", "local"))
+            .body("components.schemas.InstanceStatus.enum", contains("ok", "failed"));
     }
 
     @Test

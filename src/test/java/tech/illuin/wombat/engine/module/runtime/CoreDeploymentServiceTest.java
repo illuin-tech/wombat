@@ -106,7 +106,7 @@ class CoreDeploymentServiceTest
         CoreDeploymentService.Redeploy redeploy = service.redeploy("alice");
 
         assertEquals(2, this.runtime.current().version());
-        assertEquals(CoreInstanceEntity.Status.ok, redeploy.local().status());
+        assertEquals(CoreInstanceEntity.InstanceStatus.ok, redeploy.local().status());
         assertEquals(Set.of(), redeploy.local().added());
         assertEquals(Set.of(LLM), redeploy.local().removed());
     }
@@ -129,11 +129,11 @@ class CoreDeploymentServiceTest
 
         CoreDeploymentService.Redeploy redeploy = service.redeploy("alice");
 
-        assertEquals(CoreInstanceEntity.Status.failed, redeploy.local().status());
+        assertEquals(CoreInstanceEntity.InstanceStatus.failed, redeploy.local().status());
         assertEquals("broken module", redeploy.local().error());
         assertEquals(1, this.runtime.current().version());
         CoreInstanceEntity heartbeat = this.lastHeartbeat();
-        assertEquals(CoreInstanceEntity.Status.failed, heartbeat.status);
+        assertEquals(CoreInstanceEntity.InstanceStatus.failed, heartbeat.status);
         assertEquals(1, heartbeat.deployedVersion);
     }
 
@@ -163,7 +163,7 @@ class CoreDeploymentServiceTest
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(3, K8S)));
         service.sync();
         assertEquals(3, this.runtime.current().version());
-        assertEquals(CoreInstanceEntity.Status.ok, this.lastHeartbeat().status);
+        assertEquals(CoreInstanceEntity.InstanceStatus.ok, this.lastHeartbeat().status);
         assertNull(this.lastHeartbeat().error);
     }
 

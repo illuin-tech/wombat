@@ -9,15 +9,13 @@ export interface AssetType {
   family: ServiceFamily
 }
 
-/** GET /api/environments: the asset properties are unwrapped next to `type`, `name` is only known to database records. */
-export interface AssetInfo {
+/** The fields of an asset's record, as opposed to the type-specific properties served next to them. */
+export interface AssetRecord {
   id: string
   name?: string
   environmentId?: string
   owner?: string | null
   type?: string | AssetType
-  namespace?: string | null
-  profile?: unknown
   uuid?: string
   description?: string | null
   provisioned?: boolean
@@ -25,6 +23,19 @@ export interface AssetInfo {
   updatedAt?: string | null
   disabledAt?: string | null
   deletedAt?: string | null
+}
+
+/* A record, so that a field added to AssetRecord must be listed here */
+const RECORD_FIELDS: Record<keyof AssetRecord, true> = {
+  id: true, name: true, environmentId: true, owner: true, type: true, uuid: true, description: true,
+  provisioned: true, createdAt: true, updatedAt: true, disabledAt: true, deletedAt: true,
+}
+export const ASSET_RECORD_FIELDS: ReadonlySet<string> = new Set(Object.keys(RECORD_FIELDS))
+
+/** GET /api/environments: the asset properties are unwrapped next to `type`, `name` is only known to database records. */
+export interface AssetInfo extends AssetRecord {
+  namespace?: string | null
+  profile?: unknown
   [key: string]: unknown
 }
 
@@ -38,6 +49,16 @@ export interface EnvironmentInfo {
   updatedAt?: string | null
   disabledAt?: string | null
   assets: AssetInfo[]
+}
+
+/** What an environment or an asset is called: its name, or its id when it has none. */
+export function displayName(named: { id: string; name?: string | null }): string {
+  return named.name ?? named.id
+}
+
+/** Sorts environments or assets by what they are called. */
+export function byDisplayName(a: { id: string; name?: string | null }, b: { id: string; name?: string | null }): number {
+  return displayName(a).localeCompare(displayName(b))
 }
 
 /** The asset's type name: the API serves it as a string, the live context as the full type. */

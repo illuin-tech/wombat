@@ -82,10 +82,10 @@ describe('EnvironmentsPage', () => {
   it('filters by name and status', async () => {
     await render(['ui.environments.read'])
 
-    await wrapper.find('.apikey-search').setValue('pre')
+    await wrapper.find('.search-input').setValue('pre')
     expect(wrapper.findAll('.env-row')).toHaveLength(1)
-    await wrapper.find('.apikey-search').setValue('nothing like it')
-    expect(wrapper.find('.apikey-empty').text()).toBe('No environment matches these filters.')
+    await wrapper.find('.search-input').setValue('nothing like it')
+    expect(wrapper.find('.table-empty').text()).toBe('No environment matches these filters.')
   })
 
   it('opens an environment from its row', async () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, provide, ref, shallowRef, watch } from 'vue'
-import { assetTypeName, type AssetInfo, type ServiceFamily } from '@/domain/environment'
+import { FAMILIES, FAMILY_ORDER, REGIME_LABELS } from '@/domain/assetTypeDisplay'
+import { assetTypeName, displayName, type AssetInfo } from '@/domain/environment'
 import type { JsonSchema, ModuleMetadata } from '@/domain/module'
 import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
 import { errorText } from '@/services/api/client'
@@ -9,11 +10,21 @@ import { checkSecretKey } from '@/services/api/secrets'
 import { AssetForm, AssetFormPlaceholder, defaultProperties, isSameProperties, SECRET_CHECKER_KEY, toAssetProperties, type AssetFormValidity, type AssetProperties } from '@/components/asset-forms'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import LockBadge from '@/components/LockBadge.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import Modal from '@/components/Modal.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
-import { descriptionError, idError, nameError, slugify } from '@/pages/environments/model/identifiers'
+import {
+  DESCRIPTION_MAX_LENGTH,
+  descriptionError,
+  ID_MAX_LENGTH,
+  idError,
+  NAME_MAX_LENGTH,
+  nameError,
+} from '@/pages/environments/model/identifiers'
+import { useIdFromName } from '@/pages/environments/model/useIdFromName'
 
 /** Shows an asset, edits it when allowed, or creates one when `asset` is null. */
 const props = defineProps<{
@@ -29,8 +40,6 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ close: []; saved: [asset: AssetInfo]; deleted: [id: string] }>()
 
-const FAMILY_LABELS: Record<ServiceFamily, string> = { KUBERNETES_CONTAINER: 'Kubernetes', LLM: 'LLM', UNKNOWN: 'Other' }
-
 const creating = computed(() => props.asset === null)
 const typeName = ref<string | null>(null)
 const module = computed(() => props.modules.find(candidate => candidate.type.name === typeName.value) ?? null)
@@ -38,9 +47,8 @@ const schema = shallowRef<JsonSchema | null>(null)
 const schemaLoading = ref(false)
 const schemaError = ref<string | null>(null)
 
-const id = ref('')
-const idEdited = ref(false)
 const name = ref('')
+const { id, idEdited, onIdInput, resetId } = useIdFromName(name, () => creating.value)
 const description = ref('')
 const active = ref(true)
 const properties = ref<AssetProperties>({})
@@ -49,25 +57,26 @@ const validity = ref<AssetFormValidity>({ valid: true, errors: [] })
 const showErrors = ref(false)
 const saving = ref(false)
 const saveError = ref<string | null>(null)
+const confirmingDiscard = ref(false)
 const confirmingDelete = ref(false)
 const deleting = ref(false)
 const deleteError = ref<string | null>(null)
 
 const readonly = computed(() => !props.canEdit)
 const creatableModules = computed(() => {
-  const groups = new Map<ServiceFamily, ModuleMetadata[]>()
-  for (const candidate of props.modules.filter(candidate => candidate.creatable)) {
-    const family = candidate.type.family
-    groups.set(family, [...(groups.get(family) ?? []), candidate])
-  }
-  return [...groups.entries()].map(([family, modules]) => ({
-    family,
-    label: FAMILY_LABELS[family],
-    modules: modules.sort((a, b) => a.type.localName.localeCompare(b.type.localName)),
-  }))
+  const creatable = props.modules.filter(candidate => candidate.creatable)
+  return FAMILY_ORDER
+    .map(family => ({
+      family,
+      label: FAMILIES[family].label,
+      modules: creatable
+        .filter(candidate => candidate.type.family === family)
+        .sort((a, b) => a.type.localName.localeCompare(b.type.localName)),
+    }))
+    .filter(group => group.modules.length > 0)
 })
 const title = computed(() => {
-  if (props.asset) return props.asset.name ?? props.asset.id
+  if (props.asset) return displayName(props.asset)
   return module.value ? `New ${module.value.type.localName} asset` : 'New asset'
 })
 
@@ -78,7 +87,7 @@ const fieldsValid = computed(() => !idProblem.value && !nameProblem.value && !de
 const dirty = computed(() => {
   if (creating.value) return typeName.value !== null
   const asset = props.asset!
-  return name.value !== (asset.name ?? asset.id)
+  return name.value !== displayName(asset)
     || description.value !== (asset.description ?? '')
     || active.value !== !asset.disabledAt
     || !isSameProperties(properties.value, initialProperties.value)
@@ -92,9 +101,9 @@ watch(() => [props.open, props.asset] as const, ([open, asset]) => {
   saveError.value = null
   deleteError.value = null
   showErrors.value = false
-  idEdited.value = false
-  id.value = asset?.id ?? ''
-  name.value = asset ? asset.name ?? asset.id : ''
+  confirmingDiscard.value = false
+  resetId(asset?.id ?? '')
+  name.value = asset ? displayName(asset) : ''
   description.value = asset?.description ?? ''
   active.value = !asset?.disabledAt
   const initial = asset ? toAssetProperties(asset) : {}
@@ -103,11 +112,6 @@ watch(() => [props.open, props.asset] as const, ([open, asset]) => {
   validity.value = { valid: true, errors: [] }
   void selectType(asset ? assetTypeName(asset) : null)
 }, { immediate: true })
-
-/* The id follows the name until it is edited */
-watch(name, value => {
-  if (creating.value && !idEdited.value) id.value = slugify(value)
-})
 
 async function selectType(type: string | null): Promise<void> {
   typeName.value = type
@@ -127,13 +131,13 @@ async function selectType(type: string | null): Promise<void> {
   }
 }
 
-function onIdInput(event: Event): void {
-  idEdited.value = true
-  id.value = (event.target as HTMLInputElement).value
+function close(): void {
+  if (!readonly.value && dirty.value && !saving.value) confirmingDiscard.value = true
+  else emit('close')
 }
 
-function close(): void {
-  if (!readonly.value && dirty.value && !saving.value && !window.confirm('Discard the unsaved changes to this asset?')) return
+function discard(): void {
+  confirmingDiscard.value = false
   emit('close')
 }
 
@@ -179,7 +183,7 @@ async function remove(): Promise<void> {
 </script>
 
 <template>
-  <Modal :open="open" :title="title" overlay-id="assetEditor" title-id="assetEditorTitle" close-id="assetEditorClose" @close="close">
+  <Modal :open="open" :title="title" @close="close">
     <div class="asset-editor">
       <!-- A new asset starts with its type -->
       <div v-if="creating && !typeName" class="asset-type-picker">
@@ -196,7 +200,7 @@ async function remove(): Promise<void> {
             >
               <AssetTypeTag :family="candidate.type.family" />
               <span class="asset-type-option-name">{{ candidate.type.localName }}</span>
-              <span class="asset-type-option-meta">{{ candidate.type.regime === 'MEASURED' ? 'Measured' : 'Modeled' }}</span>
+              <span class="asset-type-option-meta">{{ REGIME_LABELS[candidate.type.regime] }}</span>
               <span v-if="!candidate.enabled" class="env-status disabled" title="Its assets are saved, but their metrics are skipped until the module is enabled">Module disabled</span>
             </button>
           </div>
@@ -213,27 +217,33 @@ async function remove(): Promise<void> {
         </div>
 
         <div class="asset-editor-fields">
-          <label class="apikey-field">
+          <label class="form-field">
             <span class="filter-label">Name</span>
-            <input v-model="name" type="text" :disabled="readonly" maxlength="255" />
-            <span v-if="showErrors && nameProblem" class="apikey-error">{{ nameProblem }}</span>
+            <input v-model="name" type="text" :disabled="readonly" :maxlength="NAME_MAX_LENGTH" />
+            <span v-if="showErrors && nameProblem" class="form-error">{{ nameProblem }}</span>
           </label>
-          <label v-if="creating" class="apikey-field">
+          <label v-if="creating" class="form-field">
             <span class="filter-label">Id</span>
-            <input :value="id" type="text" class="mono" maxlength="64" spellcheck="false" @input="onIdInput" />
-            <span v-if="(showErrors || idEdited) && idProblem" class="apikey-error">{{ idProblem }}</span>
-            <span v-else class="apikey-hint">Cannot be changed once created.</span>
+            <input :value="id" type="text" class="mono" :maxlength="ID_MAX_LENGTH" spellcheck="false" @input="onIdInput" />
+            <span v-if="(showErrors || idEdited) && idProblem" class="form-error">{{ idProblem }}</span>
+            <span v-else class="form-hint">Cannot be changed once created.</span>
           </label>
-          <label class="apikey-field asset-editor-description">
+          <div class="form-field asset-editor-description">
             <span class="filter-label">Description</span>
-            <textarea v-model="description" rows="2" :disabled="readonly" maxlength="4096" />
-            <span v-if="descriptionProblem" class="apikey-error">{{ descriptionProblem }}</span>
-          </label>
+            <MarkdownEditor
+              v-model="description"
+              label="Description"
+              placeholder="What this asset is about; Markdown is supported."
+              :maxlength="DESCRIPTION_MAX_LENGTH"
+              :disabled="readonly"
+            />
+            <span v-if="descriptionProblem" class="form-error">{{ descriptionProblem }}</span>
+          </div>
           <ToggleSwitch v-model="active" label="Active" :disabled="readonly" />
         </div>
 
         <AssetFormPlaceholder v-if="schemaLoading" />
-        <span v-else-if="schemaError" class="apikey-error" role="alert">{{ schemaError }}</span>
+        <span v-else-if="schemaError" class="form-error" role="alert">{{ schemaError }}</span>
         <AssetForm
           v-else-if="schema"
           :key="`${typeName}:${asset?.id ?? 'new'}`"
@@ -244,12 +254,12 @@ async function remove(): Promise<void> {
           @validity="validity = $event"
         />
         <div v-else class="asset-editor-raw">
-          <p class="apikey-hint">This type is unknown to the server: its properties are shown as stored.</p>
+          <p class="form-hint">This type is unknown to the server: its properties are shown as stored.</p>
           <pre>{{ JSON.stringify(properties, null, 2) }}</pre>
         </div>
 
-        <span v-if="saveError" class="apikey-error" role="alert">{{ saveError }}</span>
-        <span v-if="showErrors && !validity.valid" class="apikey-error" role="alert">Some properties are missing or invalid.</span>
+        <span v-if="saveError" class="form-error" role="alert">{{ saveError }}</span>
+        <span v-if="showErrors && !validity.valid" class="form-error" role="alert">Some properties are missing or invalid.</span>
 
         <div class="asset-editor-footer">
           <TimestampInfo v-if="asset" :created-at="asset.createdAt" :updated-at="asset.updatedAt" />
@@ -267,7 +277,7 @@ async function remove(): Promise<void> {
   <ConfirmDeleteDialog
     v-if="asset"
     :open="confirmingDelete"
-    :title="`Delete ${asset.name ?? asset.id}`"
+    :title="`Delete ${displayName(asset)}`"
     :expected="asset.id"
     :busy="deleting"
     :error="deleteError"
@@ -276,4 +286,8 @@ async function remove(): Promise<void> {
   >
     The asset stops being monitored and leaves the dashboard; its past metrics are kept.
   </ConfirmDeleteDialog>
+
+  <ConfirmDialog :open="confirmingDiscard" title="Discard the changes?" confirm-label="Discard" @close="confirmingDiscard = false" @confirm="discard">
+    The changes made to this asset are not saved yet.
+  </ConfirmDialog>
 </template>

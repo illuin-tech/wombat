@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import type { AssetType, EnvironmentInfo } from '@/domain/environment'
+import { byDisplayName, displayName, type AssetType, type EnvironmentInfo } from '@/domain/environment'
 import { errorText } from '@/services/api/client'
 import { fetchEnvironments, fetchLiveEnvironments } from '@/services/api/environments'
 import { fetchModules } from '@/services/api/modules'
@@ -32,7 +32,7 @@ async function loadListing(): Promise<EnvironmentListing> {
     fetchLiveEnvironments().catch(() => []),
   ])
   return {
-    environments: [...environments].sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id)),
+    environments: [...environments].sort(byDisplayName),
     typesByName: new Map(modules.map(module => [module.type.name, module.type])),
     liveIds: new Set(live.map(environment => environment.id)),
   }
@@ -63,11 +63,11 @@ onMounted(() => listing.run())
       <RouterLink v-if="canCreate" class="btn-apply btn-link" :to="{ name: 'environment-create' }" id="newEnvironment">New environment</RouterLink>
     </div>
 
-    <div v-if="listing.error.value" class="apikey-error" role="alert">{{ errorText(listing.error.value) }}</div>
+    <div v-if="listing.error.value" class="form-error" role="alert">{{ errorText(listing.error.value) }}</div>
 
     <DataTable title="Environments">
       <template #controls>
-        <input v-model="search" type="search" class="apikey-search" placeholder="Filter by name" aria-label="Filter environments by name" />
+        <input v-model="search" type="search" class="search-input" placeholder="Filter by name" aria-label="Filter environments by name" />
         <DropdownPicker v-model="statuses" label="Status" :options="statusOptions" :summary="statusSummary" picker-id="envStatusPicker" />
       </template>
       <table class="env-table">
@@ -91,7 +91,7 @@ onMounted(() => listing.run())
               <td class="name">
                 <span class="env-row-name">
                   <LockBadge v-if="environment.provisioned" label="" />
-                  {{ environment.name ?? environment.id }}
+                  {{ displayName(environment) }}
                 </span>
                 <code class="env-row-id">{{ environment.id }}</code>
               </td>
@@ -108,7 +108,7 @@ onMounted(() => listing.run())
           </template>
         </tbody>
       </table>
-      <div v-if="listing.data.value && shown.length === 0" class="apikey-empty">
+      <div v-if="listing.data.value && shown.length === 0" class="table-empty">
         {{ listing.data.value.environments.length === 0 ? 'No environments yet.' : 'No environment matches these filters.' }}
       </div>
     </DataTable>

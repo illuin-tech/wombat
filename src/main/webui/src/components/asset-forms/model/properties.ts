@@ -1,10 +1,4 @@
-import type { AssetInfo } from '@/domain/environment'
-
-/** The record fields served next to an asset's own properties. */
-const RECORD_FIELDS = new Set([
-  'id', 'environmentId', 'name', 'type', 'uuid', 'owner', 'description',
-  'provisioned', 'createdAt', 'updatedAt', 'disabledAt', 'deletedAt',
-])
+import { ASSET_RECORD_FIELDS, type AssetInfo } from '@/domain/environment'
 
 export type AssetProperties = Record<string, unknown>
 
@@ -21,7 +15,7 @@ function withoutNulls(value: unknown): unknown {
 
 /** The type-specific properties of an asset, as its type's schema describes them. */
 export function toAssetProperties(asset: AssetInfo): AssetProperties {
-  const properties = Object.fromEntries(Object.entries(asset).filter(([key]) => !RECORD_FIELDS.has(key)))
+  const properties = Object.fromEntries(Object.entries(asset).filter(([key]) => !ASSET_RECORD_FIELDS.has(key)))
   return withoutNulls(properties) as AssetProperties
 }
 

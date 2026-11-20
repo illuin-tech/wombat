@@ -21,15 +21,15 @@ function confirm(): void {
 </script>
 
 <template>
-  <Modal :open="open" :title="title" warning overlay-id="confirmDelete" title-id="confirmDeleteTitle" close-id="confirmDeleteClose" @close="emit('close')">
+  <Modal :open="open" :title="title" warning @close="emit('close')">
     <form class="confirm-delete" @submit.prevent="confirm">
       <p class="confirm-delete-text"><slot /></p>
-      <label class="apikey-field">
+      <label class="form-field">
         <span class="filter-label">Type <code>{{ expected }}</code> to confirm</span>
         <input v-model="typed" type="text" class="confirm-delete-input" autocomplete="off" spellcheck="false" :aria-label="`Type ${expected} to confirm`" />
       </label>
-      <span v-if="error" class="apikey-error" role="alert">{{ error }}</span>
-      <div class="apikey-actions">
+      <span v-if="error" class="form-error" role="alert">{{ error }}</span>
+      <div class="form-actions">
         <button class="btn-danger confirm-delete-submit" type="submit" :disabled="!matches || busy">{{ busy ? 'Deleting…' : 'Delete' }}</button>
         <button class="btn-reset" type="button" @click="emit('close')">Cancel</button>
       </div>

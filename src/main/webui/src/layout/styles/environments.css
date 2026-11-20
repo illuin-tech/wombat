@@ -1,52 +1,8 @@
-/* ── Environments: listing, edition, and the shared controls they introduce ── */
-.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.mono, code.mono { font-family: monospace; }
-.btn-link-inline { background: none; border: none; color: var(--accent-green); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
-.btn-link-inline:hover { text-decoration: underline; }
-
-/* Lock of provisioned environments and assets */
-.lock-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--text-dim); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
-.lock-badge:has(> span:only-of-type), .lock-badge:not(:has(span)) { padding: 3px 5px; }
-
+/* ── Environments: listing and edition ── */
 /* Active/disabled pill */
 .env-status { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
 .env-status.active { background: var(--accent-green-soft); color: var(--accent-green); }
 .env-status.disabled { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
-
-/* Switch */
-.toggle-switch { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; padding: 0; cursor: pointer; font: inherit; font-size: 13px; color: var(--text-muted); }
-.toggle-switch:disabled { cursor: default; opacity: 0.6; }
-.toggle-switch-track { position: relative; width: 36px; height: 20px; border-radius: 20px; background: var(--border); transition: background 0.15s; flex-shrink: 0; }
-.toggle-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-sm); transition: transform 0.15s; }
-.toggle-switch.on .toggle-switch-track { background: var(--accent-green); }
-.toggle-switch.on .toggle-switch-thumb { transform: translateX(16px); }
-.toggle-switch.on .toggle-switch-label { color: var(--text); }
-.toggle-switch:focus-visible .toggle-switch-track { box-shadow: 0 0 0 3px rgba(22,163,74,0.25); }
-
-/* Times */
-.timestamp-info { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
-
-/* Markdown descriptions */
-.markdown-view { font-size: 13px; color: var(--text-muted); line-height: 1.6; overflow-wrap: anywhere; }
-.markdown-view > * + * { margin-top: 8px; }
-.markdown-view ul, .markdown-view ol { padding-left: 20px; }
-.markdown-view a { color: var(--accent-green); }
-.markdown-view code { font-family: monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
-.markdown-view pre { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; overflow-x: auto; }
-.markdown-view pre code { border: none; padding: 0; background: none; }
-.markdown-view-source { white-space: pre-wrap; }
-.markdown-view-content > * + * { margin-top: 8px; }
-
-/* Markdown edited in place */
-.markdown-editor-view { position: relative; border: 1.5px solid transparent; border-radius: var(--radius-sm); padding: 6px 36px 6px 10px; margin-left: -11px; min-height: 34px; transition: border-color 0.15s, background 0.15s; }
-.markdown-editor.editable .markdown-editor-view { cursor: text; }
-.markdown-editor.editable .markdown-editor-view:hover { border-color: var(--border); background: var(--surface2); }
-.markdown-editor-empty { font-size: 13px; color: var(--text-dim); font-style: italic; }
-.markdown-editor:not(.editable) .markdown-editor-empty { font-style: normal; }
-.markdown-editor-edit { position: absolute; top: 6px; right: 6px; display: inline-flex; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; padding: 4px; cursor: pointer; opacity: 0; transition: opacity 0.15s, color 0.15s; }
-.markdown-editor-view:hover .markdown-editor-edit, .markdown-editor-edit:focus-visible { opacity: 1; }
-.markdown-editor-edit:hover { color: var(--accent-green); }
-.markdown-editor-input { width: calc(100% + 11px); resize: vertical; background: var(--surface2); border: 1.5px solid var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); color: var(--text); font-family: monospace; font-size: 13px; line-height: 1.5; padding: 8px 12px; margin-left: -11px; border-radius: var(--radius-sm); outline: none; }
 
 /* Dashboard shortcut */
 .dashboard-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--accent-green); text-decoration: none; padding: 5px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
@@ -54,12 +10,6 @@
 .dashboard-link.compact { padding: 5px 7px; }
 .dashboard-link.disabled { color: var(--text-dim); cursor: not-allowed; }
 .dashboard-link.disabled:hover { border-color: var(--border); background: none; }
-
-/* Confirmation by typing an id */
-.confirm-delete { display: flex; flex-direction: column; gap: 14px; }
-.confirm-delete-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-.confirm-delete code { font-family: monospace; color: var(--text); }
-.confirm-delete-input { font-family: monospace; }
 
 /* Listing */
 .env-list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -116,8 +66,6 @@
 .asset-editor-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .asset-editor-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .asset-editor-fields .asset-editor-description { grid-column: 1 / -1; }
-.asset-editor-fields textarea { background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 8px 12px; border-radius: var(--radius-sm); outline: none; resize: vertical; }
-.asset-editor-fields textarea:focus { border-color: var(--accent-green); }
 .asset-editor-raw pre { font-family: monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; overflow-x: auto; }
 .asset-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 14px; position: sticky; bottom: -22px; background: var(--surface); padding-bottom: 4px; }
 .asset-editor-actions { display: flex; gap: 10px; margin-left: auto; }

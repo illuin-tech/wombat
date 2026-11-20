@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { assetFamily, assetTypeName, type AssetInfo, type AssetType } from '@/domain/environment'
+import { REGIME_LABELS } from '@/domain/assetTypeDisplay'
+import { assetFamily, assetTypeName, displayName, type AssetInfo, type AssetType } from '@/domain/environment'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import LockBadge from '@/components/LockBadge.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
@@ -18,12 +19,11 @@ function typeLabel(asset: AssetInfo): string {
   return (name && props.typesByName.get(name)?.localName) ?? name ?? 'Unknown type'
 }
 
+/** Left out when the regime is not known */
 function regimeLabel(asset: AssetInfo): string | null {
   const name = assetTypeName(asset)
   const regime = name ? props.typesByName.get(name)?.regime : undefined
-  if (regime === 'MODELED') return 'Modeled'
-  if (regime === 'MEASURED') return 'Measured'
-  return null
+  return regime && regime !== 'UNKNOWN' ? REGIME_LABELS[regime] : null
 }
 </script>
 
@@ -38,7 +38,7 @@ function regimeLabel(asset: AssetInfo): string | null {
       @click="emit('open', asset)"
     >
       <span class="asset-card-head">
-        <span class="asset-card-name">{{ asset.name ?? asset.id }}</span>
+        <span class="asset-card-name">{{ displayName(asset) }}</span>
         <LockBadge v-if="locked || asset.provisioned" label="" />
       </span>
       <code class="asset-card-id">{{ asset.id }}</code>
@@ -54,6 +54,6 @@ function regimeLabel(asset: AssetInfo): string | null {
       <span class="asset-card-plus" aria-hidden="true">+</span>
       <span>Add an asset</span>
     </button>
-    <p v-if="assets.length === 0 && !canAdd" class="apikey-empty">No assets in this environment.</p>
+    <p v-if="assets.length === 0 && !canAdd" class="table-empty">No assets in this environment.</p>
   </div>
 </template>

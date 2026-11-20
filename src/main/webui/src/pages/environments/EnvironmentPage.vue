@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
-import type { AssetInfo, AssetType, EnvironmentInfo } from '@/domain/environment'
+import { byDisplayName, displayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
 import type { ModuleMetadata } from '@/domain/module'
 import { errorText } from '@/services/api/client'
 import {
@@ -25,8 +25,16 @@ import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import AssetEditorModal from '@/pages/environments/components/AssetEditorModal.vue'
 import AssetGrid from '@/pages/environments/components/AssetGrid.vue'
 import DashboardLink from '@/pages/environments/components/DashboardLink.vue'
-import { descriptionError, idError, nameError, slugify } from '@/pages/environments/model/identifiers'
-import { useAutosave, type AutosaveStatus } from '@/pages/environments/model/useAutosave'
+import {
+  DESCRIPTION_MAX_LENGTH,
+  descriptionError,
+  ID_MAX_LENGTH,
+  idError,
+  NAME_MAX_LENGTH,
+  nameError,
+} from '@/pages/environments/model/identifiers'
+import { useIdFromName } from '@/pages/environments/model/useIdFromName'
+import { useAutosave, type AutosaveStatus } from '@/services/tools/useAutosave'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,8 +48,8 @@ const live = ref(false)
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 
-const form = reactive({ id: '', name: '', description: '', active: true })
-const idEdited = ref(false)
+const form = reactive({ name: '', description: '', active: true })
+const { id, idEdited, onIdInput, resetId } = useIdFromName(() => form.name, () => creating.value)
 const creationError = ref<string | null>(null)
 const submitting = ref(false)
 const showErrors = ref(false)
@@ -62,7 +70,7 @@ const deleteBlockedReason = computed(() => assets.value.length > 0
   : null)
 const typesByName = computed(() => new Map<string, AssetType>(modules.value.map(module => [module.type.name, module.type])))
 
-const idProblem = computed(() => creating.value ? idError(form.id) : null)
+const idProblem = computed(() => creating.value ? idError(id.value) : null)
 const nameProblem = computed(() => nameError(form.name))
 const descriptionProblem = computed(() => descriptionError(form.description))
 
@@ -99,9 +107,9 @@ const saveStatusText = computed(() => {
 
 function show(loaded: EnvironmentInfo): void {
   environment.value = loaded
-  assets.value = [...loaded.assets].sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id))
-  form.id = loaded.id
-  form.name = loaded.name ?? loaded.id
+  assets.value = [...loaded.assets].sort(byDisplayName)
+  resetId(loaded.id)
+  form.name = displayName(loaded)
   form.description = loaded.description ?? ''
   form.active = !loaded.disabledAt
   autosave.reset(fields())
@@ -114,19 +122,19 @@ async function load(): Promise<void> {
     const modulesLoaded = fetchModules()
     if (creating.value) {
       environment.value = null
-      Object.assign(form, { id: '', name: '', description: '', active: true })
-      idEdited.value = false
+      Object.assign(form, { name: '', description: '', active: true })
+      resetId()
       modules.value = await modulesLoaded
       return
     }
-    const id = route.params.id as string
+    const environmentId = route.params.id as string
     const [loaded, loadedModules, liveEnvironments] = await Promise.all([
-      fetchEnvironment(id),
+      fetchEnvironment(environmentId),
       modulesLoaded,
       fetchLiveEnvironments().catch(() => []),
     ])
     modules.value = loadedModules
-    live.value = liveEnvironments.some(candidate => candidate.id === id)
+    live.value = liveEnvironments.some(candidate => candidate.id === environmentId)
     show(loaded)
   } catch (caught) {
     loadError.value = errorText(caught)
@@ -135,23 +143,13 @@ async function load(): Promise<void> {
   }
 }
 
-/* The id follows the name until it is edited */
-watch(() => form.name, value => {
-  if (creating.value && !idEdited.value) form.id = slugify(value)
-})
-
-function onIdInput(event: Event): void {
-  idEdited.value = true
-  form.id = (event.target as HTMLInputElement).value
-}
-
 async function create(): Promise<void> {
   showErrors.value = true
   if (idProblem.value || nameProblem.value || descriptionProblem.value) return
   submitting.value = true
   creationError.value = null
   try {
-    const created = await createEnvironment({ id: form.id, ...fields() })
+    const created = await createEnvironment({ id: id.value, ...fields() })
     show(created)
     await router.replace({ name: 'environment', params: { id: created.id } })
   } catch (caught) {
@@ -183,7 +181,7 @@ function openAsset(asset: AssetInfo | null): void {
 
 function onAssetSaved(saved: AssetInfo): void {
   const others = assets.value.filter(asset => asset.id !== saved.id)
-  assets.value = [...others, saved].sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id))
+  assets.value = [...others, saved].sort(byDisplayName)
   assetEditorOpen.value = false
   void refreshLive()
 }
@@ -240,21 +238,21 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
               v-model="form.name"
               class="env-name-input"
               type="text"
-              maxlength="255"
+              :maxlength="NAME_MAX_LENGTH"
               :placeholder="creating ? 'New environment' : 'Name'"
             />
             <h2 v-else class="page-title">{{ form.name }}</h2>
           </label>
-          <span v-if="(showErrors || !creating) && nameProblem" class="apikey-error">{{ nameProblem }}</span>
+          <span v-if="(showErrors || !creating) && nameProblem" class="form-error">{{ nameProblem }}</span>
 
           <div class="env-id-line">
             <template v-if="creating">
-              <label class="apikey-field env-id-field">
+              <label class="form-field env-id-field">
                 <span class="filter-label">Id</span>
-                <input :value="form.id" class="mono" type="text" maxlength="64" spellcheck="false" @input="onIdInput" />
+                <input :value="id" class="mono" type="text" :maxlength="ID_MAX_LENGTH" spellcheck="false" @input="onIdInput" />
               </label>
-              <span v-if="(showErrors || idEdited) && idProblem" class="apikey-error">{{ idProblem }}</span>
-              <span v-else class="apikey-hint">Used in URLs and by the API: it cannot be changed once created.</span>
+              <span v-if="(showErrors || idEdited) && idProblem" class="form-error">{{ idProblem }}</span>
+              <span v-else class="form-hint">Used in URLs and by the API: it cannot be changed once created.</span>
             </template>
             <template v-else>
               <code class="env-row-id">{{ environment?.id }}</code>
@@ -267,10 +265,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
               v-model="form.description"
               label="Description"
               placeholder="What this environment is about; Markdown is supported."
-              :maxlength="4096"
+              :maxlength="DESCRIPTION_MAX_LENGTH"
               :disabled="!canEditEnvironment"
             />
-            <span v-if="descriptionProblem" class="apikey-error">{{ descriptionProblem }}</span>
+            <span v-if="descriptionProblem" class="form-error">{{ descriptionProblem }}</span>
           </div>
         </div>
 
@@ -285,7 +283,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           </template>
           <template v-else-if="creating">
             <button class="btn-apply" type="button" :disabled="submitting" id="createEnvironment" @click="create">{{ submitting ? 'Creating…' : 'Create environment' }}</button>
-            <span v-if="creationError" class="apikey-error" role="alert">{{ creationError }}</span>
+            <span v-if="creationError" class="form-error" role="alert">{{ creationError }}</span>
           </template>
         </div>
 
@@ -299,7 +297,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
         <div class="chart-title">Assets</div>
         <AssetGrid :assets="assets" :types-by-name="typesByName" :locked="locked" :can-add="canEditAssets" @open="openAsset" @add="openAsset(null)" />
       </section>
-      <p v-else-if="creating" class="apikey-hint">Assets can be added once the environment is created.</p>
+      <p v-else-if="creating" class="form-hint">Assets can be added once the environment is created.</p>
     </template>
 
     <AssetEditorModal
@@ -318,7 +316,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
     <ConfirmDeleteDialog
       v-if="environment"
       :open="confirmingDelete"
-      :title="`Delete ${environment.name ?? environment.id}`"
+      :title="`Delete ${displayName(environment)}`"
       :expected="environment.id"
       :busy="deleting"
       :error="deleteError"

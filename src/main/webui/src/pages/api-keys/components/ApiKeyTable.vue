@@ -32,9 +32,9 @@ function requestRevoke(key: ApiKeyInfo): void {
 <template>
   <DataTable :title="showAll ? 'All keys' : 'Your keys'">
     <template #controls>
-      <input v-model="search" type="search" class="apikey-search" placeholder="Filter by name or owner" aria-label="Filter keys by name or owner" />
-      <label class="apikey-check"><input v-model="activeOnly" type="checkbox" /><span>Active only</span></label>
-      <label v-if="canViewAll" class="apikey-check"><input v-model="showAll" type="checkbox" /><span>All users</span></label>
+      <input v-model="search" type="search" class="search-input" placeholder="Filter by name or owner" aria-label="Filter keys by name or owner" />
+      <label class="form-check"><input v-model="activeOnly" type="checkbox" /><span>Active only</span></label>
+      <label v-if="canViewAll" class="form-check"><input v-model="showAll" type="checkbox" /><span>All users</span></label>
     </template>
     <table>
       <thead><tr><th>Name</th><th>Permissions</th><th>Owner</th><th>Created</th><th>Expires</th><th>Last used</th><th>Status</th><th></th></tr></thead>
@@ -58,6 +58,6 @@ function requestRevoke(key: ApiKeyInfo): void {
         </template>
       </tbody>
     </table>
-    <div v-if="!loading && shown.length === 0" class="apikey-empty">{{ keys.length === 0 ? 'No keys yet.' : 'No key matches these filters.' }}</div>
+    <div v-if="!loading && shown.length === 0" class="table-empty">{{ keys.length === 0 ? 'No keys yet.' : 'No key matches these filters.' }}</div>
   </DataTable>
 </template>

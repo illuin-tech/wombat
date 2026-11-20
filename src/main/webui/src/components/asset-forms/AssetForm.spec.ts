@@ -156,20 +156,30 @@ describe('AssetForm', () => {
   })
 
   it('switches the kind of a scenario, confirming only when it would lose settings', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const { wrapper, model } = render(kubernetesStatic, { profile: { scenarios: [{ type: 'constant' }, { type: 'constant', load: 0.5 }] } })
     await flushPromises()
     const scenarios = () => (model.value.profile as { scenarios: unknown[] }).scenarios
+    const dialog = () => [...document.querySelectorAll<HTMLElement>('.asset-modal-overlay')].find(overlay => !overlay.hidden) ?? null
 
     await wrapper.findAll('.af-card-variant')[0].setValue('1')
-    expect(confirm).not.toHaveBeenCalled()
+    expect(dialog()).toBeNull()
     expect(scenarios()[0]).toEqual({ type: 'user_activity' })
 
     await wrapper.findAll('.af-card-variant')[1].setValue('2')
-    expect(confirm).toHaveBeenCalledOnce()
+    expect(dialog()).not.toBeNull()
     expect(scenarios()[1]).toEqual({ type: 'constant', load: 0.5 })
     expect((wrapper.findAll('.af-card-variant')[1].element as HTMLSelectElement).value).toBe('0')
-    confirm.mockRestore()
+
+    dialog()!.querySelector<HTMLButtonElement>('.confirm-dialog-cancel')!.click()
+    await flushPromises()
+    expect(dialog()).toBeNull()
+    expect(scenarios()[1]).toEqual({ type: 'constant', load: 0.5 })
+
+    await wrapper.findAll('.af-card-variant')[1].setValue('2')
+    dialog()!.querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flushPromises()
+    expect(dialog()).toBeNull()
+    expect(scenarios()[1]).toEqual({ type: 'batch_activity' })
   })
 
   it('reorders and removes scenarios', async () => {

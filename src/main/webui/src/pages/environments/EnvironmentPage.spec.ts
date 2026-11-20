@@ -258,6 +258,45 @@ describe('EnvironmentPage', () => {
     expect(save.disabled).toBe(false)
   })
 
+  it('asks before discarding the changes to an asset', async () => {
+    await render('/environments/lab', ADMIN)
+    await wrapper.find('.asset-card').trigger('click')
+    await flushPromises()
+    const shown = () => [...document.querySelectorAll<HTMLElement>('.asset-modal-overlay')].filter(overlay => !overlay.hidden)
+
+    const name = document.querySelector<HTMLInputElement>('.asset-editor-fields input[type="text"]')!
+    name.value = 'Claude org'
+    name.dispatchEvent(new Event('input'))
+    await flushPromises()
+    shown()[0].querySelector<HTMLButtonElement>('.asset-modal-close')!.click()
+    await flushPromises()
+    expect(shown()).toHaveLength(2)
+
+    document.querySelector<HTMLButtonElement>('.confirm-dialog-cancel')!.click()
+    await flushPromises()
+    expect(shown()).toHaveLength(1)
+
+    shown()[0].querySelector<HTMLButtonElement>('.asset-modal-close')!.click()
+    await flushPromises()
+    shown()[1].querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flushPromises()
+    expect(shown()).toHaveLength(0)
+  })
+
+  it('labels each of its dialogs by its own title', async () => {
+    await render('/environments/lab', ADMIN)
+    // The asset's deletion is confirmed by a second confirmation dialog
+    await wrapper.find('.asset-card').trigger('click')
+    await flushPromises()
+    const dialogs = [...document.querySelectorAll('[role="dialog"]')]
+    expect(dialogs).toHaveLength(4)
+
+    const labels = dialogs.map(dialog => dialog.getAttribute('aria-labelledby')!)
+    expect(new Set(labels).size).toBe(labels.length)
+    for (const dialog of dialogs)
+      expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.closest('[role="dialog"]')).toBe(dialog)
+  })
+
   it('saves an asset only once it changed', async () => {
     vi.mocked(updateAsset).mockImplementation(async (id, fields) => ({ ...anthropicAsset, ...fields, ...fields.properties }))
     await render('/environments/lab', ADMIN)

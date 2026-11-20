@@ -80,6 +80,16 @@
 
     <p v-if="mode !== 'options' && items.length === 0 && !control.enabled" class="af-array-empty">None.</p>
     <div v-if="control.errors" class="error">{{ control.errors }}</div>
+
+    <ConfirmDialog
+      :open="pendingSwitch !== null"
+      :title="`Change this ${singular}?`"
+      confirm-label="Change"
+      @close="pendingSwitch = null"
+      @confirm="confirmSwitch"
+    >
+      Its kind becomes "{{ pendingSwitch?.variant.title }}", and its settings are reset.
+    </ConfirmDialog>
   </fieldset>
 </template>
 
@@ -100,6 +110,7 @@ import {
 } from '@jsonforms/core'
 import { DispatchRenderer, rendererProps, useJsonFormsArrayControl, type RendererProps } from '@jsonforms/vue'
 import { computed, defineComponent, inject, nextTick, ref } from 'vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { defaultProperties } from '../model/schema'
 
 type Item = Record<string, unknown>
@@ -121,7 +132,7 @@ function discriminatorOf(variants: JsonSchema[]): string | null {
 /** Arrays as lists anyone can read at a glance: toggles for options, fields for values, cards for objects. */
 const ArrayControl = defineComponent({
   name: 'ArrayControl',
-  components: { DispatchRenderer },
+  components: { ConfirmDialog, DispatchRenderer },
   props: { ...rendererProps<ControlElement>() },
   setup(props: RendererProps<ControlElement>) {
     const input = useJsonFormsArrayControl(props)
@@ -129,6 +140,8 @@ const ArrayControl = defineComponent({
     const dispatch = inject<Dispatch<CoreActions>>('dispatch')!
     const control = input.control
     const valueInputs = ref<HTMLInputElement[]>([])
+    /* A switch of kind waiting for its confirmation */
+    const pendingSwitch = ref<{ index: number; variant: JsonSchema } | null>(null)
 
     const items = computed(() => (control.value.data ?? []) as unknown[])
     /* The schema of the items; the array's own, e.g. its description, is resolved from the parent's */
@@ -217,13 +230,24 @@ const ArrayControl = defineComponent({
       const item = (items.value[index] ?? {}) as Item
       const variant = variants.value![Number(select.value)]
       const filled = Object.entries(item).some(([name, value]) => name !== discriminator.value && value !== undefined && value !== null && value !== '')
-      if (filled && !window.confirm(`Change this ${singular.value} to "${variant.title}"? Its settings will be reset.`)) {
+      if (filled) {
+        /* The item keeps its kind until the switch is confirmed */
         select.value = String(variantIndex(item))
+        pendingSwitch.value = { index, variant }
         return
       }
+      applySwitch(index, variant)
+    }
+
+    function applySwitch(index: number, variant: JsonSchema): void {
       const next = [...items.value]
       next[index] = defaultProperties(variant as Item)
       update(next)
+    }
+
+    function confirmSwitch(): void {
+      if (pendingSwitch.value) applySwitch(pendingSwitch.value.index, pendingSwitch.value.variant)
+      pendingSwitch.value = null
     }
 
     function humanize(value: string): string {
@@ -236,8 +260,8 @@ const ArrayControl = defineComponent({
     }
 
     return {
-      ...input, valueInputs, items, description, singular, options, valueType, variants, mode,
-      variantIndex, itemSchema, itemUiSchema, toggle, setValue, add, remove, move, switchVariant, humanize, capitalize, composePaths,
+      ...input, valueInputs, pendingSwitch, items, description, singular, options, valueType, variants, mode,
+      variantIndex, itemSchema, itemUiSchema, toggle, setValue, add, remove, move, switchVariant, confirmSwitch, humanize, capitalize, composePaths,
     }
   },
 })

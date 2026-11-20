@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, provide } from 'vue'
 import { JsonForms } from '@jsonforms/vue'
-import type { JsonSchema } from '@jsonforms/core'
+import type { JsonSchema as FormSchema } from '@jsonforms/core'
 import type Ajv from 'ajv'
 import type { ErrorObject } from 'ajv'
+import type { JsonSchema } from '@/domain/module'
 import type { AssetFormValidity } from './validity'
 import { createAssetAjv } from './ajv'
 import { assetRenderers } from './renderers'
@@ -14,7 +15,7 @@ import './asset-forms.css'
 
 /** The type-specific properties of an asset, as a form generated from its type's JSON schema. */
 const props = withDefaults(defineProps<{
-  schema: Record<string, unknown>
+  schema: JsonSchema
   readonly?: boolean
   /** Shows the validation errors, which a new asset only gets once its creation is attempted. */
   showErrors?: boolean
@@ -25,7 +26,7 @@ const emit = defineEmits<{ validity: [validity: AssetFormValidity] }>()
 provide('styles', assetFormStyles)
 const ajv = createAssetAjv() as unknown as Ajv
 const config = { showUnfocusedDescription: true, restrict: true, trim: false }
-const formSchema = computed(() => inlineDefinitions(props.schema) as JsonSchema)
+const formSchema = computed(() => inlineDefinitions(props.schema) as FormSchema)
 const validationMode = computed(() => props.showErrors ? 'ValidateAndShow' : 'ValidateAndHide')
 
 function onChange(event: { data: AssetProperties; errors?: ErrorObject[] }): void {

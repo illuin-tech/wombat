@@ -1,3 +1,4 @@
+import { FAMILY_ORDER } from '@/domain/assetTypeDisplay'
 import { assetFamily, type AssetType, type EnvironmentInfo, type ServiceFamily } from '@/domain/environment'
 
 export type EnvironmentStatus = 'active' | 'disabled' | 'provisioned'
@@ -31,8 +32,6 @@ export interface FamilyCount {
   family: ServiceFamily
   count: number
 }
-
-const FAMILY_ORDER: ServiceFamily[] = ['KUBERNETES_CONTAINER', 'LLM', 'UNKNOWN']
 
 /** How many assets the environment has per family, leaving out the families it has none of. */
 export function familyCounts(environment: EnvironmentInfo, typesByName: ReadonlyMap<string, AssetType>): FamilyCount[] {

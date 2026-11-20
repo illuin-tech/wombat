@@ -39,7 +39,7 @@ describe('ApiKeyTable loading state', () => {
     expect(wrapper.find('.table-card').exists()).toBe(true)
     expect(wrapper.findAll('tbody tr')).toHaveLength(5)
     expect(wrapper.findAll('.skeleton-block')).toHaveLength(40)
-    expect(wrapper.find('.apikey-empty').exists()).toBe(false)
+    expect(wrapper.find('.table-empty').exists()).toBe(false)
     wrapper.unmount()
   })
 })
@@ -74,19 +74,19 @@ describe('ApiKeyTable interactions', () => {
 
     expect(wrapper.findAll('tbody .name').map((name) => name.text())).toEqual(['My pipeline'])
 
-    await wrapper.get('.apikey-check input').setValue(false)
+    await wrapper.get('.form-check input').setValue(false)
     expect(wrapper.findAll('tbody .name').map((name) => name.text())).toEqual([
       'My pipeline',
       'Read-only key',
       'Legacy automation',
     ])
 
-    await wrapper.get('.apikey-search').setValue('richard')
+    await wrapper.get('.search-input').setValue('richard')
     expect(wrapper.findAll('tbody .name').map((name) => name.text())).toEqual(['Read-only key'])
 
-    await wrapper.get('.apikey-search').setValue('no matching key')
+    await wrapper.get('.search-input').setValue('no matching key')
     expect(wrapper.findAll('tbody .name')).toHaveLength(0)
-    expect(wrapper.find('.apikey-empty').text()).toBe('No key matches these filters.')
+    expect(wrapper.find('.table-empty').text()).toBe('No key matches these filters.')
     wrapper.unmount()
   })
 

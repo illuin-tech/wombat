@@ -29,6 +29,8 @@ class UiPagePolicyTest
         assertEquals(tech.illuin.wombat.security.Permission.UI_ENVIRONMENTS_READ, UiPagePolicy.requiredFor("/environments"));
         assertEquals(tech.illuin.wombat.security.Permission.UI_ENVIRONMENTS_READ, UiPagePolicy.requiredFor("/environments/preprod"));
         assertEquals(tech.illuin.wombat.security.Permission.UI_ENVIRONMENTS_MANAGE, UiPagePolicy.requiredFor("/environments/new"));
+        assertEquals(tech.illuin.wombat.security.Permission.UI_MODULES_READ, UiPagePolicy.requiredFor("/modules"));
+        assertEquals(tech.illuin.wombat.security.Permission.UI_MODULES_READ, UiPagePolicy.requiredFor("/modules/tech.illuin.wombat-module.llm-static"));
     }
 
     @Test

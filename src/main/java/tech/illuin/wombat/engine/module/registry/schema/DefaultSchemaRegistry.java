@@ -61,6 +61,8 @@ public class DefaultSchemaRegistry implements AssetSchemaRegistry
     public Optional<JsonNode> getSchema(AssetType type)
     {
         JsonNode node = this.cache.computeIfAbsent(type, k -> this.moduleRegistry.getModule(k)
+            /* A missing module has no class to describe */
+            .filter(module -> !module.missing())
             .map(mm -> withoutIdentity(this.schemaGenerator.generateSchema(mm.assetClass())))
             .orElse(null)
         );

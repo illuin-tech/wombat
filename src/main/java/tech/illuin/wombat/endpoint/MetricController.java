@@ -116,7 +116,7 @@ public class MetricController
     private boolean hasActiveModule(AssetIdentity asset)
     {
         return this.modules.getModule(asset.assetType())
-            .filter(ModuleMetadata::enabled)
+            .filter(ModuleMetadata::active)
             .isPresent();
     }
 

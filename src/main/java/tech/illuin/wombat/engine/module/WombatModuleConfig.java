@@ -37,8 +37,6 @@ import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
-import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
-import tech.illuin.wombat.engine.module.registry.InMemoryModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
 import tech.illuin.wombat.engine.module.registry.schema.DefaultSchemaRegistry;
@@ -117,31 +115,12 @@ public class WombatModuleConfig
     }
 
     @Produces @Singleton
-    public static ModuleRegistry provideModuleRegistry(List<WombatModule> modules, WombatProperties wombat)
-    {
-        WombatModuleProperties properties = wombat.module();
-        /* This will soon become DB-backed and handle all detected modules; for now we use the conf-based switches for core modules only */
-        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
-        modules.forEach(module -> {
-            boolean enabled = switch (module.type().name()) {
-                case "tech.illuin.wombat-module.kubernetes-api" -> properties.kubernetesApi().enabled();
-                case "tech.illuin.wombat-module.llm-prometheus" -> properties.llmPrometheus().enabled();
-                case "tech.illuin.wombat-module.llm-anthropic" -> properties.llmAnthropic().enabled();
-                case "tech.illuin.wombat-module.llm-vertexai" -> properties.llmVertexAi().enabled();
-                default -> true;
-            };
-            registry.registerModule(module, enabled);
-        });
-        return registry;
-    }
-
-    @Produces @Singleton
     public static AssetSchemaRegistry provideAssetSchemaRegistry(ModuleRegistry moduleRegistry, ObjectMapper mapper)
     {
         return new DefaultSchemaRegistry(moduleRegistry, mapper);
     }
 
-    public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, ModuleRegistry modules)
+    public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)
     {
         registerSubTypes(modules, mapper);
     }
@@ -149,7 +128,7 @@ public class WombatModuleConfig
     @Produces
     @Singleton
     @Typed(YAMLMapper.class)
-    public YAMLMapper provideYAMLMapper(ModuleRegistry modules)
+    public YAMLMapper provideYAMLMapper(List<WombatModule> modules)
     {
         YAMLMapper mapper = YAMLMapper.builder()
             .findAndAddModules()
@@ -162,7 +141,7 @@ public class WombatModuleConfig
     @Produces
     @Singleton
     @Typed(JsonMapper.class)
-    public JsonMapper provideJsonMapper(ModuleRegistry modules)
+    public JsonMapper provideJsonMapper(List<WombatModule> modules)
     {
         JsonMapper mapper = JsonMapper.builder().findAndAddModules().build();
         registerSubTypes(modules, mapper);
@@ -170,14 +149,16 @@ public class WombatModuleConfig
     }
 
     /**
-     * Disabled modules are registered too, so their assets are still read as such rather than as unrecognized ones.
+     * Every detected module is registered, disabled ones too, so their assets are still read as such rather than as
+     * unrecognized ones. Taken from the detected modules rather than the registry, which reads the database: the YAML
+     * mapper is needed at startup, before the migrations run.
      */
-    private static <O extends ObjectMapper> void registerSubTypes(ModuleRegistry modules, O mapper)
+    private static <O extends ObjectMapper> void registerSubTypes(List<WombatModule> modules, O mapper)
     {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         mapper.disable(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS);
         mapper.addHandler(new UnrecognizedAssetProblemHandler());
-        modules.listModules().forEach(module -> mapper.registerSubtypes(new NamedType(
+        modules.forEach(module -> mapper.registerSubtypes(new NamedType(
             module.assetClass(), module.type().name()
         )));
     }

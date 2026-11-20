@@ -5,19 +5,25 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.engine.impact.kubernetes.KubernetesMetricRepository;
 import tech.illuin.wombat.engine.impact.llm.LLMModelMetricRepository;
+import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** The metrics of an asset whose module the aggregator disabled are skipped, while the others of the request are saved. */
+/**
+ * The metrics of an asset whose module the aggregator disabled are skipped, while the others of the request are saved.
+ * Ingestion follows the registry: the module is disabled, not redeployed.
+ */
 @QuarkusTest
-@TestProfile(DisabledModuleProfile.class)
+@TestProfile(AggregatorProfile.class)
 class MetricControllerDisabledModuleTest
 {
     @Inject
@@ -26,13 +32,23 @@ class MetricControllerDisabledModuleTest
     @Inject
     LLMModelMetricRepository llm;
 
+    @Inject
+    ModuleRegistry modules;
+
     @BeforeEach
     void setUp()
     {
+        this.modules.setEnabled(KubernetesAPIModule.TYPE.name(), false, null);
         QuarkusTransaction.requiringNew().run(() -> {
             this.kubernetes.deleteByAssetId("east.pushed-cluster");
             this.llm.deleteByAssetId("east.pushed-llm");
         });
+    }
+
+    @AfterEach
+    void tearDown()
+    {
+        this.modules.setEnabled(KubernetesAPIModule.TYPE.name(), true, null);
     }
 
     @Test

@@ -132,12 +132,7 @@ wombat:
       expire-after-write: 10m
 
   module:
-    kubernetes-api:
-      enabled: true
-    llm-prometheus:
-      enabled: true
-    llm-anthropic:
-      enabled: true
+    # Modules are enabled or disabled from Settings > Modules, no longer here
     extension:
       path: "extensions"
 

@@ -3,8 +3,10 @@ import { request } from '@/services/api/client'
 
 export type { JsonSchema, ModuleMetadata } from '@/domain/module'
 
-export function fetchModules(): Promise<ModuleMetadata[]> {
-  return request<ModuleMetadata[]>('/api/modules')
+/** The asset types this server detects. Missing modules (registered, but no longer detected) take no asset, so they are left out. */
+export async function fetchModules(): Promise<ModuleMetadata[]> {
+  const modules = await request<(ModuleMetadata & { missing?: boolean })[]>('/api/modules')
+  return modules.filter(module => !module.missing)
 }
 
 /* A type's schema only changes with the server's version: fetch it once per page load */

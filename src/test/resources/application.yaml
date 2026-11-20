@@ -59,11 +59,5 @@ wombat:
       expire-after-write: 10m
 
   module:
-    kubernetes-api:
-      enabled: true
-    llm-prometheus:
-      enabled: true
-    llm-anthropic:
-      enabled: true
     extension:
       path: "/target/extensions"

@@ -24,7 +24,6 @@ import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.Monitorable;
 import tech.illuin.wombat.core.source.WombatSource;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
-import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 
 import java.io.FileOutputStream;
@@ -59,7 +58,7 @@ class DynamicModuleIntegrationTest
 
             // 1. YAML Deserialization via WombatModuleConfig
             WombatModuleConfig moduleConfig = new WombatModuleConfig();
-            YAMLMapper yamlMapper = moduleConfig.provideYAMLMapper(ModuleRegistries.enabled(modules));
+            YAMLMapper yamlMapper = moduleConfig.provideYAMLMapper(modules);
 
             String yaml = """
                 environments:
@@ -92,7 +91,7 @@ class DynamicModuleIntegrationTest
             assertEquals("tech.custom.extension.custom-source", entity.type);
             assertEquals(customAsset, entity.toProperties());
 
-            JsonMapper jsonMapper = moduleConfig.provideJsonMapper(ModuleRegistries.enabled(modules));
+            JsonMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
             AssetConverter converter = new AssetConverter(jsonMapper);
             String dbJson = converter.convertToDatabaseColumn(customAsset);
             assertTrue(dbJson.contains("\"type\":\"tech.custom.extension.custom-source\""));
@@ -127,7 +126,7 @@ class DynamicModuleIntegrationTest
         {
             List<WombatModule> modules = loader.load();
             WombatModuleConfig moduleConfig = new WombatModuleConfig();
-            JsonMapper jsonMapper = moduleConfig.provideJsonMapper(ModuleRegistries.enabled(modules));
+            JsonMapper jsonMapper = moduleConfig.provideJsonMapper(modules);
             AssetConverter converter = new AssetConverter(jsonMapper);
 
             CustomDynamicAsset customAsset = new CustomDynamicAsset(
@@ -139,7 +138,7 @@ class DynamicModuleIntegrationTest
 
         // Now simulate the JAR being removed/dropped: standard modules only
         WombatModuleConfig standardConfig = new WombatModuleConfig();
-        JsonMapper standardJsonMapper = standardConfig.provideJsonMapper(ModuleRegistries.enabled(List.of()));
+        JsonMapper standardJsonMapper = standardConfig.provideJsonMapper(List.of());
         AssetConverter standardConverter = new AssetConverter(standardJsonMapper);
 
         Asset parsedAsset = standardConverter.convertToEntityAttribute(dbJson);
@@ -151,7 +150,7 @@ class DynamicModuleIntegrationTest
         assertEquals(dbJson, standardConverter.convertToDatabaseColumn(unrecognized));
 
         // YAML recovery verification for dropped module
-        YAMLMapper standardYamlMapper = standardConfig.provideYAMLMapper(ModuleRegistries.enabled(List.of()));
+        YAMLMapper standardYamlMapper = standardConfig.provideYAMLMapper(List.of());
         String yaml = """
             environments:
               dynamic-env:

@@ -55,6 +55,8 @@ Endpoints check permissions, and each role grants a fixed set of them:
 | `ui.users.read`        | ✓    |      |                 |
 | `ui.environments.read` | ✓    | ✓   | ✓              |
 | `ui.environments.manage` | ✓  |      |                 |
+| `ui.modules.read`      | ✓    | ✓   | ✓              |
+| `ui.modules.manage`    | ✓    |      |                 |
 | `api.impact.read`      | ✓    | ✓   | ✓              |
 | `api.simulation.read`  | ✓    | ✓   | ✓              |
 | `api.environment.read` | ✓    | ✓   | ✓              |
@@ -62,6 +64,8 @@ Endpoints check permissions, and each role grants a fixed set of them:
 | `api.asset.read`       | ✓    | ✓   | ✓              |
 | `api.asset.write`      | ✓    |      |                 |
 | `api.metric.write`     | ✓    |      |                 |
+| `api.module.read`      | ✓    | ✓   | ✓              |
+| `api.module.manage`    | ✓    |      |                 |
 | `api.apikey.manage`    | ✓    | ✓   | ✓              |
 | `api.apikey.admin`     | ✓    |      | ✓              |
 | `api.user.manage`      | ✓    |      |                 |

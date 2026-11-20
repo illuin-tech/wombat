@@ -1,20 +1,41 @@
 package tech.illuin.wombat.endpoint;
 
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.oidc.Claim;
 import io.quarkus.test.security.oidc.OidcSecurity;
+import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import io.quarkus.security.identity.SecurityIdentity;
+import tech.illuin.wombat.engine.module.ModuleService;
+import tech.illuin.wombat.core.asset.type.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
+import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
+import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
+import tech.illuin.wombat.security.Caller;
+import tech.illuin.wombat.security.Permission;
 import tech.illuin.wombat.security.PermissionAugmentor;
+import tech.illuin.wombat.security.Role;
+import tech.illuin.wombat.security.apikey.ApiKeyAuthenticationMechanism;
+import tech.illuin.wombat.security.apikey.ApiKeyService;
 import tech.illuin.wombat.ui.AuthenticationEnabledTest;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.hasItem;
@@ -30,6 +51,23 @@ import static org.mockito.Mockito.when;
 class ModuleControllerTest
 {
     private static final String MODULE_ID = KubernetesSimulatedModule.TYPE.name();
+    private static final AssetType MISSING_TYPE = AssetType.of("acme", "removed-extension", ActivityRegime.MEASURED, ServiceFamily.LLM);
+    private static final String MISSING_ID = MISSING_TYPE.name();
+
+    @Inject
+    ModuleRepository repository;
+
+    @Inject
+    ApiKeyService apiKeys;
+
+    @AfterEach
+    void restoreTheRegistry()
+    {
+        QuarkusTransaction.requiringNew().run(() -> {
+            this.repository.findById(MODULE_ID).enabled = true;
+            this.repository.deleteById(MISSING_ID);
+        });
+    }
 
     @Test
     @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
@@ -42,6 +80,121 @@ class ModuleControllerTest
             .body("status.message", is("Success"))
             .body("payload.type.name", hasItem(MODULE_ID))
             .body("payload.find { it.type.name == '" + MODULE_ID + "' }.enabled", is(true));
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void list_tellsTheRegistryStateFromTheDeployedOne()
+    {
+        given()
+            .when().get("/api/modules")
+            .then()
+            .statusCode(200)
+            .body("payload.find { it.type.name == '" + MODULE_ID + "' }.deployed", is(true))
+            .body("payload.find { it.type.name == '" + MODULE_ID + "' }.pending", is(false))
+            .body("payload.find { it.type.name == '" + MODULE_ID + "' }.missing", is(false))
+            .body("payload.find { it.type.name == '" + MODULE_ID + "' }.source", is("core"))
+            .body("payload.find { it.type.name == '" + MODULE_ID + "' }.assetCount", notNullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void update_changesTheRegistryAtOnce_andLeavesTheCoreUntilARedeploy()
+    {
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}")
+            .when().put("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(200)
+            .body("payload.enabled", is(false))
+            .body("payload.deployed", is(true))
+            .body("payload.pending", is(true));
+
+        given()
+            .when().get("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(200)
+            .body("payload.enabled", is(false))
+            .body("payload.pending", is(true));
+
+        assertEquals("boss", QuarkusTransaction.requiringNew().call(() -> this.repository.findById(MODULE_ID).updatedBy));
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void update_rejectsAPayloadWithoutTheFlag()
+    {
+        given().contentType(ContentType.JSON).body("{}")
+            .when().put("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(400);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void aMissingModule_isListed_cannotBeToggled_andCanBeDeleted()
+    {
+        QuarkusTransaction.requiringNew().run(() -> this.repository.persist(ModuleEntity.registered(MISSING_TYPE)));
+
+        given()
+            .when().get("/api/modules")
+            .then()
+            .statusCode(200)
+            .body("payload.find { it.type.name == '" + MISSING_ID + "' }.missing", is(true))
+            .body("payload.find { it.type.name == '" + MISSING_ID + "' }.type.family", is("LLM"));
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}")
+            .when().put("/api/modules/" + MISSING_ID)
+            .then()
+            .statusCode(409);
+        given().when().get("/api/modules/" + MISSING_ID + "/schema").then().statusCode(404);
+
+        given().when().delete("/api/modules/" + MISSING_ID).then().statusCode(204);
+        given().when().get("/api/modules/" + MISSING_ID).then().statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void aDetectedModule_cannotBeDeleted()
+    {
+        given().when().delete("/api/modules/" + MODULE_ID).then().statusCode(409);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void writesOnAnUnknownModule_returnNotFound()
+    {
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}")
+            .when().put("/api/modules/does-not-exist")
+            .then()
+            .statusCode(404);
+        given().when().delete("/api/modules/does-not-exist").then().statusCode(404);
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void writesAreForbiddenToUsers()
+    {
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}")
+            .when().put("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(403);
+        given().when().delete("/api/modules/" + MODULE_ID).then().statusCode(403);
+    }
+
+    @Test
+    void aKey_togglesModulesOnlyWithTheManagePermission()
+    {
+        String manager = this.issue(Permission.Names.API_MODULE_MANAGE, Permission.Names.API_MODULE_READ);
+        String reader = this.issue(Permission.Names.API_MODULE_READ);
+
+        given().header(ApiKeyAuthenticationMechanism.HEADER, reader).contentType(ContentType.JSON).body("{\"enabled\": false}")
+            .when().put("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(403);
+        given().header(ApiKeyAuthenticationMechanism.HEADER, manager).contentType(ContentType.JSON).body("{\"enabled\": false}")
+            .when().put("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(200)
+            .body("payload.enabled", is(false));
     }
 
     @Test
@@ -107,12 +260,18 @@ class ModuleControllerTest
         KubernetesSimulatedModule module = new KubernetesSimulatedModule();
         ModuleRegistry registry = mock(ModuleRegistry.class);
         AssetSchemaRegistry schemaRegistry = mock(AssetSchemaRegistry.class);
-        when(registry.getModule(MODULE_ID)).thenReturn(Optional.of(new ModuleMetadata(module.type(), module.assetClass(), true)));
+        when(registry.getModule(MODULE_ID)).thenReturn(Optional.of(ModuleMetadata.core(module.type(), module.assetClass(), true)));
         when(schemaRegistry.getSchema(module.type())).thenReturn(Optional.empty());
-        ModuleController controller = new ModuleController(registry, schemaRegistry);
+        ModuleController controller = new ModuleController(mock(ModuleService.class), registry, schemaRegistry, mock(SecurityIdentity.class));
 
         NotFoundException error = assertThrows(NotFoundException.class, () -> controller.getSchema(MODULE_ID));
 
         assertEquals("No module could be found for id " + MODULE_ID, error.getMessage());
+    }
+
+    private String issue(String... permissions)
+    {
+        Caller admin = new Caller("https://idp", UUID.randomUUID().toString(), "admin", "admin@example.com", EnumSet.of(Role.ADMIN), Role.ADMIN.permissions());
+        return this.apiKeys.create(admin, "modules", List.of(permissions), Instant.now().plus(Duration.ofDays(1))).token();
     }
 }

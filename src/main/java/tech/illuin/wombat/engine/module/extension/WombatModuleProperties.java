@@ -5,46 +5,13 @@ import io.smallrye.config.WithName;
 
 import java.nio.file.Path;
 
+/**
+ * Whether a module is enabled is no longer configured here: it is the registry's state, kept in the database.
+ */
 public interface WombatModuleProperties
 {
-    @WithName("kubernetes-api")
-    KubernetesApiProperties kubernetesApi();
-
-    @WithName("llm-prometheus")
-    LlmPrometheusProperties llmPrometheus();
-
-    @WithName("llm-anthropic")
-    LlmAnthropicProperties llmAnthropic();
-
-    @WithName("llm-vertex-ai")
-    LlmVertexAIProperties llmVertexAi();
-
     @WithName("extension")
     ExtensionProperties extension();
-
-    interface KubernetesApiProperties
-    {
-        @WithDefault("true")
-        boolean enabled();
-    }
-
-    interface LlmPrometheusProperties
-    {
-        @WithDefault("true")
-        boolean enabled();
-    }
-
-    interface LlmAnthropicProperties
-    {
-        @WithDefault("true")
-        boolean enabled();
-    }
-
-    interface LlmVertexAIProperties
-    {
-        @WithDefault("true")
-        boolean enabled();
-    }
 
     interface ExtensionProperties
     {

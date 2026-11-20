@@ -4,7 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Visible assets are those not soft-deleted, as the API and the reconciler see them; active ones are also not
@@ -40,6 +42,17 @@ public class AssetRepository extends Repository<AssetEntity, String>
             .createQuery("SELECT COUNT(a) FROM AssetEntity a WHERE a.environmentId = :environmentId AND a.deletedAt IS NULL", Long.class)
             .setParameter("environmentId", environmentId)
             .getSingleResult();
+    }
+
+    /**
+     * @return the number of visible assets per asset-type name; types without any are absent
+     */
+    public Map<String, Long> countVisibleByType()
+    {
+        return getEntityManager()
+            .createQuery("SELECT a.type, COUNT(a) FROM AssetEntity a WHERE a.deletedAt IS NULL GROUP BY a.type", Object[].class)
+            .getResultStream()
+            .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
     }
 
     public List<AssetEntity> findVisible()

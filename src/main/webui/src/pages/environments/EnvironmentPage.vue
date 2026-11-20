@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch 
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { byDisplayName, displayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
 import type { ModuleMetadata } from '@/domain/module'
+import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
 import { errorText } from '@/services/api/client'
 import {
   createEnvironment,
@@ -22,7 +23,7 @@ import NoticeCard from '@/components/NoticeCard.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
-import AssetEditorModal from '@/pages/environments/components/AssetEditorModal.vue'
+import AssetEditorModal, { type AssetEditorAdapter } from '@/components/AssetEditorModal.vue'
 import AssetGrid from '@/pages/environments/components/AssetGrid.vue'
 import DashboardLink from '@/pages/environments/components/DashboardLink.vue'
 import {
@@ -32,8 +33,8 @@ import {
   idError,
   NAME_MAX_LENGTH,
   nameError,
-} from '@/pages/environments/model/identifiers'
-import { useIdFromName } from '@/pages/environments/model/useIdFromName'
+} from '@/domain/identifiers'
+import { useIdFromName } from '@/services/tools/useIdFromName'
 import { useAutosave, type AutosaveStatus } from '@/services/tools/useAutosave'
 
 const route = useRoute()
@@ -65,6 +66,11 @@ const user = computed(() => appInfo.value?.user)
 const locked = computed(() => environment.value?.provisioned ?? false)
 const canEditEnvironment = computed(() => creating.value || (can(user.value, 'api.environment.write') && !locked.value))
 const canEditAssets = computed(() => can(user.value, 'api.asset.write') && !locked.value && !creating.value)
+/* The asset editor saves into this environment */
+const assetAdapter = computed<AssetEditorAdapter | null>(() => {
+  const environmentId = environment.value?.id
+  return environmentId ? { create: body => createAsset({ ...body, environmentId }), update: updateAsset, remove: deleteAsset } : null
+})
 const deleteBlockedReason = computed(() => assets.value.length > 0
   ? `Delete its ${assets.value.length} asset${assets.value.length === 1 ? '' : 's'} first to delete this environment`
   : null)
@@ -301,9 +307,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
     </template>
 
     <AssetEditorModal
-      v-if="environment"
+      v-if="assetAdapter"
       :open="assetEditorOpen"
-      :environment-id="environment.id"
+      :adapter="assetAdapter"
       :asset="editedAsset"
       :modules="modules"
       :can-edit="canEditAssets && !editedAsset?.provisioned"

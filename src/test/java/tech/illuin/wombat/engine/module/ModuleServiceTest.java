@@ -165,7 +165,7 @@ class ModuleServiceTest
     private void deployed(WombatModule... modules)
     {
         AssetEvaluator evaluator = mock(AssetEvaluator.class);
-        when(this.runtime.current()).thenReturn(new CoreDeployment(1, "id", List.of(modules), Set.of(), mock(AssetMonitor.class), evaluator, evaluator, Instant.now()));
+        when(this.runtime.current()).thenReturn(new CoreDeployment(1, "id", List.of(modules), Set.of(), mock(AssetMonitor.class), evaluator, () -> evaluator, Instant.now()));
     }
 
     private static ModuleMetadata detected(WombatModule module, boolean enabled)

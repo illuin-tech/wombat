@@ -61,23 +61,8 @@
 .asset-card-add:hover, .asset-card-add:focus-visible { color: var(--accent-green); border-color: var(--accent-green); background: var(--accent-green-soft); }
 .asset-card-plus { font-size: 32px; line-height: 1; font-weight: 300; }
 
-/* Asset editor */
-.asset-editor { display: flex; flex-direction: column; gap: 16px; }
-.asset-editor-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.asset-editor-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-.asset-editor-fields .asset-editor-description { grid-column: 1 / -1; }
-.asset-editor-raw pre { font-family: monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; overflow-x: auto; }
-.asset-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 14px; position: sticky; bottom: -22px; background: var(--surface); padding-bottom: 4px; }
-.asset-editor-actions { display: flex; gap: 10px; margin-left: auto; }
-.asset-type-picker { display: flex; flex-direction: column; gap: 14px; }
-.asset-type-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.asset-type-option { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font: inherit; color: inherit; text-align: left; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; }
-.asset-type-option:hover, .asset-type-option:focus-visible { border-color: var(--accent-green); outline: none; }
-.asset-type-option-name { font-size: 13px; font-weight: 700; color: var(--text); }
-
 @media (max-width: 800px) {
   .env-head { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 18px; }
   .env-head-side { align-items: flex-start; text-align: left; max-width: none; }
   .env-head-foot { justify-self: start; justify-content: flex-start; }
-  .asset-editor-fields { grid-template-columns: 1fr; }
 }

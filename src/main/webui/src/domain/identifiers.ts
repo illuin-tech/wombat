@@ -1,7 +1,7 @@
 /** Ids of environments and assets created through the API, as the server checks them. */
 export const ID_PATTERN = /^[a-z0-9_-]+$/
 export const ID_MAX_LENGTH = 64
-/** The path segment of the environment creation page. */
+/** The path segment of the creation pages. */
 const RESERVED_IDS = new Set(['new'])
 
 /** A valid id derived from a name, e.g. `my-cluster` from `My Cluster!`. */

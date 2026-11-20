@@ -3,8 +3,16 @@ import { computed, nextTick, ref } from 'vue'
 import MarkdownView from '@/components/MarkdownView.vue'
 
 /** Markdown shown rendered, and edited in place: a click switches to its source, leaving it renders it again. */
-const props = withDefaults(defineProps<{ label: string; placeholder?: string; maxlength?: number; disabled?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  label: string
+  placeholder?: string
+  /** Shown instead of an empty source when it can't be edited. */
+  empty?: string
+  maxlength?: number
+  disabled?: boolean
+}>(), {
   placeholder: 'Add a description; Markdown is supported.',
+  empty: 'No description.',
   maxlength: undefined,
   disabled: false,
 })
@@ -38,7 +46,7 @@ async function edit(event?: MouseEvent): Promise<void> {
     />
     <div v-else class="markdown-editor-view" :title="disabled ? undefined : 'Click to edit'" @click="edit">
       <MarkdownView v-if="source.trim()" :source="source" />
-      <p v-else class="markdown-editor-empty">{{ disabled ? 'No description.' : placeholder }}</p>
+      <p v-else class="markdown-editor-empty">{{ disabled ? empty : placeholder }}</p>
       <button v-if="!disabled" class="markdown-editor-edit" type="button" :aria-label="`Edit the ${label.toLowerCase()}`" @click.stop="edit()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
       </button>

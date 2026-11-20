@@ -1,9 +1,20 @@
+<script lang="ts">
+import type { AssetInfo } from '@/domain/environment'
+import type { AssetFields } from '@/services/api/assets'
+
+/** What the editor saves through, so that it serves whatever holds the assets. */
+export interface AssetEditorAdapter {
+  create: (body: AssetFields & { id: string; type: string }) => Promise<AssetInfo>
+  update: (id: string, body: AssetFields) => Promise<AssetInfo>
+  remove: (id: string) => Promise<void>
+}
+</script>
+
 <script setup lang="ts">
 import { computed, provide, ref, shallowRef, watch } from 'vue'
 import { FAMILIES, FAMILY_ORDER } from '@/domain/assetTypeDisplay'
-import { assetTypeName, displayName, type AssetInfo } from '@/domain/environment'
+import { assetTypeName, displayName } from '@/domain/environment'
 import type { JsonSchema, ModuleMetadata } from '@/domain/module'
-import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
 import { errorText } from '@/services/api/client'
 import { fetchModuleSchema } from '@/services/api/modules'
 import { checkSecretKey } from '@/services/api/secrets'
@@ -24,13 +35,13 @@ import {
   idError,
   NAME_MAX_LENGTH,
   nameError,
-} from '@/pages/environments/model/identifiers'
-import { useIdFromName } from '@/pages/environments/model/useIdFromName'
+} from '@/domain/identifiers'
+import { useIdFromName } from '@/services/tools/useIdFromName'
 
 /** Shows an asset, edits it when allowed, or creates one when `asset` is null. */
 const props = defineProps<{
   open: boolean
-  environmentId: string
+  adapter: AssetEditorAdapter
   /** Null to create an asset. */
   asset: AssetInfo | null
   modules: ModuleMetadata[]
@@ -158,8 +169,8 @@ async function save(): Promise<void> {
   }
   try {
     const saved = creating.value
-      ? await createAsset({ ...fields, id: id.value, environmentId: props.environmentId, type: typeName.value! })
-      : await updateAsset(props.asset!.id, fields)
+      ? await props.adapter.create({ ...fields, id: id.value, type: typeName.value! })
+      : await props.adapter.update(props.asset!.id, fields)
     initialProperties.value = properties.value
     emit('saved', saved)
   } catch (caught) {
@@ -173,7 +184,7 @@ async function remove(): Promise<void> {
   deleting.value = true
   deleteError.value = null
   try {
-    await deleteAsset(props.asset!.id)
+    await props.adapter.remove(props.asset!.id)
     confirmingDelete.value = false
     emit('deleted', props.asset!.id)
   } catch (caught) {

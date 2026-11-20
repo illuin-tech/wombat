@@ -43,6 +43,13 @@
 .markdown-editor-edit:hover { color: var(--accent-green); }
 .markdown-editor-input { width: calc(100% + 11px); resize: vertical; background: var(--surface2); border: 1.5px solid var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); color: var(--text); font-family: monospace; font-size: 13px; line-height: 1.5; padding: 8px 12px; margin-left: -11px; border-radius: var(--radius-sm); outline: none; }
 
+/* Notes folded by default */
+.collapsible-notes { display: flex; flex-direction: column; gap: 8px; }
+.collapsible-notes-toggle { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; font: inherit; color: var(--text-muted); background: none; border: none; padding: 0; cursor: pointer; }
+.collapsible-notes-toggle:hover, .collapsible-notes-toggle:focus-visible { color: var(--text); }
+.collapsible-notes-chevron { transition: transform 0.15s; }
+.collapsible-notes.expanded .collapsible-notes-chevron { transform: rotate(90deg); }
+
 /* Confirmation */
 .confirm-dialog { display: flex; flex-direction: column; gap: 14px; }
 .confirm-dialog-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
@@ -82,3 +89,21 @@
 /* A label with its icon: RegimePill, SourcePill */
 .icon-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 14px; white-space: nowrap; background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 .icon-pill svg { flex: none; }
+
+/* Asset editor (AssetEditorModal) */
+.asset-editor { display: flex; flex-direction: column; gap: 16px; }
+.asset-editor-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.asset-editor-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.asset-editor-fields .asset-editor-description { grid-column: 1 / -1; }
+.asset-editor-raw pre { font-family: monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; overflow-x: auto; }
+.asset-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 14px; position: sticky; bottom: -22px; background: var(--surface); padding-bottom: 4px; }
+.asset-editor-actions { display: flex; gap: 10px; margin-left: auto; }
+.asset-type-picker { display: flex; flex-direction: column; gap: 14px; }
+.asset-type-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.asset-type-option { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font: inherit; color: inherit; text-align: left; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; }
+.asset-type-option:hover, .asset-type-option:focus-visible { border-color: var(--accent-green); outline: none; }
+.asset-type-option-name { font-size: 13px; font-weight: 700; color: var(--text); }
+
+@media (max-width: 800px) {
+  .asset-editor-fields { grid-template-columns: 1fr; }
+}

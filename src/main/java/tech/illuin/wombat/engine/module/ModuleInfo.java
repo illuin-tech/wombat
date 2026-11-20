@@ -9,12 +9,13 @@ import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Source;
  * and whether the running core holds it.
  *
  * @param type       as the module advertised it when last detected, for a missing one
- * @param assetClass null when the module is missing
+ * @param assetClass null when the serving instance does not detect the module
  * @param enabled    the registry state, which the asset pickers follow at once
  * @param deployed   whether the core running on the serving instance holds the module
- * @param pending    whether the registry state differs from the deployed one, until a redeploy
- * @param missing    whether the module has a registry row but is no longer detected, e.g. its extension jar was removed
- * @param source     null when the module is missing
+ * @param pending    whether the latest deployment does not hold the registry state yet, until a redeploy; never for a
+ *                   missing module, which a redeploy cannot bring in
+ * @param missing    whether no live instance detects the module any more, e.g. its extension jar was removed
+ * @param source     null when the serving instance does not detect the module
  * @param assetCount the number of assets of this type, soft-deleted ones aside
  */
 public record ModuleInfo(

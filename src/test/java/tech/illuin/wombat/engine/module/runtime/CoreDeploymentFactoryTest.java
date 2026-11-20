@@ -27,7 +27,7 @@ class CoreDeploymentFactoryTest
     @Test
     void onlyTheRequestedModulesAreDeployed()
     {
-        CoreDeployment deployment = factory(true).create(Set.of(LLM));
+        CoreDeployment deployment = factory(true).create(1, "id", Set.of(LLM));
 
         assertEquals(Set.of(LLMSimulatedModule.TYPE), deployment.types());
         assertTrue(deployment.missing().isEmpty());
@@ -37,7 +37,7 @@ class CoreDeploymentFactoryTest
     @Test
     void aRequestedTypeWithNoDetectedModuleIsReportedMissing()
     {
-        CoreDeployment deployment = factory(true).create(Set.of(K8S, "acme.unknown"));
+        CoreDeployment deployment = factory(true).create(1, "id", Set.of(K8S, "acme.unknown"));
 
         assertEquals(Set.of(KubernetesSimulatedModule.TYPE), deployment.types());
         assertEquals(Set.of("acme.unknown"), deployment.missing());
@@ -47,7 +47,7 @@ class CoreDeploymentFactoryTest
     @Test
     void theCachedEvaluatorWrapsTheUncachedOneWhenTheCacheIsEnabled()
     {
-        CoreDeployment deployment = factory(true).create(Set.of(K8S, LLM));
+        CoreDeployment deployment = factory(true).create(1, "id", Set.of(K8S, LLM));
 
         assertInstanceOf(CachedAssetEvaluator.class, deployment.evaluator());
         assertNotSame(deployment.evaluator(), deployment.uncachedEvaluator());
@@ -57,7 +57,7 @@ class CoreDeploymentFactoryTest
     @Test
     void bothEvaluatorsAreTheSameWhenTheCacheIsDisabled()
     {
-        CoreDeployment deployment = factory(false).create(Set.of(K8S, LLM));
+        CoreDeployment deployment = factory(false).create(1, "id", Set.of(K8S, LLM));
 
         assertSame(deployment.evaluator(), deployment.uncachedEvaluator());
         deployment.close();
@@ -67,8 +67,8 @@ class CoreDeploymentFactoryTest
     void eachDeploymentGetsItsOwnMonitorAndEvaluatorButSharesTheModules()
     {
         CoreDeploymentFactory factory = factory(true);
-        CoreDeployment first = factory.create(Set.of(K8S));
-        CoreDeployment second = factory.create(Set.of(K8S));
+        CoreDeployment first = factory.create(1, "id", Set.of(K8S));
+        CoreDeployment second = factory.create(1, "id", Set.of(K8S));
 
         assertNotSame(first.monitor(), second.monitor());
         assertNotSame(first.evaluator(), second.evaluator());

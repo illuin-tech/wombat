@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.module.WombatModule;
+import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Source;
@@ -20,6 +21,7 @@ import java.net.URISyntaxException;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
 import java.security.CodeSource;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,31 +32,35 @@ import java.util.stream.Stream;
 
 /**
  * The modules registered in the {@code modules} table, shared by every instance: a toggle is seen by all of them at
- * once. Every module this instance detects is registered at startup; a registered module no instance detects any more
- * is missing, and keeps its state should it come back.
+ * once. Every module this instance detects is registered at startup; a registered module no live instance detects any
+ * more (see the heartbeats of {@link CoreInstanceRepository}) is missing, and keeps its state should it come back.
  */
 @ApplicationScoped
 public class DbModuleRegistry implements ModuleRegistry
 {
     private final Map<String, WombatModule> detected;
     private final ModuleRepository repository;
+    private final CoreInstanceRepository instances;
     private final Path extensionPath;
+    private final Duration pollInterval;
 
     /* After the persistence setup, and before the environments are reconciled and the core deployed */
     static final int STARTUP_PRIORITY_REGISTER = 1900;
     private static final Logger logger = LoggerFactory.getLogger(DbModuleRegistry.class);
 
     @Inject
-    public DbModuleRegistry(List<WombatModule> modules, ModuleRepository repository, WombatProperties wombat)
+    public DbModuleRegistry(List<WombatModule> modules, ModuleRepository repository, CoreInstanceRepository instances, WombatProperties wombat)
     {
-        this(modules, repository, wombat.module().extension().path());
+        this(modules, repository, instances, wombat.module().extension().path(), wombat.module().deployment().pollInterval());
     }
 
-    DbModuleRegistry(List<WombatModule> modules, ModuleRepository repository, Path extensionPath)
+    DbModuleRegistry(List<WombatModule> modules, ModuleRepository repository, CoreInstanceRepository instances, Path extensionPath, Duration pollInterval)
     {
         this.detected = modules.stream().collect(Collectors.toMap(module -> module.type().name(), Function.identity()));
         this.repository = repository;
+        this.instances = instances;
         this.extensionPath = extensionPath.toAbsolutePath().normalize();
+        this.pollInterval = pollInterval;
     }
 
     /**
@@ -77,7 +83,7 @@ public class DbModuleRegistry implements ModuleRegistry
     }
 
     /**
-     * @return the detected modules, then the missing ones
+     * @return the modules detected here, then those registered but not detected here
      */
     @Override
     @Transactional
@@ -85,13 +91,14 @@ public class DbModuleRegistry implements ModuleRegistry
     {
         Map<String, ModuleEntity> rows = this.repository.listAll().stream()
             .collect(Collectors.toMap(entity -> entity.typeName, Function.identity()));
+        Set<String> detectedElsewhere = this.detectedByLiveInstances();
 
         Stream<ModuleMetadata> detected = this.detected.values().stream()
             .map(module -> this.detected(module, rows.get(module.type().name())));
-        Stream<ModuleMetadata> missing = rows.values().stream()
+        Stream<ModuleMetadata> others = rows.values().stream()
             .filter(entity -> !this.detected.containsKey(entity.typeName))
-            .map(DbModuleRegistry::missing);
-        return Stream.concat(detected, missing).toList();
+            .map(entity -> notDetectedHere(entity, !detectedElsewhere.contains(entity.typeName)));
+        return Stream.concat(detected, others).toList();
     }
 
     @Override
@@ -102,7 +109,7 @@ public class DbModuleRegistry implements ModuleRegistry
         WombatModule detected = this.detected.get(module);
         if (detected != null)
             return Optional.of(this.detected(detected, entity));
-        return Optional.ofNullable(entity).map(DbModuleRegistry::missing);
+        return Optional.ofNullable(entity).map(this::notDetectedHere);
     }
 
     @Override
@@ -111,12 +118,10 @@ public class DbModuleRegistry implements ModuleRegistry
     {
         ModuleEntity entity = this.repository.findById(module);
         WombatModule detected = this.detected.get(module);
-        if (detected == null)
-        {
-            if (entity == null)
-                throw new UnknownModuleException(module);
+        if (detected == null && entity == null)
+            throw new UnknownModuleException(module);
+        if (detected == null && this.notDetectedHere(entity).missing())
             throw new ModuleConflictException("Module " + module + " is not detected, it cannot be toggled");
-        }
 
         /* Registered at startup, unless that failed */
         if (entity == null)
@@ -126,7 +131,7 @@ public class DbModuleRegistry implements ModuleRegistry
         }
         entity.enabled = enabled;
         entity.updatedBy = user;
-        return this.detected(detected, entity);
+        return detected != null ? this.detected(detected, entity) : this.notDetectedHere(entity);
     }
 
     @Override
@@ -135,7 +140,7 @@ public class DbModuleRegistry implements ModuleRegistry
     {
         ModuleEntity entity = this.repository.findByIdOptional(module)
             .orElseThrow(() -> new UnknownModuleException(module));
-        if (this.detected.containsKey(module))
+        if (this.detected.containsKey(module) || !this.notDetectedHere(entity).missing())
             throw new ModuleConflictException("Module " + module + " is detected, only a missing module can be removed");
 
         this.repository.delete(entity);
@@ -152,9 +157,21 @@ public class DbModuleRegistry implements ModuleRegistry
         );
     }
 
-    private static ModuleMetadata missing(ModuleEntity entity)
+    private ModuleMetadata notDetectedHere(ModuleEntity entity)
     {
-        return new ModuleMetadata(entity.type(), null, entity.enabled, true, null);
+        return notDetectedHere(entity, !this.detectedByLiveInstances().contains(entity.typeName));
+    }
+
+    private static ModuleMetadata notDetectedHere(ModuleEntity entity, boolean missing)
+    {
+        return new ModuleMetadata(entity.type(), null, entity.enabled, missing, null);
+    }
+
+    private Set<String> detectedByLiveInstances()
+    {
+        return this.instances.findLive(this.pollInterval).stream()
+            .flatMap(instance -> instance.detectedModules.stream())
+            .collect(Collectors.toSet());
     }
 
     /**

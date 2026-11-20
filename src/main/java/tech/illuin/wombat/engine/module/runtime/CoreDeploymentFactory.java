@@ -67,7 +67,7 @@ public class CoreDeploymentFactory
     /**
      * @param requested the names of the asset-types to deploy; those no detected module provides are reported as missing
      */
-    public CoreDeployment create(Set<String> requested)
+    public CoreDeployment create(long version, String id, Set<String> requested)
     {
         List<WombatModule> deployed = this.modules.stream()
             .filter(module -> requested.contains(module.type().name()))
@@ -76,7 +76,7 @@ public class CoreDeploymentFactory
         Set<String> missing = new HashSet<>(requested);
         deployed.forEach(module -> missing.remove(module.type().name()));
 
-        /* The core holds nothing but the modules, which are closed by CoreRuntime: it is not kept, nor closed. */
+        /* The core holds nothing but the modules, which every deployment shares: it is neither kept nor closed */
         WombatCore core = this.createCore(deployed);
         AssetMonitor monitor = core.createMonitor();
         AssetEvaluator uncached = core.createEvaluator();
@@ -84,7 +84,7 @@ public class CoreDeploymentFactory
             ? new CachedAssetEvaluator(uncached, this.cacheProperties)
             : uncached;
 
-        return new CoreDeployment(deployed, missing, monitor, evaluator, uncached, Instant.now());
+        return new CoreDeployment(version, id, deployed, missing, monitor, evaluator, uncached, Instant.now());
     }
 
     private WombatCore createCore(List<WombatModule> deployed)

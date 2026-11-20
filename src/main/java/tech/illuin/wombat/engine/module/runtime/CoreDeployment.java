@@ -13,12 +13,16 @@ import java.util.stream.Collectors;
 /**
  * The monitor and evaluator built out of one set of modules, swapped as a whole by {@link CoreRuntime}.
  *
+ * @param version           the deployment's place in the sequence every instance converges on
+ * @param id                the deployment's hash, shown shortened like a commit id
  * @param modules           the module instances wired in, shared with the other deployments
  * @param missing           the requested asset-types that no module detected on this instance provides
  * @param evaluator         the evaluator the app serves, cached when the evaluator cache is enabled
  * @param uncachedEvaluator the evaluator underneath the cache, or {@code evaluator} itself when the cache is disabled
  */
 public record CoreDeployment(
+    long version,
+    String id,
     List<WombatModule> modules,
     Set<String> missing,
     AssetMonitor monitor,

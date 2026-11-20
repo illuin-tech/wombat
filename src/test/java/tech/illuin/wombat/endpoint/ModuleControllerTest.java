@@ -21,6 +21,8 @@ import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
+import tech.illuin.wombat.engine.module.runtime.CoreDeploymentService;
+import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
 import tech.illuin.wombat.security.Caller;
 import tech.illuin.wombat.security.Permission;
@@ -38,6 +40,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -60,13 +64,22 @@ class ModuleControllerTest
     @Inject
     ApiKeyService apiKeys;
 
+    @Inject
+    CoreRuntime runtime;
+
+    @Inject
+    CoreDeploymentService deployments;
+
+    /* The registry and the core are shared by the tests of this profile: a test changing them restores them */
     @AfterEach
-    void restoreTheRegistry()
+    void restoreTheRegistryAndTheCore()
     {
         QuarkusTransaction.requiringNew().run(() -> {
             this.repository.findById(MODULE_ID).enabled = true;
             this.repository.deleteById(MISSING_ID);
         });
+        if (!this.runtime.current().types().contains(KubernetesSimulatedModule.TYPE))
+            this.deployments.redeploy(null);
     }
 
     @Test
@@ -178,6 +191,66 @@ class ModuleControllerTest
             .then()
             .statusCode(403);
         given().when().delete("/api/modules/" + MODULE_ID).then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void deployment_tellsTheLatestDeployment_andTheInstancesRunningIt()
+    {
+        given()
+            .when().get("/api/modules/deployment")
+            .then()
+            .statusCode(200)
+            .body("payload.latest.version", notNullValue())
+            .body("payload.latest.id.length()", is(64))
+            .body("payload.latest.modules", hasItem(MODULE_ID))
+            .body("payload.instances.find { it.current }.status", is("ok"))
+            .body("payload.instances.find { it.current }.detectedModules", hasItem(MODULE_ID))
+            .body("payload.pending", empty())
+            .body("payload.pollIntervalSeconds", is(30));
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void aToggleIsPendingUntilARedeploy_whichEveryInstanceThenRuns()
+    {
+        long before = this.runtime.current().version();
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}").when().put("/api/modules/" + MODULE_ID).then().statusCode(200);
+        given()
+            .when().get("/api/modules/deployment")
+            .then()
+            .statusCode(200)
+            .body("payload.pending.type", contains(MODULE_ID));
+
+        given()
+            .when().post("/api/modules/deployment")
+            .then()
+            .statusCode(201)
+            .body("payload.version", is((int) before + 1))
+            .body("payload.id.length()", is(64))
+            .body("payload.local.status", is("ok"))
+            .body("payload.local.removed", contains(MODULE_ID));
+
+        given()
+            .when().get("/api/modules/" + MODULE_ID)
+            .then()
+            .statusCode(200)
+            .body("payload.enabled", is(false))
+            .body("payload.deployed", is(false))
+            .body("payload.pending", is(false));
+        given()
+            .when().get("/api/modules/deployment")
+            .then()
+            .statusCode(200)
+            .body("payload.pending", empty())
+            .body("payload.instances.find { it.current }.deployedVersion", is((int) before + 1));
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void aRedeployIsForbiddenToUsers()
+    {
+        given().when().post("/api/modules/deployment").then().statusCode(403);
     }
 
     @Test

@@ -132,9 +132,14 @@ wombat:
       expire-after-write: 10m
 
   module:
-    # Modules are enabled or disabled from Settings > Modules, no longer here
+    # Modules are enabled or disabled from Settings > Modules
     extension:
       path: "extensions"
+    deployment:
+      # How often an instance deploys the latest core redeploy, and writes its heartbeat; an instance missing 3 is gone
+      poll-interval: 30s
+      # Identifies this instance among the replicas: the pod name in Kubernetes, "wombat" when HOSTNAME is unset
+      instance-id: ${HOSTNAME:wombat}
 
   ## Secret Resolution Configuration
   # Write mode defaults to "disabled".

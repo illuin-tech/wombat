@@ -9,7 +9,6 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.source.AssetMonitor;
-import tech.illuin.wombat.engine.module.registry.InMemoryModuleRegistry;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -22,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,7 +36,7 @@ class RuntimeProxiesTest
     void setUp()
     {
         this.factory = mock(CoreDeploymentFactory.class);
-        this.runtime = new CoreRuntime(this.factory, new InMemoryModuleRegistry(), Runnable::run);
+        this.runtime = new CoreRuntime(this.factory, Runnable::run);
     }
 
     /* A public method left to the parent would silently run on its empty pools: a core bump adding one must fail here */
@@ -56,18 +57,18 @@ class RuntimeProxiesTest
     {
         CoreDeployment first = deployment();
         CoreDeployment second = deployment();
-        when(this.factory.create(any())).thenReturn(first, second);
+        when(this.factory.create(anyLong(), anyString(), any())).thenReturn(first, second);
         TimeRange range = mock(TimeRange.class);
         AssetFilter filter = mock(AssetFilter.class);
         List<AssetEvaluation> evaluations = List.of(mock(AssetEvaluation.class));
         when(second.evaluator().evaluate(range, filter)).thenReturn(evaluations);
 
         RuntimeAssetEvaluator evaluator = new RuntimeAssetEvaluator(this.runtime);
-        this.runtime.deploy(Set.of());
+        this.runtime.deploy(1, "id-1", Set.of());
         evaluator.evaluate(range, filter);
         verify(first.evaluator()).evaluate(range, filter);
 
-        this.runtime.deploy(Set.of());
+        this.runtime.deploy(2, "id-2", Set.of());
         assertSame(evaluations, evaluator.evaluate(range, filter));
     }
 
@@ -76,15 +77,15 @@ class RuntimeProxiesTest
     {
         CoreDeployment first = deployment();
         CoreDeployment second = deployment();
-        when(this.factory.create(any())).thenReturn(first, second);
+        when(this.factory.create(anyLong(), anyString(), any())).thenReturn(first, second);
         AssetIdentity identity = new AssetIdentity("asset", "env", "acme.type");
 
         RuntimeAssetMonitor monitor = new RuntimeAssetMonitor(this.runtime);
-        this.runtime.deploy(Set.of());
+        this.runtime.deploy(1, "id-1", Set.of());
         monitor.trigger();
         verify(first.monitor()).trigger();
 
-        this.runtime.deploy(Set.of());
+        this.runtime.deploy(2, "id-2", Set.of());
         monitor.trigger();
         monitor.refresh(identity);
         verify(second.monitor()).trigger();
@@ -124,6 +125,6 @@ class RuntimeProxiesTest
     private static CoreDeployment deployment()
     {
         AssetEvaluator evaluator = mock(AssetEvaluator.class);
-        return new CoreDeployment(List.of(), Set.of(), mock(AssetMonitor.class), evaluator, evaluator, Instant.now());
+        return new CoreDeployment(0, "id", List.of(), Set.of(), mock(AssetMonitor.class), evaluator, evaluator, Instant.now());
     }
 }

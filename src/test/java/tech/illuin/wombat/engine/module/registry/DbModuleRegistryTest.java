@@ -8,10 +8,13 @@ import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
+import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
+import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,14 +41,23 @@ class DbModuleRegistryTest
     private static final AssetType REMOVED = AssetType.of("acme", "removed", ActivityRegime.MEASURED, ServiceFamily.LLM);
 
     private ModuleRepository repository;
+    private CoreInstanceRepository instances;
     private DbModuleRegistry registry;
 
     @BeforeEach
     void setUp()
     {
         this.repository = mock(ModuleRepository.class);
-        this.registry = new DbModuleRegistry(List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule()), this.repository, Path.of("extensions"));
+        this.instances = mock(CoreInstanceRepository.class);
+        this.registry = new DbModuleRegistry(
+            List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule()),
+            this.repository,
+            this.instances,
+            Path.of("extensions"),
+            Duration.ofSeconds(30)
+        );
         when(this.repository.findByIdOptional(any())).thenReturn(Optional.empty());
+        when(this.instances.findLive(any())).thenReturn(List.of());
     }
 
     @Test
@@ -93,6 +105,32 @@ class DbModuleRegistryTest
         assertFalse(missing.creatable());
         assertNull(missing.assetClass());
         assertNull(missing.source());
+    }
+
+    @Test
+    void aModuleDetectedByAnotherLiveInstanceOnly_isNotMissing_butNotActiveHere()
+    {
+        when(this.repository.listAll()).thenReturn(List.of(row(REMOVED, true)));
+        when(this.instances.findLive(any())).thenReturn(List.of(instance(REMOVED.name())));
+
+        ModuleMetadata elsewhere = this.registry.listModules().getLast();
+
+        assertFalse(elsewhere.missing());
+        assertFalse(elsewhere.detectedHere());
+        assertFalse(elsewhere.active());
+        assertFalse(elsewhere.creatable());
+    }
+
+    @Test
+    void aModuleDetectedByAnotherLiveInstance_canBeToggled_butNotRemoved()
+    {
+        ModuleEntity row = row(REMOVED, true);
+        when(this.repository.findById(REMOVED.name())).thenReturn(row);
+        when(this.repository.findByIdOptional(REMOVED.name())).thenReturn(Optional.of(row));
+        when(this.instances.findLive(any())).thenReturn(List.of(instance(REMOVED.name())));
+
+        assertFalse(this.registry.setEnabled(REMOVED.name(), false, null).enabled());
+        assertThrows(ModuleConflictException.class, () -> this.registry.remove(REMOVED.name()));
     }
 
     @Test
@@ -174,6 +212,14 @@ class DbModuleRegistryTest
     void remove_onAnUnknownModuleIsNotFound()
     {
         assertThrows(UnknownModuleException.class, () -> this.registry.remove("acme.unknown"));
+    }
+
+    private static CoreInstanceEntity instance(String... detected)
+    {
+        CoreInstanceEntity instance = new CoreInstanceEntity();
+        instance.instanceId = "other";
+        instance.detectedModules = Set.of(detected);
+        return instance;
     }
 
     private static ModuleEntity row(AssetType type, boolean enabled)

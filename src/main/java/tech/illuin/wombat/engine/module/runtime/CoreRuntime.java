@@ -1,16 +1,11 @@
 package tech.illuin.wombat.engine.module.runtime;
 
-import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.PreDestroy;
-import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.asset.type.AssetType;
-import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
-import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -21,7 +16,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * Holds the running {@link CoreDeployment}, and swaps it for a new one on redeploy.
+ * Holds the running {@link CoreDeployment}, and swaps it for a new one on redeploy. Which deployment to run is decided
+ * by {@link CoreDeploymentService}.
  * <p>
  * The app's {@code AssetMonitor} and {@code AssetEvaluator} beans read {@link #current()} on every call, see
  * {@link RuntimeAssetMonitor} and {@link RuntimeAssetEvaluator}, so they follow a swap at once. The replaced deployment
@@ -31,35 +27,22 @@ import java.util.stream.Collectors;
 public class CoreRuntime
 {
     private final CoreDeploymentFactory factory;
-    private final ModuleRegistry registry;
     private final Executor retiredCloser;
     private volatile CoreDeployment current;
 
-    /* After the environments are reconciled, and before the monitor is scheduled */
-    static final int STARTUP_PRIORITY_DEPLOY = 2100;
     private static final Duration CLOSE_GRACE_DELAY = Duration.ofSeconds(60);
     private static final Logger logger = LoggerFactory.getLogger(CoreRuntime.class);
 
     @Inject
-    public CoreRuntime(CoreDeploymentFactory factory, ModuleRegistry registry)
+    public CoreRuntime(CoreDeploymentFactory factory)
     {
-        this(factory, registry, CompletableFuture.delayedExecutor(CLOSE_GRACE_DELAY.toSeconds(), TimeUnit.SECONDS));
+        this(factory, CompletableFuture.delayedExecutor(CLOSE_GRACE_DELAY.toSeconds(), TimeUnit.SECONDS));
     }
 
-    CoreRuntime(CoreDeploymentFactory factory, ModuleRegistry registry, Executor retiredCloser)
+    CoreRuntime(CoreDeploymentFactory factory, Executor retiredCloser)
     {
         this.factory = factory;
-        this.registry = registry;
         this.retiredCloser = retiredCloser;
-    }
-
-    void onStart(@Observes @Priority(STARTUP_PRIORITY_DEPLOY) StartupEvent event)
-    {
-        this.deploy(this.registry.listModules().stream()
-            .filter(ModuleMetadata::enabled)
-            .map(module -> module.type().name())
-            .collect(Collectors.toSet())
-        );
     }
 
     /**
@@ -75,12 +58,21 @@ public class CoreRuntime
 
     /**
      * Builds a deployment of the requested asset-types and swaps it in. If the build fails, the running deployment is
-     * kept and the exception is thrown. Deployments are applied one at a time.
+     * kept and the exception is thrown. Deployments are applied one at a time, and only forward: a version not newer
+     * than the running one is ignored.
+     *
+     * @return the running deployment
      */
-    public synchronized CoreDeployment deploy(Set<String> requested)
+    public synchronized CoreDeployment deploy(long version, String id, Set<String> requested)
     {
-        CoreDeployment next = this.factory.create(requested);
         CoreDeployment previous = this.current;
+        if (previous != null && version <= previous.version())
+        {
+            logger.debug("Already running core deployment {}, ignoring deployment {}", previous.version(), version);
+            return previous;
+        }
+
+        CoreDeployment next = this.factory.create(version, id, requested);
         this.current = next;
 
         if (previous != null)
@@ -108,15 +100,23 @@ public class CoreRuntime
         Set<String> removed = new HashSet<>(before);
         removed.removeAll(after);
 
-        logger.info("Deployed wombat core with {} module(s), added {}, removed {}", after.size(), added, removed);
+        logger.info("Deployed wombat core {} (#{}) with {} module(s), added {}, removed {}", shortId(next.id()), next.version(), after.size(), added, removed);
         if (!next.missing().isEmpty())
             logger.warn("Requested asset-types with no module on this instance: {}", next.missing());
     }
 
-    private static Set<String> names(Set<AssetType> types)
+    static Set<String> names(Set<AssetType> types)
     {
         return types.stream()
             .map(AssetType::name)
             .collect(Collectors.toSet());
+    }
+
+    /**
+     * @return the first 7 characters of a deployment id, like a short commit id
+     */
+    public static String shortId(String id)
+    {
+        return id.length() > 7 ? id.substring(0, 7) : id;
     }
 }

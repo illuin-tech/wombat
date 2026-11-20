@@ -31,7 +31,7 @@ public class AssetValidator
             throw new InvalidAssetException("Unknown asset type " + unrecognized.rawType() + " for asset " + asset.identity().id());
 
         ModuleMetadata module = this.modules.getModule(asset.type())
-            .filter(candidate -> !candidate.missing())
+            .filter(ModuleMetadata::detectedHere)
             .orElseThrow(() -> new InvalidAssetException("No module for asset type " + asset.type().name() + " of asset " + asset.identity().id()));
         if (!module.enabled())
             logger.debug("Asset {} is declared with asset type {} whose module is disabled, its metrics will be skipped", asset.identity().id(), asset.type().name());

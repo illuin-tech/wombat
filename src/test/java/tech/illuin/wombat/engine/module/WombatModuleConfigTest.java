@@ -200,6 +200,7 @@ class WombatModuleConfigTest
                 {
                     @Override
                     public WombatModuleProperties.ExtensionProperties extension() { return () -> Path.of("extensions"); }
+                    @Override public WombatModuleProperties.DeploymentProperties deployment() { return null; }
                 };
             }
 

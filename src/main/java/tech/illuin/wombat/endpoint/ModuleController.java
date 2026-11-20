@@ -13,13 +13,16 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.jboss.resteasy.reactive.ResponseStatus;
 import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
+import tech.illuin.wombat.engine.module.DeploymentInfo;
 import tech.illuin.wombat.engine.module.ModuleInfo;
 import tech.illuin.wombat.engine.module.ModuleService;
 import tech.illuin.wombat.engine.module.registry.ModuleConflictException;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.UnknownModuleException;
+import tech.illuin.wombat.engine.module.runtime.DeploymentConflictException;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
 import tech.illuin.wombat.feature.Feature;
 import tech.illuin.wombat.security.Permission;
@@ -155,6 +158,42 @@ public class ModuleController
             throw new NotFoundException(e.getMessage());
         }
         catch (ModuleConflictException e) {
+            throw new ClientErrorException(e.getMessage(), CONFLICT);
+        }
+    }
+
+    @GET
+    @Path("/deployment")
+    @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(responseCode = "200", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(properties = {
+        @SchemaProperty(name = "status", implementation = Status.class),
+        @SchemaProperty(name = "payload", implementation = DeploymentInfo.class)
+    })))
+    public Response<DeploymentInfo> deployment()
+    {
+        return Response.success(this.service.deployment());
+    }
+
+    /**
+     * Records a deployment of the modules enabled now, and deploys it on this instance; the others follow on their next
+     * poll. A build failing here is reported in the payload, the running core being kept.
+     */
+    @POST
+    @Path("/deployment")
+    @PermissionsAllowed(Permission.Names.API_MODULE_MANAGE)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ResponseStatus(201)
+    @APIResponse(responseCode = "201", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(properties = {
+        @SchemaProperty(name = "status", implementation = Status.class),
+        @SchemaProperty(name = "payload", implementation = DeploymentInfo.Redeployed.class)
+    })))
+    @APIResponse(responseCode = "409", description = "Another redeploy was requested at the same time")
+    public Response<DeploymentInfo.Redeployed> redeploy()
+    {
+        try {
+            return Response.success(this.service.redeploy(this.user()));
+        }
+        catch (DeploymentConflictException e) {
             throw new ClientErrorException(e.getMessage(), CONFLICT);
         }
     }

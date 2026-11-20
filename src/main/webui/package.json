@@ -21,7 +21,7 @@
     "chart.js": "4.6.1",
     "markdown-it": "15.0.3",
     "vue": "^3.5.45",
-    "vue-router": "5.5.0"
+    "vue-router": "5.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.10",

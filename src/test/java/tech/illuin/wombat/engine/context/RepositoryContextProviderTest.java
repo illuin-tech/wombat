@@ -61,7 +61,7 @@ class RepositoryContextProviderTest
         List<Environment> environments = context.environments();
         assertEquals(1, environments.size());
         Environment env = environments.getFirst();
-        assertEquals("Environment 1", env.id());
+        assertEquals("env-1", env.id());
         assertEquals(1, env.assets().size());
         assertEquals(validAsset, env.assets().getFirst());
     }

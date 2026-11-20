@@ -41,30 +41,30 @@ async function submit(): Promise<void> {
 <template>
   <form class="chart-card apikey-form" autocomplete="off" @submit.prevent="submit">
     <div class="chart-title">New key</div>
-    <label class="apikey-field">
+    <label class="form-field">
       <span class="filter-label">Name</span>
       <input v-model="name" type="text" maxlength="100" placeholder="e.g. ci-pipeline" required />
     </label>
-    <div class="apikey-field">
+    <div class="form-field">
       <span class="filter-label">Permissions</span>
       <div class="apikey-checks">
-        <label v-for="permission in settings.grantablePermissions" :key="permission" class="apikey-check">
+        <label v-for="permission in settings.grantablePermissions" :key="permission" class="form-check">
           <input v-model="permissions" type="checkbox" :value="permission" />
           <span>{{ permission }}</span>
         </label>
       </div>
     </div>
-    <div class="apikey-field">
+    <div class="form-field">
       <span class="filter-label">Expires on (UTC)</span>
       <div class="apikey-expiry">
         <input v-model="expiresOn" type="date" :min="bounds.min" :max="bounds.max" :required="!neverExpires" :disabled="neverExpires" />
-        <label v-if="settings.allowNeverExpiring" class="apikey-check"><input v-model="neverExpires" type="checkbox" /><span>Never expires</span></label>
+        <label v-if="settings.allowNeverExpiring" class="form-check"><input v-model="neverExpires" type="checkbox" /><span>Never expires</span></label>
       </div>
-      <span class="apikey-hint">At most {{ settings.maxLifetimeDays }} days from today.</span>
+      <span class="form-hint">At most {{ settings.maxLifetimeDays }} days from today.</span>
     </div>
-    <div class="apikey-actions">
+    <div class="form-actions">
       <button class="btn-apply" type="submit" :disabled="saving">{{ saving ? 'Creating…' : 'Create key' }}</button>
-      <span v-if="error" class="apikey-error" role="alert">{{ error }}</span>
+      <span v-if="error" class="form-error" role="alert">{{ error }}</span>
     </div>
   </form>
 </template>

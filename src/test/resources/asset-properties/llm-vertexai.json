@@ -1,0 +1,9 @@
+{
+  "googleUrl": "https://monitoring.googleapis.com",
+  "resourceName": "projects/my-project",
+  "credentialsKey": "VERTEX_CREDENTIALS",
+  "profile": {
+    "models": ["gemini-2.5-pro"],
+    "outputTokensPerRequest": 500
+  }
+}

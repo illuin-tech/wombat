@@ -1,18 +1,14 @@
 <script setup lang="ts">
+import {REGIME_LABELS} from '@/domain/assetTypeDisplay'
 import type {LLMPanel as Panel} from '@/pages/impact/model/aggregate'
 import LlmDetails from '@/pages/impact/components/LlmDetails.vue'
+import AssetTypeTag from '@/components/AssetTypeTag.vue'
 
 const props = withDefaults(defineProps<{panel: Panel; modal?: boolean}>(), {modal: false})
 const emit = defineEmits<{expand: []}>()
 
 function expand(): void {
   emit('expand')
-}
-
-function regimeLabel(regime: Panel['regime']): string {
-  if (regime === 'MODELED') return 'Modeled'
-  if (regime === 'MEASURED') return 'Measured'
-  return 'Unknown'
 }
 </script>
 
@@ -23,8 +19,8 @@ function regimeLabel(regime: Panel['regime']): string {
       <button type="button" class="asset-expand" title="Expand details" aria-label="Expand details" @click.stop="expand">⤢</button>
       <span class="asset-id">{{ panel.name }}</span>
       <div class="asset-tags">
-        <span class="asset-type-tag llm"><img class="svc-icon" src="/icons/llm.svg" alt="llm"/>LLM</span>
-        <span class="asset-type-tag measure">{{ regimeLabel(panel.regime) }}</span>
+        <AssetTypeTag family="LLM" />
+        <span class="asset-type-tag measure">{{ REGIME_LABELS[panel.regime] }}</span>
       </div>
       <span class="asset-count">{{ panel.serviceIds.length }} {{ panel.serviceIds.length === 1 ? 'service' : 'services' }}</span>
     </div>

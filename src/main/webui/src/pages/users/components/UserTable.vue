@@ -37,6 +37,6 @@ const emit = defineEmits<{ grant: [user: UserInfo, role: string]; remove: [user:
         </template>
       </tbody>
     </table>
-    <div v-if="!loading && users.length === 0" class="apikey-empty">No one has signed in yet.</div>
+    <div v-if="!loading && users.length === 0" class="table-empty">No one has signed in yet.</div>
   </DataTable>
 </template>

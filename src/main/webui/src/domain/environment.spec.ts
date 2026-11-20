@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest'
-import {findUnrecognizedAssets, withRecordDetails, type AssetInfo} from '@/domain/environment'
+import {assetFamily, assetTypeName, findUnrecognizedAssets, withEnvironmentNames, withRecordDetails, type AssetInfo, type AssetType} from '@/domain/environment'
 
 describe('unrecognized asset derivation', () => {
   it('keeps only undeleted, enabled database assets missing from the live environment', () => {
@@ -31,5 +31,34 @@ describe('asset record details', () => {
     const liveAssets: AssetInfo[] = [{id: 'cluster'}, {id: 'missing'}]
 
     expect(withRecordDetails(liveAssets, databaseAssets).map(asset => asset.name)).toEqual(['Cluster', undefined])
+  })
+})
+
+describe('asset type', () => {
+  const llm: AssetType = {namespace: 'tech.illuin.wombat-module', localName: 'llm-static', name: 'tech.illuin.wombat-module.llm-static', regime: 'MODELED', family: 'LLM'}
+  const types = new Map([[llm.name, llm]])
+
+  it('reads the type name served as a string or in full', () => {
+    expect(assetTypeName({id: 'a', type: llm.name})).toBe(llm.name)
+    expect(assetTypeName({id: 'a', type: llm})).toBe(llm.name)
+    expect(assetTypeName({id: 'a'})).toBeNull()
+  })
+
+  it('reads the family from the full type, or looks it up by name', () => {
+    expect(assetFamily({id: 'a', type: {...llm, family: 'KUBERNETES_CONTAINER'}}, types)).toBe('KUBERNETES_CONTAINER')
+    expect(assetFamily({id: 'a', type: llm.name}, types)).toBe('LLM')
+    expect(assetFamily({id: 'a', type: 'tech.illuin.unknown'}, types)).toBe('UNKNOWN')
+  })
+})
+
+describe('live environment names', () => {
+  it('takes the name of each live environment from its record', () => {
+    expect(withEnvironmentNames(
+      [{id: 'my-environment', assets: []}, {id: 'unknown', assets: []}],
+      [{id: 'my-environment', name: 'My Environment', assets: []}],
+    )).toEqual([
+      {id: 'my-environment', name: 'My Environment', assets: []},
+      {id: 'unknown', name: null, assets: []},
+    ])
   })
 })

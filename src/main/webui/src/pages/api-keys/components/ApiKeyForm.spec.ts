@@ -33,7 +33,7 @@ describe('ApiKeyForm', () => {
   it('requires at least one permission before creating a key', async () => {
     const wrapper = mount(ApiKeyForm, { props: { settings } })
 
-    await wrapper.get('.apikey-check input').setValue(false)
+    await wrapper.get('.form-check input').setValue(false)
     await wrapper.get('form').trigger('submit')
 
     expect(wrapper.get('[role="alert"]').text()).toBe('Pick at least one permission.')

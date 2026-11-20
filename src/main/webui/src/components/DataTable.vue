@@ -8,10 +8,10 @@ const hasControls = computed(() => Boolean(slots.controls))
 
 <template>
   <div class="table-card">
-    <div class="table-head" :class="{'apikey-table-head': hasControls}">
+    <div class="table-head" :class="{'table-head-controls': hasControls}">
       <template v-if="hasControls">
         <span>{{ title }}</span>
-        <div class="apikey-filters"><slot name="controls" /></div>
+        <div class="table-filters"><slot name="controls" /></div>
       </template>
       <template v-else>{{ title }}</template>
     </div>

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -141,7 +142,9 @@ class AssetControllerTest
     @Test
     void create_invalidPayload_returns400()
     {
-        this.create("Not A Slug", ENVIRONMENT).then().statusCode(400);
+        this.create("Not A Slug", ENVIRONMENT).then().statusCode(400)
+            .body("status.message", startsWith("Invalid request: id must only contain"))
+            .body("status.metadata.violations[0].field", is("id"));
 
         Map<String, Object> missingProperties = createBody(ASSET, ENVIRONMENT, properties());
         missingProperties.remove("properties");

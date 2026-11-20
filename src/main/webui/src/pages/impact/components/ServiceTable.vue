@@ -2,6 +2,7 @@
 import {ref} from 'vue'
 import type {DashboardModel, ServiceImpact} from '@/pages/impact/model/aggregate'
 import {totalValue} from '@/pages/impact/model/aggregate'
+import {FAMILIES} from '@/domain/assetTypeDisplay'
 import {useTheme} from '@/layout/theme/useTheme'
 import {asDecimal, asPercent} from '@/services/format/formatters'
 import ChartCanvas from '@/components/ChartCanvas.vue'
@@ -94,8 +95,7 @@ function detailOptions(metric: typeof metrics[number]) {
           <tr class="service-summary" :data-idx="index + 1" @click="toggle(service.label)">
             <td class="td-toggle"><span class="row-chevron" :class="{open: open.has(service.label)}">▶</span></td>
             <td class="id" :title="service.label">
-              <img v-if="service.assetType.family === 'KUBERNETES_CONTAINER'" class="svc-icon" src="/icons/docker.svg" alt="container"/>
-              <img v-else-if="service.assetType.family === 'LLM'" class="svc-icon" src="/icons/llm.svg" alt="llm"/>
+              <img v-if="FAMILIES[service.assetType.family].icon" class="svc-icon" :src="FAMILIES[service.assetType.family].icon!" :alt="FAMILIES[service.assetType.family].label"/>
               {{ service.service }}
             </td>
             <td class="metric gwp bold">{{ asDecimal(value(service, 'gwp')) }}</td>

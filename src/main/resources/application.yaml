@@ -16,6 +16,8 @@ quarkus:
             - /users/*
             - /api-keys
             - /api-keys/*
+            - /environments
+            - /environments/*
   quinoa:
     ui-dir: src/main/webui
     build-dir: dist
@@ -31,6 +33,9 @@ quarkus:
       node-version: 22.22.2
     dev-server:
       port: 5173
+  jackson:
+    # Asset properties are served as they are declared, e.g. `duration: PT2H`, matching their JSON schema
+    write-durations-as-timestamps: false
   rest-client:
     logging:
       scope: none

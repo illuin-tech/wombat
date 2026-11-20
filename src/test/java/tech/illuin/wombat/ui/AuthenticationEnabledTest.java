@@ -13,6 +13,7 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItems;
@@ -206,6 +207,29 @@ public class AuthenticationEnabledTest
             .then()
             .statusCode(200)
             .body("payload.user.permissions", not(hasItems("ui.users.read")));
+    }
+
+    @Test
+    @TestSecurity(user = "someone", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "someone@example.com"),
+    })
+    void user_readsEnvironmentsButCannotCreateOne()
+    {
+        /* No endpoint matches them: the REST layer must leave them to the UI's routing, rather than answer them itself */
+        given().accept("text/html").when().get("/environments").then().statusCode(not(anyOf(is(401), is(403)))).contentType(containsString("text/html"));
+        given().accept("text/html").when().get("/environments/test").then().statusCode(not(anyOf(is(401), is(403)))).contentType(containsString("text/html"));
+        given().accept("text/html").when().get("/environments/new").then().statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    @OidcSecurity(claims = {
+        @Claim(key = "email", value = "boss@example.com"),
+    })
+    void admin_createsEnvironments()
+    {
+        given().when().get("/environments/new").then().statusCode(not(anyOf(is(401), is(403))));
     }
 
     @Test

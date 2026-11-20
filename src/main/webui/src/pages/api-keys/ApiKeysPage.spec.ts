@@ -126,7 +126,7 @@ describe('ApiKeysPage API integration', () => {
     expect(fetchApiKeysMock).toHaveBeenNthCalledWith(1, false)
     expect(wrapper.findAll('.table-card tbody .name').map((name) => name.text())).toEqual(['Personal automation'])
 
-    await wrapper.findAll('.table-card .apikey-check input')[1].setValue(true)
+    await wrapper.findAll('.table-card .form-check input')[1].setValue(true)
     await flushPromises()
 
     expect(fetchApiKeysMock).toHaveBeenNthCalledWith(2, true)
@@ -154,7 +154,7 @@ describe('ApiKeysPage API integration', () => {
     expect(confirm).toHaveBeenCalledWith('Revoke "nightly pipeline"? Anything using it will stop working immediately.')
     expect(revokeApiKeyMock).toHaveBeenCalledWith('created-key')
     expect(fetchApiKeysMock).toHaveBeenNthCalledWith(4, true)
-    expect(wrapper.get('.apikey-empty').text()).toBe('No keys yet.')
+    expect(wrapper.get('.table-empty').text()).toBe('No keys yet.')
     wrapper.unmount()
   })
 

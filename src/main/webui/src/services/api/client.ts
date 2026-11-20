@@ -9,19 +9,32 @@ export interface ApiResponse<T> {
 }
 
 export class ApiError extends Error {
-  constructor(readonly status: number, message: string, readonly reason: string | null = null) {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly reason: string | null = null,
+    /** The server's own explanation, e.g. which property is invalid, when it gives one. */
+    readonly serverMessage: string | null = null,
+  ) {
     super(message)
     this.name = 'ApiError'
   }
 }
 
-async function errorReason(response: Response): Promise<string | null> {
+interface ErrorDetails {
+  reason: string | null
+  serverMessage: string | null
+}
+
+async function errorDetails(response: Response): Promise<ErrorDetails> {
   try {
     const json = (await response.json()) as Partial<ApiResponse<unknown>>
     const metadata = json.status?.metadata
-    return metadata && typeof metadata === 'object' && 'reason' in metadata && typeof metadata.reason === 'string' ? metadata.reason : null
+    const reason = metadata && typeof metadata === 'object' && 'reason' in metadata && typeof metadata.reason === 'string' ? metadata.reason : null
+    const serverMessage = typeof json.status?.message === 'string' && json.status.message ? json.status.message : null
+    return { reason, serverMessage }
   } catch {
-    return null
+    return { reason: null, serverMessage: null }
   }
 }
 
@@ -58,11 +71,20 @@ export async function request<T>(url: string, options: RequestOptions = {}): Pro
     window.location.reload()
     throw new ApiError(response.status, errorMessage(401, options.messages))
   }
-  if (!response.ok)
-    throw new ApiError(response.status, errorMessage(response.status, options.messages), await errorReason(response))
+  if (!response.ok) {
+    const { reason, serverMessage } = await errorDetails(response)
+    throw new ApiError(response.status, errorMessage(response.status, options.messages), reason, serverMessage)
+  }
 
   if (response.status === 204)
     return undefined as T
   const json = (await response.json()) as ApiResponse<T>
   return json.payload
+}
+
+/** What to tell the user about a failed call: the server's explanation of a refused request, otherwise the module's message. */
+export function errorText(error: unknown): string {
+  if (error instanceof ApiError)
+    return (error.status === 400 || error.status === 409) && error.serverMessage ? error.serverMessage : error.message
+  return error instanceof Error ? error.message : String(error)
 }

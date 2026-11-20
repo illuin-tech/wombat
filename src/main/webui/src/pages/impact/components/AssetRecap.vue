@@ -77,7 +77,7 @@ function llm(panel: AssetPanel): panel is LlmPanelType {
       </template>
     </div>
   </div>
-  <Modal :open="selected !== undefined" :title="selected?.name ?? ''" overlay-id="assetModal" title-id="assetModalTitle" close-id="assetModalClose" @close="expanded = null">
+  <Modal :open="selected !== undefined" :title="selected?.name ?? ''" @close="expanded = null">
     <KubernetesPanel v-if="selected && kubernetes(selected)" :panel="selected" modal />
     <LlmPanel v-else-if="selected && llm(selected)" :panel="selected" modal />
   </Modal>

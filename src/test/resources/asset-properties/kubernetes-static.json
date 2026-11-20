@@ -1,0 +1,31 @@
+{
+  "profile": {
+    "provider": "aws",
+    "instanceType": "c5a.4xlarge",
+    "location": "FRA",
+    "lifespan": "5y",
+    "nodeCount": 2,
+    "zoneId": "Europe/Paris",
+    "scenarios": [
+      { "type": "constant", "load": 0.1 },
+      {
+        "type": "user_activity",
+        "baselineLoad": 0.1,
+        "peakLoad": 0.75,
+        "openingTime": "08:00:00",
+        "closingTime": "18:00:00",
+        "curve": "bell",
+        "jitter": 0.05,
+        "applicability": { "daysOfWeek": ["MONDAY", "FRIDAY"] }
+      },
+      {
+        "type": "batch_activity",
+        "baselineLoad": 0.0,
+        "peakLoad": 0.9,
+        "triggerTime": "02:00:00",
+        "duration": "PT2H",
+        "smoothing": "linear_ramp"
+      }
+    ]
+  }
+}

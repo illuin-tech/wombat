@@ -7,7 +7,7 @@ const emit = defineEmits<{ close: [] }>()
 </script>
 
 <template>
-  <Modal :open="open" :title="`Unrecognized Assets (${assets.length})`" overlay-id="unrecognizedAssetsModal" title-id="unrecognizedModalTitle" close-id="unrecognizedModalClose" warning @close="emit('close')">
+  <Modal :open="open" :title="`Unrecognized Assets (${assets.length})`" warning @close="emit('close')">
     <p class="unrecognized-modal-desc">The following assets are defined in the database with unknown or unregistered module types. They have been omitted from active metrics evaluation.</p>
     <div class="unrecognized-assets-list">
       <div v-for="asset in assets" :key="asset.id" class="unrecognized-asset-item">

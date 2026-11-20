@@ -45,7 +45,7 @@ public class RepositoryContextProvider implements WombatContextProvider
                 .filter(this::validateAsset)
                 .toList();
 
-            result.add(new Environment(entity.name, assets));
+            result.add(new Environment(entity.id, assets));
         }
         return result;
     }

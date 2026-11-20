@@ -53,6 +53,8 @@ Endpoints check permissions, and each role grants a fixed set of them:
 | `ui.dashboard.read`    | ✓    | ✓   | ✓              |
 | `ui.apikeys.manage`    | ✓    | ✓   | ✓              |
 | `ui.users.read`        | ✓    |      |                 |
+| `ui.environments.read` | ✓    | ✓   | ✓              |
+| `ui.environments.manage` | ✓  |      |                 |
 | `api.impact.read`      | ✓    | ✓   | ✓              |
 | `api.simulation.read`  | ✓    | ✓   | ✓              |
 | `api.environment.read` | ✓    | ✓   | ✓              |
@@ -64,6 +66,7 @@ Endpoints check permissions, and each role grants a fixed set of them:
 | `api.apikey.admin`     | ✓    |      | ✓              |
 | `api.user.manage`      | ✓    |      |                 |
 | `api.user.read`        | ✓    |      |                 |
+| `api.secret.read`      | ✓    |      |                 |
 | `api.secret.manage`    | ✓    |      |                 |
 
 `AUTH_ROLES_ALLOWED` is gone: replace `AUTH_ROLES_ALLOWED=wombat-users` with `AUTH_ROLES_USER=wombat-users`, or `AUTH_ROLES_USER=*` if every authenticated user had access.

@@ -1,0 +1,6 @@
+/* In the main bundle, unlike asset-forms.css: shown while the form generator itself loads */
+.asset-form-placeholder { display: flex; flex-direction: column; gap: 14px; }
+.asset-form-placeholder-field { display: flex; flex-direction: column; gap: 6px; }
+.asset-form-placeholder-label { display: block; height: 10px; min-width: 48px; border-radius: 4px; background: var(--text-dim); }
+.asset-form-placeholder-input { display: block; height: 34px; min-width: 120px; max-width: 100%; border-radius: var(--radius-sm); background: var(--surface2); border: 1.5px solid var(--border); }
+.asset-form-placeholder-group { display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }

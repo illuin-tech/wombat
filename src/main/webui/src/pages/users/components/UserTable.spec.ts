@@ -28,7 +28,7 @@ describe('UserTable loading state', () => {
     expect(wrapper.find('.table-card').exists()).toBe(true)
     expect(wrapper.findAll('tbody tr')).toHaveLength(5)
     expect(wrapper.findAll('tbody tr')[0].findAll('td')).toHaveLength(6)
-    expect(wrapper.find('.apikey-empty').exists()).toBe(false)
+    expect(wrapper.find('.table-empty').exists()).toBe(false)
     wrapper.unmount()
   })
 })

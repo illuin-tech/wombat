@@ -20,6 +20,9 @@ class RoleTest
         assertFalse(Role.USER.permissions().contains(Permission.API_SECRET_MANAGE));
         assertFalse(Role.API_KEY_MANAGER.permissions().contains(Permission.API_SECRET_MANAGE));
         assertFalse(Permission.API_SECRET_MANAGE.grantableToApiKeys());
+        assertFalse(Role.USER.permissions().contains(Permission.API_SECRET_READ));
+        assertFalse(Role.USER.permissions().contains(Permission.UI_ENVIRONMENTS_MANAGE));
+        assertFalse(Permission.API_SECRET_READ.grantableToApiKeys());
     }
 
     @Test
@@ -27,7 +30,7 @@ class RoleTest
     {
         assertEquals(
             EnumSet.of(
-                Permission.UI_DASHBOARD_READ, Permission.UI_APIKEYS_MANAGE, Permission.API_APIKEY_MANAGE,
+                Permission.UI_DASHBOARD_READ, Permission.UI_APIKEYS_MANAGE, Permission.UI_ENVIRONMENTS_READ, Permission.API_APIKEY_MANAGE,
                 Permission.API_IMPACT_READ, Permission.API_SIMULATION_READ, Permission.API_ENVIRONMENT_READ,
                 Permission.API_ASSET_READ, Permission.API_MODULE_READ
             ),

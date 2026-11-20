@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { settingsLinks } from '@/services/auth/permissions'
+import { can, settingsLinks } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
 import { useDropdown } from '@/layout/useDropdown'
 import { lastDashboardLocation } from '@/pages/impact/model/useDashboardQuery'
@@ -10,6 +10,8 @@ const { appInfo } = useAppInfo()
 const route = useRoute()
 const links = computed(() => settingsLinks(appInfo.value?.user))
 const onReport = computed(() => route.name === 'home' || route.name === 'impact')
+const onEnvironments = computed(() => typeof route.name === 'string' && route.name.startsWith('environment'))
+const showEnvironments = computed(() => can(appInfo.value?.user, 'ui.environments.read'))
 const inSettings = computed(() => links.value.some(link => link.to === route.path))
 const { open, root } = useDropdown()
 </script>
@@ -17,6 +19,7 @@ const { open, root } = useDropdown()
 <template>
   <nav v-if="links.length > 0" class="header-nav" aria-label="Main">
     <RouterLink class="header-nav-link" :to="lastDashboardLocation" :aria-current="onReport ? 'page' : undefined">Report</RouterLink>
+    <RouterLink v-if="showEnvironments" class="header-nav-link" :to="{ name: 'environments' }" :aria-current="onEnvironments ? 'page' : undefined" id="environmentsLink">Environments</RouterLink>
     <div ref="root" class="header-nav-menu" :class="{ open }" id="settingsMenu">
       <button
         class="header-nav-link header-nav-trigger"

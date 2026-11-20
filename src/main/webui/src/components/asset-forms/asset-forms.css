@@ -1,0 +1,77 @@
+/* ── Asset forms: the JSON Forms vanilla renderers in the application's look ── */
+.asset-form { display: flex; flex-direction: column; gap: 14px; }
+.asset-form .vertical-layout { display: flex; flex-direction: column; gap: 14px; }
+.asset-form .horizontal-layout { display: flex; flex-wrap: wrap; gap: 14px; }
+.asset-form .horizontal-layout-item { flex: 1 1 200px; min-width: 0; }
+.asset-form .label-element { font-size: 13px; font-weight: 700; color: var(--text); }
+
+.asset-form .control { display: flex; flex-direction: column; gap: 6px; }
+.asset-form .control > .label { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }
+.asset-form .control > .label .asterisk { color: var(--accent-orange); margin-left: 2px; }
+.asset-form .input, .asset-form .select, .asset-form .text-area {
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans);
+  font-size: 13px; padding: 8px 12px; border-radius: var(--radius-sm); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.asset-form input[type="checkbox"].input { width: auto; accent-color: var(--accent-green); }
+.asset-form .input:focus, .asset-form .select:focus, .asset-form .text-area:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
+.asset-form .input:disabled, .asset-form .select:disabled, .asset-form .text-area:disabled { opacity: 0.7; cursor: not-allowed; }
+.asset-form .description { font-size: 11px; color: var(--text-dim); line-height: 1.5; min-height: 0; }
+.asset-form .description:empty { display: none; }
+.asset-form .error { font-size: 11px; color: var(--accent-orange); line-height: 1.5; }
+.asset-form .error:empty { display: none; }
+
+/* Nested objects, e.g. a profile, as a titled group */
+.asset-form .group { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; background: var(--surface); }
+.asset-form .group-label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+
+/* Lists: toggles for options, a field per value, a card per object */
+.asset-form .af-array { border: none; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.asset-form .af-array-label { padding: 0; font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }
+.asset-form .af-array-label .asterisk { color: var(--accent-orange); margin-left: 2px; }
+.asset-form .af-array > .description { margin-top: -4px; }
+.asset-form .af-array-empty { font-size: 12px; color: var(--text-dim); }
+
+.asset-form .af-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.asset-form .af-pill { font: inherit; font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--surface2); border: 1.5px solid var(--border); border-radius: 20px; padding: 4px 12px; cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.asset-form .af-pill:hover:not(:disabled) { border-color: var(--accent-green); }
+.asset-form .af-pill.selected { color: var(--accent-green); background: var(--accent-green-soft); border-color: var(--accent-green); }
+.asset-form .af-pill:disabled { cursor: default; opacity: 0.7; }
+
+.asset-form .af-value-row { display: flex; align-items: center; gap: 6px; }
+.asset-form .af-value-row .input { flex: 1; }
+.asset-form .af-array-add-link { align-self: flex-start; background: none; border: none; padding: 2px 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent-green); cursor: pointer; }
+.asset-form .af-array-add-link:hover { text-decoration: underline; }
+
+.asset-form .af-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text-muted); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.asset-form .af-icon-button:hover:not(:disabled) { color: var(--text); border-color: var(--border); background: var(--surface2); }
+.asset-form .af-icon-button.danger:hover:not(:disabled), .asset-form .af-value-row .af-icon-button:hover { color: var(--accent-orange); border-color: rgba(234,88,12,0.35); }
+.asset-form .af-icon-button:disabled { opacity: 0.3; cursor: default; }
+
+.asset-form .af-card { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); padding: 12px 14px 14px; }
+.asset-form .af-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.asset-form .af-card-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.asset-form .af-card-variant { width: auto; min-width: 160px; padding: 5px 10px; background: var(--surface); }
+.asset-form .af-card-actions { display: inline-flex; gap: 2px; margin-left: auto; }
+.asset-form .af-card > .description { margin-top: -6px; }
+.asset-form .af-card .input, .asset-form .af-card .select:not(.af-card-variant) { background: var(--surface); }
+.asset-form .af-array-add { font: inherit; font-size: 13px; font-weight: 600; color: var(--text-muted); background: transparent; border: 2px dashed var(--text-dim); border-radius: var(--radius-sm); padding: 10px; cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.asset-form .af-array-add:hover, .asset-form .af-array-add:focus-visible { color: var(--accent-green); border-color: var(--accent-green); background: var(--accent-green-soft); outline: none; }
+
+/* Variants of a discriminated union, e.g. a scenario's kind */
+.asset-form .one-of { display: flex; flex-direction: column; gap: 14px; }
+.asset-form .dialog-root { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); padding: 20px 22px; max-width: 420px; box-shadow: var(--shadow); }
+.asset-form .dialog-root::backdrop { background: rgba(0, 0, 0, 0.4); }
+.asset-form .dialog-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.asset-form .dialog-body { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+.asset-form .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* Secret names, checked against the server's resolvers: the outcome is an icon within the field, explained on hover */
+.af-secret { position: relative; }
+.af-secret .input { font-family: monospace; padding-right: 36px; }
+.af-secret-status { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; cursor: help; }
+.af-secret-status.found { color: var(--accent-green); }
+.af-secret-status.missing, .af-secret-status.invalid { color: var(--accent-orange); }
+.af-secret-status.checking, .af-secret-status.unknown { color: var(--text-dim); }
+.af-spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--text-muted); animation: af-spin 0.8s linear infinite; }
+@keyframes af-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .af-spinner { animation: none; border-top-color: var(--border); opacity: 0.8; } }

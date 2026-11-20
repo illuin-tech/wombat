@@ -8,6 +8,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -55,7 +56,11 @@ public class AssetDefinitionReader
         node.put("type", identity.assetType());
 
         try {
-            return this.assetMapper.treeToValue(node, Asset.class);
+            Asset asset = this.assetMapper.treeToValue(node, Asset.class);
+            /* Its raw JSON is all that is left of the definition, kept so that it is stored again as is */
+            if (asset instanceof UnrecognizedAsset unrecognized && unrecognized.rawJson() == null)
+                return new UnrecognizedAsset(unrecognized.identity(), node.toString());
+            return asset;
         }
         catch (JsonProcessingException e) {
             throw new InvalidAssetException("Invalid properties for asset " + identity.id() + " of type " + identity.assetType() + ": " + e.getOriginalMessage());

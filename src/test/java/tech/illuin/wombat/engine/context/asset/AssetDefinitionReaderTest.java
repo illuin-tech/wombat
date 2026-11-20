@@ -45,7 +45,9 @@ class AssetDefinitionReaderTest
     {
         Asset asset = reader(new LLMStaticModule()).read(AssetIdentity.of("s1", "simulation:sim", "acme.gone"), definition());
 
-        assertInstanceOf(UnrecognizedAsset.class, asset);
+        UnrecognizedAsset unrecognized = assertInstanceOf(UnrecognizedAsset.class, asset);
+        assertEquals("acme.gone", unrecognized.rawType());
+        assertTrue(unrecognized.rawJson().contains("\"profile\""), unrecognized.rawJson());
     }
 
     @Test

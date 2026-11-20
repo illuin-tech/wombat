@@ -12,8 +12,11 @@ public enum Permission
     UI_ENVIRONMENTS_MANAGE(Names.UI_ENVIRONMENTS_MANAGE, false),
     UI_MODULES_READ(Names.UI_MODULES_READ, false),
     UI_MODULES_MANAGE(Names.UI_MODULES_MANAGE, false),
+    UI_SIMULATIONS_READ(Names.UI_SIMULATIONS_READ, false),
+    UI_SIMULATIONS_MANAGE(Names.UI_SIMULATIONS_MANAGE, false),
     API_IMPACT_READ(Names.API_IMPACT_READ, true),
     API_SIMULATION_READ(Names.API_SIMULATION_READ, true),
+    API_SIMULATION_WRITE(Names.API_SIMULATION_WRITE, true),
     API_ENVIRONMENT_READ(Names.API_ENVIRONMENT_READ, true),
     API_ENVIRONMENT_WRITE(Names.API_ENVIRONMENT_WRITE, true),
     API_ASSET_READ(Names.API_ASSET_READ, true),
@@ -64,8 +67,11 @@ public enum Permission
         public static final String UI_ENVIRONMENTS_MANAGE = "ui.environments.manage";
         public static final String UI_MODULES_READ = "ui.modules.read";
         public static final String UI_MODULES_MANAGE = "ui.modules.manage";
+        public static final String UI_SIMULATIONS_READ = "ui.simulations.read";
+        public static final String UI_SIMULATIONS_MANAGE = "ui.simulations.manage";
         public static final String API_IMPACT_READ = "api.impact.read";
         public static final String API_SIMULATION_READ = "api.simulation.read";
+        public static final String API_SIMULATION_WRITE = "api.simulation.write";
         public static final String API_MODULE_READ = "api.module.read";
         public static final String API_MODULE_MANAGE = "api.module.manage";
         public static final String API_ENVIRONMENT_READ = "api.environment.read";

@@ -181,7 +181,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .stat-row .kpi-value.yellow { color: var(--accent-yellow); }
 .stat-row .kpi-value.blue   { color: var(--accent-blue); }
 .stat-row .kpi-value.purple { color: var(--accent-purple); }
-.asset-breakdown { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; align-content: start; flex: 1 1 0; min-height: 0; overflow-y: auto; }
+.asset-breakdown { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; align-content: start; flex: 1 1 0; min-height: 0; overflow-y: auto; }
 .asset-block { position: relative; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; background: var(--surface-alt, transparent); }
 .asset-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; cursor: pointer; user-select: none; padding-right: 24px; }
 .asset-head:hover .asset-name { color: var(--accent-yellow); }

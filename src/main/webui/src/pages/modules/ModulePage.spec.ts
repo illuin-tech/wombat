@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { CoreDeploymentStatus, ModuleInfo } from '@/domain/module'
-import { fetchDeployment, fetchModule, setModuleEnabled } from '@/services/api/modules'
+import { fetchDeployment, fetchModule, fetchModuleSchema, setModuleEnabled } from '@/services/api/modules'
 import ModulePage from './ModulePage.vue'
 
 const session = vi.hoisted(() => ({ setPermissions: (_permissions: string[]): void => {} }))
@@ -16,7 +16,7 @@ vi.mock('@/services/auth/session', async () => {
   return { useAppInfo: () => ({ appInfo: readonly(appInfo) }), loadAppInfo: vi.fn() }
 })
 vi.mock('@/services/api/modules', () => ({
-  fetchModule: vi.fn(), fetchDeployment: vi.fn(), setModuleEnabled: vi.fn(), deleteModule: vi.fn(),
+  fetchModule: vi.fn(), fetchDeployment: vi.fn(), setModuleEnabled: vi.fn(), deleteModule: vi.fn(), fetchModuleSchema: vi.fn(),
 }))
 
 const READER = ['ui.modules.read']
@@ -49,8 +49,15 @@ async function render(permissions: string[], module: ModuleInfo = anthropic): Pr
   await flushPromises()
 }
 
+const schema = {
+  type: 'object',
+  required: ['adminKey'],
+  properties: { adminKey: { type: 'string', format: 'secret-key', description: 'Secret holding an Admin API key' } },
+}
+
 beforeEach(() => {
   vi.mocked(fetchDeployment).mockResolvedValue(deployment)
+  vi.mocked(fetchModuleSchema).mockResolvedValue(schema)
 })
 
 afterEach(() => {
@@ -103,6 +110,24 @@ describe('ModulePage', () => {
     await flushPromises()
 
     expect(setModuleEnabled).toHaveBeenCalledWith(anthropic.type.name, true)
+  })
+
+  it('outlines the asset properties, or shows the raw schema', async () => {
+    await render(READER)
+
+    expect(fetchModuleSchema).toHaveBeenCalledWith(anthropic.type.name)
+    expect(wrapper.find('.schema-property .schema-label').text()).toBe('Admin key')
+    expect(wrapper.find('.schema-type').text()).toBe('secret reference')
+
+    await wrapper.find('.module-schema .btn-link-inline').trigger('click')
+    expect(JSON.parse(wrapper.find('.schema-raw').text())).toEqual(schema)
+  })
+
+  it('does not ask for the schema of a module this instance does not detect', async () => {
+    await render(READER, { ...anthropic, assetClass: null, source: null, deployed: false })
+
+    expect(fetchModuleSchema).not.toHaveBeenCalled()
+    expect(wrapper.find('.module-schema').text()).toContain('This instance does not detect the module')
   })
 
   it('offers to delete a missing module instead of toggling it', async () => {

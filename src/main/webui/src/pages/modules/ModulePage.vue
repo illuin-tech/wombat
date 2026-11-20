@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { shortDeploymentId, type CoreDeploymentStatus, type ModuleInfo } from '@/domain/module'
+import { shortDeploymentId, type CoreDeploymentStatus, type JsonSchema, type ModuleInfo } from '@/domain/module'
 import { errorText } from '@/services/api/client'
-import { deleteModule, fetchDeployment, fetchModule, setModuleEnabled } from '@/services/api/modules'
+import { deleteModule, fetchDeployment, fetchModule, fetchModuleSchema, setModuleEnabled } from '@/services/api/modules'
 import { can } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
@@ -14,7 +14,9 @@ import RegimePill from '@/components/RegimePill.vue'
 import SourcePill from '@/components/SourcePill.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
+import SchemaOutline from '@/pages/modules/components/SchemaOutline.vue'
 import { moduleStates, STATE_LABELS } from '@/pages/modules/model/moduleList'
+import { schemaOutline } from '@/pages/modules/model/schemaOutline'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +37,12 @@ const deleteError = ref<string | null>(null)
 
 const copied = ref(false)
 
+const schema = ref<JsonSchema | null>(null)
+const schemaError = ref<string | null>(null)
+const showRawSchema = ref(false)
+const outline = computed(() => schema.value ? schemaOutline(schema.value) : [])
+const rawSchema = computed(() => JSON.stringify(schema.value, null, 2))
+
 const canManage = computed(() => can(appInfo.value?.user, 'ui.modules.manage') && can(appInfo.value?.user, 'api.module.manage'))
 const coreId = computed(() => deployment.value ? shortDeploymentId(deployment.value.latest.id) : '')
 
@@ -49,6 +57,19 @@ async function load(): Promise<void> {
     loadError.value = errorText(caught)
   } finally {
     loading.value = false
+  }
+  void loadSchema()
+}
+
+/* Only an instance detecting the module holds the class its schema is generated from */
+async function loadSchema(): Promise<void> {
+  schema.value = null
+  schemaError.value = null
+  if (!module.value?.assetClass) return
+  try {
+    schema.value = await fetchModuleSchema(module.value.type.name)
+  } catch (caught) {
+    schemaError.value = errorText(caught)
   }
 }
 
@@ -154,6 +175,22 @@ onMounted(load)
         monitoring and evaluations to take it into account, even across restarts:
         <RouterLink :to="{ name: 'modules' }">redeploy from the Modules page</RouterLink>.
       </NoticeCard>
+
+      <section v-if="!module.missing" class="table-card module-schema">
+        <div class="table-head table-head-controls">
+          <span>Asset properties</span>
+          <button v-if="schema" class="btn-link-inline" type="button" @click="showRawSchema = !showRawSchema">
+            {{ showRawSchema ? 'Show the outline' : 'Show the raw JSON schema' }}
+          </button>
+        </div>
+        <div class="module-schema-body">
+          <p v-if="!module.assetClass" class="form-hint">This instance does not detect the module: its schema is not available here.</p>
+          <span v-else-if="schemaError" class="form-error" role="alert">{{ schemaError }}</span>
+          <SkeletonBlock v-else-if="!schema" width="320px" height="14px" />
+          <pre v-else-if="showRawSchema" class="schema-raw">{{ rawSchema }}</pre>
+          <SchemaOutline v-else :properties="outline" />
+        </div>
+      </section>
     </template>
 
     <ConfirmDialog

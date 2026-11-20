@@ -5,7 +5,7 @@ import type { ActivityRegime } from '@/domain/environment'
 defineProps<{ regime: ActivityRegime }>()
 
 const TITLES: Record<ActivityRegime, string> = {
-  MEASURED: 'Its activity is measured on the running system',
+  MEASURED: 'Its activity is measured on a running system',
   MODELED: 'Its activity is modeled from a declared profile',
   UNKNOWN: 'How its activity is known is not told',
 }

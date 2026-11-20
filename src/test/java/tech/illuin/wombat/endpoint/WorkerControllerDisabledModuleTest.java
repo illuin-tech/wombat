@@ -6,6 +6,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.asset.AssetIdentity;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /** An aggregator which disabled the kubernetes-api module: its assets are still declared, their metrics are skipped when pushed. */
 @QuarkusTest
-@TestProfile(DisabledModuleProfile.class)
+@TestProfile(AggregatorProfile.class)
 class WorkerControllerDisabledModuleTest
 {
     private static final Country FRANCE = Country.ofCode("FRA").orElseThrow();
@@ -46,10 +47,17 @@ class WorkerControllerDisabledModuleTest
     @Inject
     ModuleRegistry modules;
 
+    @BeforeEach
+    void setUp()
+    {
+        this.modules.setEnabled(KubernetesAPIModule.TYPE.name(), false, null);
+    }
+
     @AfterEach
     void tearDown() throws Exception
     {
         this.declare(new MonitoredEnvironments(Map.of()));
+        this.modules.setEnabled(KubernetesAPIModule.TYPE.name(), true, null);
     }
 
     @Test

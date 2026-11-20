@@ -70,6 +70,9 @@ skipped and reported back to the worker in the response status, while the other 
 malformed request (e.g. an unknown metric family, a missing asset, a missing or reversed window) is still rejected with
 `400`, and nothing from it is saved.
 
+A module turned off on the aggregator, from **Settings > Modules**, applies to the next push: no core redeploy is needed
+for the metrics of its assets to be skipped. See [modules](modules.md).
+
 ### Declared environments
 
 Each asset belongs to the declaration it comes from: the aggregator's own `monitor.environments-file`, or one worker.
@@ -117,8 +120,17 @@ removes it from the aggregator at the worker's next startup.
 No metric is written to the worker's database, so a worker always runs on an in-memory SQLite database, whatever its
 `persistence.backend.mode` setting.
 
-Each window is sent in at most one request per metric family. A push that fails (aggregator unreachable, rejected key)
-is retried a few times on network errors, then logged and dropped: the worker does not buffer windows it could not send.
+A worker enables every module it detects and currently cannot turn them off: it will only declare to the aggregator the assets it samples. The worker deploys its own core at startup, and does not take part in the [core deployments](modules.md#replicas) of the aggregator.
+
+Each window is sent in at most one request per metric family. A push that fails (aggregator unreachable, rejected key) is retried a few times on network errors, then logged and dropped: the worker does not buffer windows it could not send.
+
+## Replicas
+
+Instances sharing one database share their modules' state, and converge on the same [core deployment](modules.md#replicas) within a poll interval of a redeploy.
+
+Sampling orchestration is not shared between instances, though: so each `standalone` or `worker` instance samples every asset it is  given.
+
+> ⚠️ In the near future Wombat will gain an orchestration layer for accommodating multi-tenant standalone/aggregator instances ; for now this is only partially supported. If this is something you need please reach out to us.
 
 ## Running it locally
 

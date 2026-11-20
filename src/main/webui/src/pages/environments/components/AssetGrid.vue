@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { REGIME_LABELS } from '@/domain/assetTypeDisplay'
-import { assetFamily, assetTypeName, displayName, type AssetInfo, type AssetType } from '@/domain/environment'
+import { assetFamily, assetTypeName, displayName, type ActivityRegime, type AssetInfo, type AssetType } from '@/domain/environment'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import LockBadge from '@/components/LockBadge.vue'
+import RegimePill from '@/components/RegimePill.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
 
 const props = defineProps<{
@@ -20,10 +20,10 @@ function typeLabel(asset: AssetInfo): string {
 }
 
 /** Left out when the regime is not known */
-function regimeLabel(asset: AssetInfo): string | null {
+function knownRegime(asset: AssetInfo): ActivityRegime | null {
   const name = assetTypeName(asset)
   const regime = name ? props.typesByName.get(name)?.regime : undefined
-  return regime && regime !== 'UNKNOWN' ? REGIME_LABELS[regime] : null
+  return regime && regime !== 'UNKNOWN' ? regime : null
 }
 </script>
 
@@ -44,7 +44,7 @@ function regimeLabel(asset: AssetInfo): string | null {
       <code class="asset-card-id">{{ asset.id }}</code>
       <span class="asset-card-tags">
         <AssetTypeTag :family="assetFamily(asset, typesByName)" />
-        <span v-if="regimeLabel(asset)" class="asset-type-tag measure">{{ regimeLabel(asset) }}</span>
+        <RegimePill v-if="knownRegime(asset)" :regime="knownRegime(asset)!" />
         <span v-if="asset.disabledAt" class="env-status disabled">Disabled</span>
       </span>
       <span class="asset-card-type">{{ typeLabel(asset) }}</span>

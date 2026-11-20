@@ -17,6 +17,7 @@ import tech.illuin.wombat.core.asset.profile.Lifetime;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.time.ZoneId;
@@ -61,6 +62,8 @@ public class DefaultSchemaRegistry implements AssetSchemaRegistry
     public Optional<JsonNode> getSchema(AssetType type)
     {
         JsonNode node = this.cache.computeIfAbsent(type, k -> this.moduleRegistry.getModule(k)
+            /* A module not detected here has no class to describe */
+            .filter(ModuleMetadata::detectedHere)
             .map(mm -> withoutIdentity(this.schemaGenerator.generateSchema(mm.assetClass())))
             .orElse(null)
         );

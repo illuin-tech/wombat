@@ -34,6 +34,7 @@ describe('settings menu links', () => {
     expect(settingsLinks({ permissions: ['ui.dashboard.read'] })).toEqual([])
     expect(settingsLinks({ permissions: ['ui.apikeys.manage'] }).map(link => link.label)).toEqual(['API keys'])
     expect(settingsLinks({ permissions: ['ui.users.read', 'ui.apikeys.manage'] }).map(link => link.to)).toEqual(['/api-keys', '/users'])
+    expect(settingsLinks({ permissions: ['ui.users.read', 'ui.apikeys.manage', 'ui.modules.read'] }).map(link => link.label)).toEqual(['Modules', 'API keys', 'Users'])
     expect(settingsLinks(null)).toEqual([])
   })
 })

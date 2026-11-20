@@ -10,14 +10,16 @@ export function can(user: PermissionHolder | null | undefined, permission: Permi
 }
 
 export interface MenuLink {
-  label: 'Users' | 'API keys'
+  label: 'Users' | 'API keys' | 'Modules'
   to: string
   permission: Permission
+  icon: 'key' | 'users' | 'modules'
 }
 
 const SETTINGS_LINKS: MenuLink[] = [
-  { label: 'API keys', to: '/api-keys', permission: 'ui.apikeys.manage' },
-  { label: 'Users', to: '/users', permission: 'ui.users.read' },
+  { label: 'Modules', to: '/modules', permission: 'ui.modules.read', icon: 'modules' },
+  { label: 'API keys', to: '/api-keys', permission: 'ui.apikeys.manage', icon: 'key' },
+  { label: 'Users', to: '/users', permission: 'ui.users.read', icon: 'users' },
 ]
 
 /** The links of the header Settings menu the user may follow. */

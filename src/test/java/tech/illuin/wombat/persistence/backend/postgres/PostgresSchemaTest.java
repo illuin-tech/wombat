@@ -32,7 +32,7 @@ class PostgresSchemaTest
 {
     private static final Set<String> EXPECTED_TABLES = Set.of(
         "server_metrics", "model_metrics", "environments", "assets", "asset_config_history",
-        "users", "api_keys", "role_grants", "secrets"
+        "users", "api_keys", "role_grants", "secrets", "modules", "core_deployments", "core_instances"
     );
 
     private static String jdbcUrl;

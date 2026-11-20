@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import {REGIME_LABELS} from '@/domain/assetTypeDisplay'
 import type {KubernetesPanel as Panel} from '@/pages/impact/model/aggregate'
 import KubernetesDetails from '@/pages/impact/components/KubernetesDetails.vue'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
+import RegimePill from '@/components/RegimePill.vue'
 
 const props = withDefaults(defineProps<{panel: Panel; modal?: boolean}>(), {modal: false})
 const emit = defineEmits<{expand: []}>()
@@ -20,7 +20,7 @@ function expand(): void {
       <span class="asset-id">{{ panel.name }}</span>
       <div class="asset-tags">
         <AssetTypeTag family="KUBERNETES_CONTAINER" />
-        <span class="asset-type-tag measure">{{ REGIME_LABELS[panel.regime] }}</span>
+        <RegimePill :regime="panel.regime" />
       </div>
       <span class="asset-count">{{ panel.serviceIds.length }} services</span>
     </div>

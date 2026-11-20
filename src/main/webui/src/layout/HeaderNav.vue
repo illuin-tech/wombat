@@ -12,7 +12,7 @@ const links = computed(() => settingsLinks(appInfo.value?.user))
 const onReport = computed(() => route.name === 'home' || route.name === 'impact')
 const onEnvironments = computed(() => typeof route.name === 'string' && route.name.startsWith('environment'))
 const showEnvironments = computed(() => can(appInfo.value?.user, 'ui.environments.read'))
-const inSettings = computed(() => links.value.some(link => link.to === route.path))
+const inSettings = computed(() => links.value.some(link => route.path === link.to || route.path.startsWith(`${link.to}/`)))
 const { open, root } = useDropdown()
 </script>
 
@@ -38,11 +38,17 @@ const { open, root } = useDropdown()
       </button>
       <div class="header-nav-dropdown" id="settingsMenuDropdown" role="menu">
         <RouterLink v-for="link in links" :key="link.to" class="header-nav-item" :to="link.to" role="menuitem" @click="open = false">
-          <svg v-if="link.to === '/users'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg v-if="link.icon === 'users'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <svg v-else-if="link.icon === 'modules'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
           </svg>
           <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="7.5" cy="15.5" r="5.5" />

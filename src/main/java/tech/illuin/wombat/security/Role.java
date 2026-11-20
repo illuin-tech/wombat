@@ -57,6 +57,7 @@ public enum Role
             UI_DASHBOARD_READ,
             UI_APIKEYS_MANAGE,
             UI_ENVIRONMENTS_READ,
+            UI_MODULES_READ,
             API_APIKEY_MANAGE,
             API_IMPACT_READ,
             API_SIMULATION_READ,

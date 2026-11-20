@@ -75,3 +75,10 @@
 .search-input { background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 6px 12px; border-radius: var(--radius-sm); outline: none; min-width: 220px; transition: border-color 0.15s, box-shadow 0.15s; }
 .search-input:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
 .table-empty { padding: 22px 26px; font-size: 13px; color: var(--text-dim); }
+
+/* A technical name, e.g. an asset type, a namespace or a class: shown as such */
+.tech-name { font-family: monospace; font-size: 11px; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; overflow-wrap: anywhere; }
+
+/* A label with its icon: RegimePill, SourcePill */
+.icon-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 14px; white-space: nowrap; background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+.icon-pill svg { flex: none; }

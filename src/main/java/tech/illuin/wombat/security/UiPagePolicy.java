@@ -49,6 +49,8 @@ public class UiPagePolicy implements HttpSecurityPolicy
             return Permission.UI_ENVIRONMENTS_MANAGE;
         if (path.equals("/environments") || path.startsWith("/environments/"))
             return Permission.UI_ENVIRONMENTS_READ;
+        if (path.equals("/modules") || path.startsWith("/modules/"))
+            return Permission.UI_MODULES_READ;
         return Permission.UI_DASHBOARD_READ;
     }
 }

@@ -108,6 +108,14 @@ public class WombatModuleConfig
         return modules;
     }
 
+    /**
+     * Every core deployment shares these instances, so they are closed here, once, rather than with a deployment.
+     */
+    public static void closeWombatModules(@Disposes List<WombatModule> modules)
+    {
+        modules.forEach(WombatModule::close);
+    }
+
     @Produces @Singleton
     public static ModuleRegistry provideModuleRegistry(List<WombatModule> modules, WombatProperties wombat)
     {

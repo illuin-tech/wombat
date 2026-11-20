@@ -6,7 +6,6 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -14,6 +13,9 @@ import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
+import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
+import tech.illuin.wombat.engine.module.runtime.RuntimeAssetEvaluator;
+import tech.illuin.wombat.engine.module.runtime.RuntimeAssetMonitor;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
@@ -44,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class WombatCoreConfigTest
 {
-    @Inject WombatCore core;
+    @Inject CoreRuntime runtime;
     @Inject WombatMetricPersister persister;
     @Inject SecretResolver secretResolver;
     @Inject Instance<AssetEvaluator> calculator;
@@ -55,7 +57,7 @@ class WombatCoreConfigTest
     @Test
     void theContextFreeEntryPointsAreWired()
     {
-        assertNotNull(this.core);
+        assertNotNull(this.runtime);
         assertNotNull(this.persister);
         assertNotNull(this.secretResolver);
     }
@@ -89,12 +91,19 @@ class WombatCoreConfigTest
     }
 
     @Test
+    void theRuntimeIsDeployedWithEveryEnabledModuleAtStartup()
+    {
+        assertEquals(this.modules.size(), this.runtime.current().modules().size());
+        assertTrue(this.runtime.current().missing().isEmpty());
+    }
+
+    @Test
     @Transactional
     void theCalculatorResolvesAgainstThePersistedContext()
     {
         AssetEvaluator evaluator = this.calculator.get();
-        assertNotNull(evaluator);
-        assertInstanceOf(CachedAssetEvaluator.class, evaluator);
+        assertInstanceOf(RuntimeAssetEvaluator.class, evaluator);
+        assertInstanceOf(CachedAssetEvaluator.class, this.runtime.current().evaluator());
     }
 
     @Test
@@ -104,6 +113,6 @@ class WombatCoreConfigTest
         // Deliberately not triggered: sampling dials the real clusters in the monitored-environments file, which
         // would make this a live integration test. That the monitor gets a source per sourceable asset — rather
         // than being a bare instance that samples nothing — is covered by WombatCoreTest in core.
-        assertNotNull(this.monitor.get());
+        assertInstanceOf(RuntimeAssetMonitor.class, this.monitor.get());
     }
 }

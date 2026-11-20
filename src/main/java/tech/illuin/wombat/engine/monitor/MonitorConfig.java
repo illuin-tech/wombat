@@ -7,8 +7,9 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import tech.illuin.wombat.commons.WombatProperties;
-import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.source.AssetMonitor;
+import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
+import tech.illuin.wombat.engine.module.runtime.RuntimeAssetMonitor;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,10 +37,13 @@ public class MonitorConfig
         }
     }
 
+    /**
+     * Delegates to the current deployment on every call, so that its holders follow redeploys.
+     */
     @Singleton
-    public AssetMonitor provideMonitor(WombatCore core)
+    public AssetMonitor provideMonitor(CoreRuntime runtime)
     {
-        return core.createMonitor();
+        return new RuntimeAssetMonitor(runtime);
     }
 
     @Singleton

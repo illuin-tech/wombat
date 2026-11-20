@@ -177,6 +177,18 @@ class WombatModuleConfigTest
     private record SampleRecord(String firstName, String homeAddress) {}
 
     @Test
+    void closeWombatModules_closesEveryDetectedModule()
+    {
+        WombatModule deployed = mock(WombatModule.class);
+        WombatModule disabled = mock(WombatModule.class);
+
+        closeWombatModules(List.of(deployed, disabled));
+
+        verify(deployed).close();
+        verify(disabled).close();
+    }
+
+    @Test
     void provideDefaults_createsHandlersForFamilies()
     {
         KubernetesMetricResolver k8sResolver = mock(KubernetesMetricResolver.class);

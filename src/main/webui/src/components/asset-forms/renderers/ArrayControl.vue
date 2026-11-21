@@ -104,8 +104,8 @@ import {
   type ControlElement,
   type CoreActions,
   type Dispatch,
-  type JsonFormsRendererRegistryEntry,
   type JsonSchema,
+  type RankedTester,
   type UISchemaElement,
 } from '@jsonforms/core'
 import { DispatchRenderer, rendererProps, useJsonFormsArrayControl, type RendererProps } from '@jsonforms/vue'
@@ -268,8 +268,5 @@ const ArrayControl = defineComponent({
 
 export default ArrayControl
 
-export const entry: JsonFormsRendererRegistryEntry = {
-  renderer: ArrayControl,
-  tester: rankWith(6, schemaTypeIs('array')),
-}
+export const tester: RankedTester = rankWith(6, schemaTypeIs('array'))
 </script>

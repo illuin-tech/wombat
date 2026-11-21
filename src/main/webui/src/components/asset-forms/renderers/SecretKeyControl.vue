@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import { and, formatIs, isStringControl, rankWith, type ControlElement, type JsonFormsRendererRegistryEntry } from '@jsonforms/core'
+import { and, formatIs, isStringControl, rankWith, type ControlElement, type RankedTester } from '@jsonforms/core'
 import { rendererProps, useJsonFormsControl, type RendererProps } from '@jsonforms/vue'
 import { ControlWrapper, useVanillaControl } from '@jsonforms/vue-vanilla'
 import { useDebounceFn } from '@vueuse/core'
@@ -99,8 +99,5 @@ const SecretKeyControl = defineComponent({
 
 export default SecretKeyControl
 
-export const entry: JsonFormsRendererRegistryEntry = {
-  renderer: SecretKeyControl,
-  tester: rankWith(5, and(isStringControl, formatIs(SECRET_KEY_FORMAT))),
-}
+export const tester: RankedTester = rankWith(5, and(isStringControl, formatIs(SECRET_KEY_FORMAT)))
 </script>

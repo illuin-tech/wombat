@@ -1,10 +1,20 @@
 import { markRaw } from 'vue'
 import type { JsonFormsRendererRegistryEntry } from '@jsonforms/core'
 import { vanillaRenderers } from '@jsonforms/vue-vanilla'
-import { entry as arrayEntry } from './ArrayControl.vue'
-import { entry as fieldEntry } from './FieldControl.vue'
-import { entry as secretKeyEntry } from './SecretKeyControl.vue'
+import ArrayControl, { tester as arrayTester } from './ArrayControl.vue'
+import FieldControl, { tester as fieldTester } from './FieldControl.vue'
+import SecretKeyControl, { tester as secretKeyTester } from './SecretKeyControl.vue'
+
+/*
+ * The entries are built here from each SFC's default export: the build attaches the template to that export only, and
+ * drops it when the export is unused, which leaves a component that renders nothing in production
+ */
+const entries: JsonFormsRendererRegistryEntry[] = [
+  { renderer: ArrayControl, tester: arrayTester },
+  { renderer: FieldControl, tester: fieldTester },
+  { renderer: SecretKeyControl, tester: secretKeyTester },
+]
 
 /* JSON Forms keeps the renderers in its reactive state: components must not become reactive themselves */
-export const assetRenderers: JsonFormsRendererRegistryEntry[] = [...vanillaRenderers, arrayEntry, fieldEntry, secretKeyEntry]
+export const assetRenderers: JsonFormsRendererRegistryEntry[] = [...vanillaRenderers, ...entries]
   .map(entry => ({ ...entry, renderer: markRaw(entry.renderer) }))

@@ -25,7 +25,7 @@ const groups = computed(() => {
 <template>
   <Modal :open="open" title="Copy an asset" @close="emit('close')">
     <div class="sim-copy-picker">
-      <p class="page-desc">The copy is a snapshot: change it freely, and sync it back from the original when that one changes.</p>
+      <p class="page-desc">The copy is a snapshot: change it freely, and sync it with its source when that one changes.</p>
       <input v-model="search" type="search" class="search-input" placeholder="Filter by name" aria-label="Filter assets by name" />
       <span v-if="error" class="form-error" role="alert">{{ error }}</span>
       <p v-else-if="!environments" class="form-hint">Loading the environments…</p>

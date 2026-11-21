@@ -148,7 +148,7 @@ describe('SimulationPage', () => {
     expect(document.body.textContent).toContain('How the results are computed')
     expect(wrapper.find('.env-delete').exists()).toBe(false)
     expect(wrapper.find('.asset-card-add').exists()).toBe(false)
-    expect(wrapper.findAll('.asset-card .sim-badge').map(badge => badge.text())).toEqual(['Copy', 'Original removed'])
+    expect(wrapper.findAll('.asset-card .sim-badge').map(badge => badge.text())).toEqual(['Copy', 'Source removed'])
     expect(wrapper.find('.collapsible-notes-toggle').attributes('aria-expanded')).toBe('true')
     await vi.waitFor(() => expect(wrapper.find('.collapsible-notes .markdown-view').text()).toBe('Assumes 10k users'))
   })
@@ -220,7 +220,7 @@ describe('SimulationPage', () => {
     await wrapper.findAll('.asset-card')[1].trigger('click')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('The original asset was deleted')
+    expect(document.body.textContent).toContain('The source asset was deleted')
     expect(document.querySelector('.sim-sync')).toBeNull()
   })
 

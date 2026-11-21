@@ -315,7 +315,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
         >
           <template #badges="{ asset }">
             <template v-if="asset.parentAssetId">
-              <span v-if="asset.parentStatus === 'parent-removed'" class="sim-badge removed">Original removed</span>
+              <span v-if="asset.parentStatus === 'parent-removed'" class="sim-badge removed">Source removed</span>
               <span v-else class="sim-badge copy" :title="`Copied from ${parentLabel(asset)}`">
                 Copy{{ asset.parentStatus === 'diverged' ? ', changed' : '' }}
               </span>
@@ -368,17 +368,17 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       <template #notice>
         <NoticeCard v-if="editedAsset?.parentStatus === 'diverged'" title="This copy and its source have diverged" tone="warning">
           This copy or {{ parentLabel(editedAsset) }} was changed since the copy was created.
-          <button v-if="canEdit" class="btn-link-inline sim-sync" type="button" @click="confirmingSync = true">Sync with the original</button>
+          <button v-if="canEdit" class="btn-link-inline sim-sync" type="button" @click="confirmingSync = true">Sync with the source</button>
           <span v-if="syncError" class="form-error" role="alert">{{ syncError }}</span>
         </NoticeCard>
-        <NoticeCard v-else-if="editedAsset?.parentStatus === 'parent-removed'" title="The original asset was deleted">
+        <NoticeCard v-else-if="editedAsset?.parentStatus === 'parent-removed'" title="The source asset was deleted">
           This copy is kept as it is, and can no longer be synced.
         </NoticeCard>
       </template>
     </AssetEditorModal>
 
-    <ConfirmDialog :open="confirmingSync" title="Sync with the original?" confirm-label="Sync" @close="confirmingSync = false" @confirm="sync">
-      The copy takes the original asset's current properties, and loses the changes made to it.
+    <ConfirmDialog :open="confirmingSync" title="Sync with the source?" confirm-label="Sync" @close="confirmingSync = false" @confirm="sync">
+      The copy takes the source asset's current properties, and loses the changes made to it.
     </ConfirmDialog>
 
     <ConfirmDeleteDialog

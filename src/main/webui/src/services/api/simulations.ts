@@ -118,7 +118,7 @@ export function deleteSimulationAsset(simulationId: string, assetId: string): Pr
 export function syncSimulationAsset(simulationId: string, assetId: string): Promise<SimulationAssetInfo> {
   return request<SimulationAssetInfo>(`${assetPath(simulationId, assetId)}/sync`, {
     method: 'POST',
-    messages: { ...SIMULATION_ASSET_MESSAGES, 409: 'The original asset was deleted: there is nothing to sync from.' },
+    messages: { ...SIMULATION_ASSET_MESSAGES, 409: 'The source asset was deleted: there is nothing to sync from.' },
   })
 }
 

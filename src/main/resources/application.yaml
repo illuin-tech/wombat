@@ -123,6 +123,7 @@ wombat:
 
   monitor:
     heartbeat: "10s"
+    # Optional: the environments provisioned at startup, none when there is no file. See doc/provisioning.md
     environments-file: "monitored/monitored-environments.yaml"
 
   evaluator:

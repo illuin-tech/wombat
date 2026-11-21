@@ -10,6 +10,9 @@ COPY --chown=185:185 target/quarkus-app/*.jar /deployments/
 COPY --chown=185:185 target/quarkus-app/app/ /deployments/app/
 COPY --chown=185:185 target/quarkus-app/quarkus/ /deployments/quarkus/
 
+# The default SQLite database lands in ./data/db, so that the image starts without any configuration
+RUN mkdir -p /deployments/data/db && chown -R 185:0 /deployments/data
+
 EXPOSE 8080
 USER 185
 

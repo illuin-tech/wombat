@@ -46,21 +46,6 @@
 .env-save-status.error, .env-save-status.invalid { color: var(--accent-orange); }
 .env-assets .chart-title { margin-bottom: 12px; }
 
-/* Asset grid */
-.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.asset-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-sm); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; min-height: 140px; }
-.asset-card:hover, .asset-card:focus-visible { border-color: var(--accent-green); box-shadow: var(--shadow); outline: none; }
-.asset-card.disabled { opacity: 0.65; }
-.asset-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
-.asset-card-name { font-size: 14px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
-.asset-card-id { font-family: monospace; font-size: 11px; color: var(--text-dim); }
-.asset-card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.asset-card-type { font-size: 12px; color: var(--text-muted); }
-.asset-card-time { margin-top: auto; }
-.asset-card-add { align-items: center; justify-content: center; border: 2px dashed var(--text-dim); box-shadow: none; background: var(--surface2); color: var(--text-muted); font-size: 13px; font-weight: 600; }
-.asset-card-add:hover, .asset-card-add:focus-visible { color: var(--accent-green); border-color: var(--accent-green); background: var(--accent-green-soft); }
-.asset-card-plus { font-size: 32px; line-height: 1; font-weight: 300; }
-
 @media (max-width: 800px) {
   .env-head { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 18px; }
   .env-head-side { align-items: flex-start; text-align: left; max-width: none; }

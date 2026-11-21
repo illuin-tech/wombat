@@ -1,0 +1,30 @@
+/* ── Simulations (pages/simulations); their list and header reuse the environments' layout ── */
+
+/* Creation */
+.sim-create { display: flex; flex-direction: column; gap: 18px; }
+.sim-create-source { display: flex; flex-direction: column; gap: 14px; }
+.sim-create-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.sim-create-fields .sim-create-description { grid-column: 1 / -1; }
+.sim-asset-checklist { display: flex; flex-direction: column; gap: 8px; border: none; padding: 0; margin: 0; }
+.sim-asset-checklist .form-check.blocked { cursor: not-allowed; opacity: 0.6; }
+
+/* Header */
+.sim-parent { font-size: 12px; color: var(--accent-green); }
+.sim-parent.removed { color: var(--text-dim); font-style: italic; }
+.sim-window { min-width: 160px; }
+
+/* Asset badges and copies */
+.sim-badge { font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+.sim-badge.removed { color: var(--accent-orange); }
+.sim-copy-picker { display: flex; flex-direction: column; gap: 12px; }
+.sim-copy-group { display: flex; flex-direction: column; gap: 6px; }
+.sim-copy-option { display: flex; align-items: center; gap: 8px; font: inherit; color: inherit; text-align: left; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer; }
+.sim-copy-option:hover:not(:disabled), .sim-copy-option:focus-visible { border-color: var(--accent-green); outline: none; }
+.sim-copy-option:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* Duplicate dialog */
+.sim-duplicate { display: flex; flex-direction: column; gap: 14px; }
+
+@media (max-width: 800px) {
+  .sim-create-fields { grid-template-columns: 1fr; }
+}

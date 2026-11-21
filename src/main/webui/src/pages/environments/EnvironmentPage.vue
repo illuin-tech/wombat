@@ -24,7 +24,7 @@ import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import AssetEditorModal, { type AssetEditorAdapter } from '@/components/AssetEditorModal.vue'
-import AssetGrid from '@/pages/environments/components/AssetGrid.vue'
+import AssetGrid from '@/components/AssetGrid.vue'
 import DashboardLink from '@/pages/environments/components/DashboardLink.vue'
 import {
   DESCRIPTION_MAX_LENGTH,

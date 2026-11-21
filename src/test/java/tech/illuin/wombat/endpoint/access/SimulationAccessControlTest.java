@@ -54,27 +54,29 @@ class SimulationAccessControlTest
     @Test
     void anonymous_isRejected()
     {
-        given().when().get("/api/simulations").then().statusCode(401);
-        given().when().get("/api/simulations/" + CREATED + "/assets").then().statusCode(401);
+        given().when().get("/api/simulation/sandbox").then().statusCode(401);
+        given().when().get("/api/simulation/sandbox/" + CREATED + "/assets").then().statusCode(401);
     }
 
     @Test
     @TestSecurity(user = "reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
     void users_read_butDoNotManage()
     {
-        given().when().get("/api/simulations").then().statusCode(200);
-        given().when().get("/api/simulations/" + CREATED).then().statusCode(404);
+        given().when().get("/api/simulation/sandbox").then().statusCode(200);
+        given().when().get("/api/simulation/sandbox/" + CREATED).then().statusCode(404);
+        // Evaluating is reading: past the permission check, the simulation is unknown.
+        given().contentType(ContentType.JSON).body(Map.of()).when().post("/api/simulation/sandbox/" + CREATED + "/evaluation").then().statusCode(404);
 
-        given().contentType(ContentType.JSON).body(Map.of("id", CREATED, "name", "Nope")).when().post("/api/simulations").then().statusCode(403);
-        given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "referenceWindow", "DAY")).when().put("/api/simulations/" + CREATED).then().statusCode(403);
-        given().contentType(ContentType.JSON).body(Map.of("id", "nope", "name", "Nope")).when().post("/api/simulations/" + CREATED + "/duplicate").then().statusCode(403);
-        given().when().delete("/api/simulations/" + CREATED).then().statusCode(403);
+        given().contentType(ContentType.JSON).body(Map.of("id", CREATED, "name", "Nope")).when().post("/api/simulation/sandbox").then().statusCode(403);
+        given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "referenceWindow", "DAY")).when().put("/api/simulation/sandbox/" + CREATED).then().statusCode(403);
+        given().contentType(ContentType.JSON).body(Map.of("id", "nope", "name", "Nope")).when().post("/api/simulation/sandbox/" + CREATED + "/duplicate").then().statusCode(403);
+        given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(403);
         given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "parentAssetId", "test-llm"))
-            .when().post("/api/simulations/" + CREATED + "/assets").then().statusCode(403);
+            .when().post("/api/simulation/sandbox/" + CREATED + "/assets").then().statusCode(403);
         given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "properties", Map.of()))
-            .when().put("/api/simulations/" + CREATED + "/assets/test-llm").then().statusCode(403);
-        given().when().delete("/api/simulations/" + CREATED + "/assets/test-llm").then().statusCode(403);
-        given().when().post("/api/simulations/" + CREATED + "/assets/test-llm/sync").then().statusCode(403);
+            .when().put("/api/simulation/sandbox/" + CREATED + "/assets/test-llm").then().statusCode(403);
+        given().when().delete("/api/simulation/sandbox/" + CREATED + "/assets/test-llm").then().statusCode(403);
+        given().when().post("/api/simulation/sandbox/" + CREATED + "/assets/test-llm/sync").then().statusCode(403);
     }
 
     @Test
@@ -82,9 +84,9 @@ class SimulationAccessControlTest
     void admins_manage()
     {
         given().contentType(ContentType.JSON).body(Map.of("id", CREATED, "name", "Created", "parentEnvironmentId", "test", "assetIds", List.of("test-llm")))
-            .when().post("/api/simulations").then().statusCode(201);
-        given().when().post("/api/simulations/" + CREATED + "/assets/test-llm/sync").then().statusCode(200);
-        given().when().delete("/api/simulations/" + CREATED).then().statusCode(204);
+            .when().post("/api/simulation/sandbox").then().statusCode(201);
+        given().when().post("/api/simulation/sandbox/" + CREATED + "/assets/test-llm/sync").then().statusCode(200);
+        given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(204);
     }
 
     @Test
@@ -94,13 +96,13 @@ class SimulationAccessControlTest
 
         given().header(ApiKeyAuthenticationMechanism.HEADER, key).contentType(ContentType.JSON)
             .body(Map.of("id", CREATED, "name", "Created", "parentEnvironmentId", "test", "assetIds", List.of("test-llm")))
-            .when().post("/api/simulations").then().statusCode(403);
+            .when().post("/api/simulation/sandbox").then().statusCode(403);
         given().header(ApiKeyAuthenticationMechanism.HEADER, key).contentType(ContentType.JSON)
             .body(Map.of("id", CREATED, "name", "Created"))
-            .when().post("/api/simulations").then().statusCode(201);
+            .when().post("/api/simulation/sandbox").then().statusCode(201);
         given().header(ApiKeyAuthenticationMechanism.HEADER, key).contentType(ContentType.JSON)
             .body(Map.of("name", "Copy", "parentAssetId", "test-llm"))
-            .when().post("/api/simulations/" + CREATED + "/assets").then().statusCode(403);
+            .when().post("/api/simulation/sandbox/" + CREATED + "/assets").then().statusCode(403);
     }
 
     private String issue(Permission... permissions)

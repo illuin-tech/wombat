@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code test-cluster}, which the simulations copy.
  */
 @QuarkusTest
-class SimulationsControllerTest
+class SimulationSandboxControllerTest
 {
     private static final String CREATED = "sim-controller";
     private static final String DUPLICATED = "sim-controller-copy";
@@ -58,7 +58,7 @@ class SimulationsControllerTest
 
         given().contentType(ContentType.JSON)
             .body(Map.of("name", "Renamed", "notes", "Assumes **10k** users", "referenceWindow", "YEAR"))
-            .when().put("/api/simulations/" + CREATED)
+            .when().put("/api/simulation/sandbox/" + CREATED)
             .then()
             .statusCode(200)
             .body("payload.name", is("Renamed"))
@@ -66,16 +66,16 @@ class SimulationsControllerTest
             .body("payload.notes", is("Assumes **10k** users"))
             .body("payload.referenceWindow", is("YEAR"));
 
-        given().when().get("/api/simulations/" + CREATED).then().statusCode(200).body("payload.name", is("Renamed"));
-        given().when().get("/api/simulations").then().statusCode(200)
+        given().when().get("/api/simulation/sandbox/" + CREATED).then().statusCode(200).body("payload.name", is("Renamed"));
+        given().when().get("/api/simulation/sandbox").then().statusCode(200)
             .body("payload.find { it.id == '" + CREATED + "' }.assetCount", is(0))
             .body("payload.find { it.id == '" + CREATED + "' }.notes", nullValue());
 
-        given().when().delete("/api/simulations/" + CREATED).then().statusCode(204);
+        given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(204);
 
-        given().when().get("/api/simulations/" + CREATED).then().statusCode(404);
-        given().when().get("/api/simulations").then().statusCode(200).body("payload.id", not(hasItem(CREATED)));
-        given().when().delete("/api/simulations/" + CREATED).then().statusCode(404);
+        given().when().get("/api/simulation/sandbox/" + CREATED).then().statusCode(404);
+        given().when().get("/api/simulation/sandbox").then().statusCode(200).body("payload.id", not(hasItem(CREATED)));
+        given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(404);
     }
 
     @Test
@@ -97,7 +97,7 @@ class SimulationsControllerTest
             .body("payload.assets[0].syncedAt", notNullValue())
             .body("payload.assets[0].profile.models[0].model", is("mistral-large-latest"));
 
-        given().when().get("/api/simulations").then().statusCode(200)
+        given().when().get("/api/simulation/sandbox").then().statusCode(200)
             .body("payload.find { it.id == '" + CREATED + "' }.assetCount", is(1))
             .body("payload.find { it.id == '" + CREATED + "' }.parentEnvironmentName", is("test"));
     }
@@ -107,7 +107,7 @@ class SimulationsControllerTest
     {
         this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("test-llm", "does-not-exist"))).then().statusCode(404);
 
-        given().when().get("/api/simulations/" + CREATED).then().statusCode(404);
+        given().when().get("/api/simulation/sandbox/" + CREATED).then().statusCode(404);
     }
 
     @Test
@@ -116,7 +116,7 @@ class SimulationsControllerTest
         this.create("Not A Slug", Map.of()).then().statusCode(400);
         this.create(CREATED, Map.of("assetIds", List.of("test-llm"))).then().statusCode(400);
         this.create(CREATED, Map.of("referenceWindow", "FORTNIGHT")).then().statusCode(400);
-        given().contentType(ContentType.JSON).body(Map.of("id", CREATED)).when().post("/api/simulations").then().statusCode(400);
+        given().contentType(ContentType.JSON).body(Map.of("id", CREATED)).when().post("/api/simulation/sandbox").then().statusCode(400);
     }
 
     @Test
@@ -138,7 +138,7 @@ class SimulationsControllerTest
     {
         given().contentType(ContentType.JSON)
             .body(Map.of("name", "Nope", "referenceWindow", "DAY"))
-            .when().put("/api/simulations/does-not-exist")
+            .when().put("/api/simulation/sandbox/does-not-exist")
             .then().statusCode(404);
     }
 
@@ -149,7 +149,7 @@ class SimulationsControllerTest
 
         given().contentType(ContentType.JSON)
             .body(Map.of("id", DUPLICATED, "name", "Sim controller (copy)"))
-            .when().post("/api/simulations/" + CREATED + "/duplicate")
+            .when().post("/api/simulation/sandbox/" + CREATED + "/duplicate")
             .then()
             .statusCode(201)
             .body("payload.id", is(DUPLICATED))
@@ -164,11 +164,11 @@ class SimulationsControllerTest
 
         given().contentType(ContentType.JSON)
             .body(Map.of("id", DUPLICATED, "name", "Again"))
-            .when().post("/api/simulations/" + CREATED + "/duplicate")
+            .when().post("/api/simulation/sandbox/" + CREATED + "/duplicate")
             .then().statusCode(409);
         given().contentType(ContentType.JSON)
             .body(Map.of("id", "sim-controller-other", "name", "Nope"))
-            .when().post("/api/simulations/does-not-exist/duplicate")
+            .when().post("/api/simulation/sandbox/does-not-exist/duplicate")
             .then().statusCode(404);
     }
 
@@ -177,7 +177,7 @@ class SimulationsControllerTest
     {
         this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("test-llm"))).then().statusCode(201);
 
-        given().when().delete("/api/simulations/" + CREATED).then().statusCode(204);
+        given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(204);
 
         /* SQLite does not enforce the foreign key's cascade: the service deletes them */
         assertTrue(QuarkusTransaction.requiringNew().call(() -> this.simulationAssets.findBySimulation(CREATED)).isEmpty());
@@ -190,7 +190,7 @@ class SimulationsControllerTest
         body.put("id", id);
         body.put("name", "Sim controller");
         body.put("description", "Described");
-        return given().contentType(ContentType.JSON).body(body).when().post("/api/simulations");
+        return given().contentType(ContentType.JSON).body(body).when().post("/api/simulation/sandbox");
     }
 
     /** Removes the simulations a test created through the API, with their assets. */

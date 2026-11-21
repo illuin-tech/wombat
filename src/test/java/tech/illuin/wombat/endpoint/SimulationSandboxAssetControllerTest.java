@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * edited and deleted.
  */
 @QuarkusTest
-class SimulationAssetControllerTest
+class SimulationSandboxAssetControllerTest
 {
     private static final String SIMULATION = "sim-asset-controller";
     private static final String OTHER_SIMULATION = "sim-asset-controller-other";
@@ -57,13 +57,13 @@ class SimulationAssetControllerTest
     {
         this.clean();
         for (String id : List.of(SIMULATION, OTHER_SIMULATION))
-            given().contentType(ContentType.JSON).body(Map.of("id", id, "name", id)).when().post("/api/simulations").then().statusCode(201);
+            given().contentType(ContentType.JSON).body(Map.of("id", id, "name", id)).when().post("/api/simulation/sandbox").then().statusCode(201);
     }
 
     @AfterEach
     void clean()
     {
-        SimulationsControllerTest.clean(this.simulations, this.simulationAssets, List.of(SIMULATION, OTHER_SIMULATION));
+        SimulationSandboxControllerTest.clean(this.simulations, this.simulationAssets, List.of(SIMULATION, OTHER_SIMULATION));
         ContextControllerCleanup.clean(this.environments, this.assets, this.history, List.of(ENVIRONMENT), List.of(PARENT));
     }
 
@@ -145,7 +145,7 @@ class SimulationAssetControllerTest
         this.createFromScratch("scratch").then().statusCode(201);
         this.createFromScratch("scratch").then().statusCode(409);
 
-        given().contentType(ContentType.JSON).body(this.scratchBody("scratch")).when().post("/api/simulations/" + OTHER_SIMULATION + "/assets").then().statusCode(201);
+        given().contentType(ContentType.JSON).body(this.scratchBody("scratch")).when().post("/api/simulation/sandbox/" + OTHER_SIMULATION + "/assets").then().statusCode(201);
     }
 
     @Test
@@ -183,7 +183,7 @@ class SimulationAssetControllerTest
         this.copy(Map.of("parentAssetId", "does-not-exist")).then().statusCode(404);
         this.copy(Map.of("parentAssetId", "test-llm", "type", "tech.illuin.wombat-module.kubernetes-api")).then().statusCode(400);
         given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "parentAssetId", "test-llm"))
-            .when().post("/api/simulations/does-not-exist/assets")
+            .when().post("/api/simulation/sandbox/does-not-exist/assets")
             .then().statusCode(404);
     }
 
@@ -232,9 +232,9 @@ class SimulationAssetControllerTest
     @Test
     void unknownSimulation_returns404()
     {
-        given().when().get("/api/simulations/does-not-exist/assets").then().statusCode(404);
-        given().when().get("/api/simulations/does-not-exist/assets/test-llm").then().statusCode(404);
-        given().contentType(ContentType.JSON).body(this.scratchBody("scratch")).when().post("/api/simulations/does-not-exist/assets").then().statusCode(404);
+        given().when().get("/api/simulation/sandbox/does-not-exist/assets").then().statusCode(404);
+        given().when().get("/api/simulation/sandbox/does-not-exist/assets/test-llm").then().statusCode(404);
+        given().contentType(ContentType.JSON).body(this.scratchBody("scratch")).when().post("/api/simulation/sandbox/does-not-exist/assets").then().statusCode(404);
     }
 
     @Test
@@ -295,6 +295,6 @@ class SimulationAssetControllerTest
 
     private String path(String suffix)
     {
-        return "/api/simulations/" + SIMULATION + "/assets" + (suffix.isEmpty() ? "" : "/" + suffix);
+        return "/api/simulation/sandbox/" + SIMULATION + "/assets" + (suffix.isEmpty() ? "" : "/" + suffix);
     }
 }

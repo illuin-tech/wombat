@@ -85,12 +85,14 @@ class SimulationSandboxEvaluationControllerTest
             .then()
             .statusCode(200)
             .body("payload.window.period", is("MONTH"))
+            .body("payload.factors.MONTH", is(1.0f))
             .body("payload.assets", hasSize(1))
             .body("payload.assets[0].id", is("test-cluster"))
             .body("payload.assets[0].status", is("ok"))
             /* One day of thirty; JSON numbers are read as floats */
             .body("payload.assets[0].coverage", is((float) (1.0 / 30)))
             .body("payload.assets[0].result[0].provider", is("BOAVIZTA"))
+            .body("payload.assets[0].result.type", is(List.of("IMPACT", "COST")))
             .body("payload.assets[0].result[0].assetIdentity.environmentId", is("simulation:" + SIMULATION))
             .body("payload.assets[0].scaled.YEAR.impact.gwp", notNullValue())
             .body("payload.assets[0].scaled.YEAR.cost", nullValue())
@@ -121,7 +123,7 @@ class SimulationSandboxEvaluationControllerTest
             .body("payload.window.period", is("WEEK"))
             .body("payload.assets[0].status", is("ok"))
             .body("payload.assets[0].result[0].provider", is("ECOLOGITS"))
-            .body("payload.assets[0].result.findAll { it.type == 'COST' }", empty());
+            .body("payload.assets[0].result.type", is(List.of("IMPACT")));
         /* The window was overridden for this evaluation only */
         given().when().get("/api/simulation/sandbox/" + SIMULATION).then().body("payload.referenceWindow", is("MONTH"));
     }

@@ -103,7 +103,7 @@ public class SimulationEvaluator
             .filter(result -> result.status() == AssetStatus.OK)
             .flatMap(result -> result.result().stream())
             .toList();
-        return new SimulationEvaluation(window, scale(evaluated, period, scopes), results);
+        return new SimulationEvaluation(window, factors(period), scale(evaluated, period, scopes), results);
     }
 
     @PreDestroy
@@ -171,6 +171,17 @@ public class SimulationEvaluator
     }
 
     /**
+     * How many windows each period holds: a period's results are the window's times its factor.
+     */
+    static Map<SimulationPeriod, Double> factors(SimulationPeriod window)
+    {
+        Map<SimulationPeriod, Double> factors = new EnumMap<>(SimulationPeriod.class);
+        for (SimulationPeriod period : SimulationPeriod.values())
+            factors.put(period, (double) period.duration().toSeconds() / window.duration().toSeconds());
+        return factors;
+    }
+
+    /**
      * The standardized part of the evaluations over {@code window}, scaled to each period.
      */
     static Map<SimulationPeriod, Scaled> scale(List<AssetEvaluation> evaluations, SimulationPeriod window, Set<EvaluationType> scopes)
@@ -184,12 +195,8 @@ public class SimulationEvaluator
             : null;
 
         Map<SimulationPeriod, Scaled> scaled = new EnumMap<>(SimulationPeriod.class);
-        for (SimulationPeriod period : SimulationPeriod.values())
-        {
-            double factor = (double) period.duration().toSeconds() / window.duration().toSeconds();
-            /* A cost carries no amount yet */
-            scaled.put(period, new Scaled(footprint != null ? footprint.multiply(factor) : null, null));
-        }
+        /* A cost carries no amount yet */
+        factors(window).forEach((period, factor) -> scaled.put(period, new Scaled(footprint != null ? footprint.multiply(factor) : null, null)));
         return scaled;
     }
 

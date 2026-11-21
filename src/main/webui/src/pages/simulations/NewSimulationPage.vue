@@ -74,7 +74,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="main env-page">
+  <div class="main form-page">
     <RouterLink class="env-back" :to="{ name: 'simulations' }">← Simulations</RouterLink>
     <h2 class="page-title">New simulation</h2>
 

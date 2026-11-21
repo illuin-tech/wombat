@@ -4,7 +4,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { byDisplayName, displayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
 import { DESCRIPTION_MAX_LENGTH, descriptionError, NAME_MAX_LENGTH, nameError, NOTES_MAX_LENGTH, notesError } from '@/domain/identifiers'
 import type { ModuleMetadata } from '@/domain/module'
-import { parentEnvironmentRemoved, PERIOD_LABELS, PERIODS, type SimulationAssetInfo, type SimulationInfo, type SimulationPeriod } from '@/domain/simulation'
+import { parentEnvironmentRemoved, type EvaluationScope, type SimulationAssetInfo, type SimulationInfo, type SimulationPeriod } from '@/domain/simulation'
 import { errorText } from '@/services/api/client'
 import { fetchEnvironments } from '@/services/api/environments'
 import { fetchModules } from '@/services/api/modules'
@@ -34,6 +34,8 @@ import NoticeCard from '@/components/NoticeCard.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
 import AssetCopyPicker from '@/pages/simulations/components/AssetCopyPicker.vue'
+import SimulationResults from '@/pages/simulations/components/SimulationResults.vue'
+import { useSimulationResults } from '@/pages/simulations/useSimulationResults'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,6 +61,10 @@ const editedAsset = ref<SimulationAssetInfo | null>(null)
 const assetEditorOpen = ref(false)
 const confirmingSync = ref(false)
 const syncError = ref<string | null>(null)
+
+const period = ref<SimulationPeriod>('MONTH')
+const impactShown = ref(true)
+const costShown = ref(true)
 
 const user = computed(() => appInfo.value?.user)
 const canEdit = computed(() => can(user.value, 'ui.simulations.manage') && can(user.value, 'api.simulation.write'))
@@ -87,6 +93,16 @@ const autosave = useAutosave(fields, async value => {
   simulation.value = { ...saved, assets: simulation.value!.assets }
 }, { isValid: value => !nameError(value.name) && !descriptionError(value.description ?? '') && !notesError(value.notes ?? '') })
 
+/* Evaluated on the window as selected, which need not wait for its save */
+const results = useSimulationResults(() => {
+  if (!simulation.value) return null
+  const scopes: EvaluationScope[] = [...(impactShown.value ? ['IMPACT' as const] : []), ...(costShown.value ? ['COST' as const] : [])]
+  return { id: simulation.value.id, scopes, referenceWindow: form.referenceWindow }
+})
+
+/* Synchronous, so that the change made by loading is dropped by the run that follows it */
+watch([() => form.referenceWindow, impactShown, costShown], () => results.schedule(), { flush: 'sync' })
+
 const STATUS_TEXTS: Record<AutosaveStatus, string> = {
   idle: '',
   pending: 'Unsaved changes',
@@ -105,6 +121,7 @@ function show(loaded: SimulationInfo): void {
   assets.value = [...loaded.assets].sort(byDisplayName)
   Object.assign(form, { name: loaded.name, description: loaded.description ?? '', notes: loaded.notes ?? '', referenceWindow: loaded.referenceWindow })
   autosave.reset(fields())
+  period.value = loaded.referenceWindow
 }
 
 async function load(): Promise<void> {
@@ -114,6 +131,7 @@ async function load(): Promise<void> {
     const [loaded, loadedModules] = await Promise.all([fetchSimulation(route.params.id as string), fetchModules()])
     modules.value = loadedModules
     show(loaded)
+    void results.run()
   } catch (caught) {
     loadError.value = errorText(caught)
   } finally {
@@ -178,6 +196,7 @@ function openAsset(asset: AssetInfo): void {
 
 function upsert(saved: SimulationAssetInfo): void {
   assets.value = [...assets.value.filter(asset => asset.id !== saved.id), saved].sort(byDisplayName)
+  results.schedule()
 }
 
 function onAssetSaved(saved: AssetInfo): void {
@@ -188,6 +207,7 @@ function onAssetSaved(saved: AssetInfo): void {
 function onAssetDeleted(id: string): void {
   assets.value = assets.value.filter(asset => asset.id !== id)
   assetEditorOpen.value = false
+  results.schedule()
 }
 
 async function sync(): Promise<void> {
@@ -229,7 +249,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
 </script>
 
 <template>
-  <div class="main env-page">
+  <div class="main form-page">
     <RouterLink class="env-back" :to="{ name: 'simulations' }">← Simulations</RouterLink>
 
     <NoticeCard v-if="loadError" title="This simulation could not be loaded" tone="error">{{ loadError }}</NoticeCard>
@@ -269,17 +289,11 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
             />
             <span v-if="descriptionProblem" class="form-error">{{ descriptionProblem }}</span>
           </div>
-          <CollapsibleNotes v-model="form.notes" :maxlength="NOTES_MAX_LENGTH" :disabled="!canEdit" />
+          <CollapsibleNotes v-model="form.notes" :maxlength="NOTES_MAX_LENGTH" :disabled="!canEdit" open />
           <span v-if="notesProblem" class="form-error">{{ notesProblem }}</span>
         </div>
 
         <div class="env-head-side">
-          <label class="form-field sim-window">
-            <span class="filter-label">Reference window</span>
-            <select v-model="form.referenceWindow" :disabled="!canEdit" id="referenceWindow">
-              <option v-for="period in PERIODS" :key="period" :value="period">{{ PERIOD_LABELS[period] }}</option>
-            </select>
-          </label>
           <button v-if="canEdit" class="btn-danger env-delete" type="button" @click="confirmingDelete = true">Delete</button>
         </div>
 
@@ -302,13 +316,26 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           <template #badges="{ asset }">
             <template v-if="asset.parentAssetId">
               <span v-if="asset.parentStatus === 'parent-removed'" class="sim-badge removed">Original removed</span>
-              <span v-else class="sim-badge" :title="`Copied from ${parentLabel(asset)}`">
+              <span v-else class="sim-badge copy" :title="`Copied from ${parentLabel(asset)}`">
                 Copy{{ asset.parentStatus === 'diverged' ? ', changed' : '' }}
               </span>
             </template>
           </template>
         </AssetGrid>
       </section>
+
+      <SimulationResults
+        v-model:period="period"
+        v-model:reference-window="form.referenceWindow"
+        v-model:impact="impactShown"
+        v-model:cost="costShown"
+        :evaluation="results.evaluation.value"
+        :error="results.error.value"
+        :computing="results.computing.value"
+        :assets="assets"
+        :types-by-name="typesByName"
+        :can-edit="canEdit"
+      />
     </template>
 
     <Modal :open="choosingSource" title="Add an asset" @close="choosingSource = false">
@@ -339,9 +366,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       @deleted="onAssetDeleted"
     >
       <template #notice>
-        <NoticeCard v-if="editedAsset?.parentStatus === 'diverged'" title="The original asset changed since it was copied" tone="warning">
-          This copy or {{ parentLabel(editedAsset) }} was changed since the copy was taken.
-          <button v-if="canEdit" class="btn-link-inline sim-sync" type="button" @click="confirmingSync = true">Sync from the original</button>
+        <NoticeCard v-if="editedAsset?.parentStatus === 'diverged'" title="This copy and its source have diverged" tone="warning">
+          This copy or {{ parentLabel(editedAsset) }} was changed since the copy was created.
+          <button v-if="canEdit" class="btn-link-inline sim-sync" type="button" @click="confirmingSync = true">Sync with the original</button>
           <span v-if="syncError" class="form-error" role="alert">{{ syncError }}</span>
         </NoticeCard>
         <NoticeCard v-else-if="editedAsset?.parentStatus === 'parent-removed'" title="The original asset was deleted">
@@ -350,7 +377,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       </template>
     </AssetEditorModal>
 
-    <ConfirmDialog :open="confirmingSync" title="Sync from the original?" confirm-label="Sync" @close="confirmingSync = false" @confirm="sync">
+    <ConfirmDialog :open="confirmingSync" title="Sync with the original?" confirm-label="Sync" @close="confirmingSync = false" @confirm="sync">
       The copy takes the original asset's current properties, and loses the changes made to it.
     </ConfirmDialog>
 

@@ -1,7 +1,7 @@
-import type { SimulationAssetInfo, SimulationInfo, SimulationPeriod, SimulationSummary } from '@/domain/simulation'
+import type { EvaluationScope, SimulationAssetInfo, SimulationEvaluation, SimulationInfo, SimulationPeriod, SimulationSummary } from '@/domain/simulation'
 import { request, type StatusMessages } from '@/services/api/client'
 
-export type { SimulationAssetInfo, SimulationInfo, SimulationSummary } from '@/domain/simulation'
+export type { SimulationAssetInfo, SimulationEvaluation, SimulationInfo, SimulationSummary } from '@/domain/simulation'
 
 export const SIMULATION_MESSAGES: StatusMessages = {
   400: 'The simulation was refused: check its id, name and description.',
@@ -120,4 +120,9 @@ export function syncSimulationAsset(simulationId: string, assetId: string): Prom
     method: 'POST',
     messages: { ...SIMULATION_ASSET_MESSAGES, 409: 'The original asset was deleted: there is nothing to sync from.' },
   })
+}
+
+/** Evaluates the simulation's assets as they are stored; `referenceWindow` overrides the simulation's own. */
+export function evaluateSimulation(id: string, body: { scopes: EvaluationScope[]; referenceWindow?: SimulationPeriod }): Promise<SimulationEvaluation> {
+  return request<SimulationEvaluation>(`${simulationPath(id)}/evaluation`, { method: 'POST', body, messages: SIMULATION_MESSAGES })
 }

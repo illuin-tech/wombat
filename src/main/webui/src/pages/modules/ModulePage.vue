@@ -119,7 +119,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="main env-page">
+  <div class="main form-page">
     <RouterLink class="env-back" :to="{ name: 'modules' }">← Modules</RouterLink>
 
     <NoticeCard v-if="loadError" title="This module could not be loaded" tone="error">{{ loadError }}</NoticeCard>

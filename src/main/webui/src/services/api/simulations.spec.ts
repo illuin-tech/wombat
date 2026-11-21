@@ -4,6 +4,7 @@ import {
   createSimulationAsset,
   deleteSimulation,
   duplicateSimulation,
+  evaluateSimulation,
   fetchSimulation,
   fetchSimulations,
   syncSimulationAsset,
@@ -51,5 +52,11 @@ describe('simulations API', () => {
     expect(call(1)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets', method: 'POST', body: { name: 'Copy', parentAssetId: 'chatbot' } })
     expect(call(2)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets/chatbot', method: 'PUT' })
     expect(call(3)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets/chatbot/sync', method: 'POST' })
+  })
+
+  it('evaluates a simulation with the scopes asked for', async () => {
+    await evaluateSimulation('what-if', { scopes: ['IMPACT'], referenceWindow: 'WEEK' })
+
+    expect(call(0)).toEqual({ url: '/api/simulation/sandbox/what-if/evaluation', method: 'POST', body: { scopes: ['IMPACT'], referenceWindow: 'WEEK' } })
   })
 })

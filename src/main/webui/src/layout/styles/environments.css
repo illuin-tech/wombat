@@ -23,7 +23,6 @@
 .env-row-actions { text-align: right; }
 
 /* Edition */
-.env-page { max-width: 1200px; }
 .env-back { font-size: 12px; font-weight: 600; color: var(--text-muted); text-decoration: none; }
 .env-back:hover { color: var(--accent-green); }
 .env-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 32px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; box-shadow: var(--shadow-sm); }

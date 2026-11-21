@@ -224,7 +224,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
 </script>
 
 <template>
-  <div class="main env-page">
+  <div class="main form-page">
     <RouterLink class="env-back" :to="{ name: 'environments' }">← Environments</RouterLink>
 
     <NoticeCard v-if="loadError" title="This environment could not be loaded" tone="error">{{ loadError }}</NoticeCard>

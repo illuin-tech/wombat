@@ -11,10 +11,11 @@
 /* Header */
 .sim-parent { font-size: 12px; color: var(--accent-green); }
 .sim-parent.removed { color: var(--text-dim); font-style: italic; }
-.sim-window { min-width: 160px; }
 
 /* Asset badges and copies */
-.sim-badge { font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+.sim-badge { white-space: nowrap; font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+/* Yellow, as hot data: a copy still tied to a monitored asset it can be synced from */
+.sim-badge.copy { color: var(--accent-yellow); background: var(--accent-yellow-soft); border-color: var(--accent-yellow); }
 .sim-badge.removed { color: var(--accent-orange); }
 .sim-copy-picker { display: flex; flex-direction: column; gap: 12px; }
 .sim-copy-group { display: flex; flex-direction: column; gap: 6px; }
@@ -22,8 +23,35 @@
 .sim-copy-option:hover:not(:disabled), .sim-copy-option:focus-visible { border-color: var(--accent-green); outline: none; }
 .sim-copy-option:disabled { cursor: not-allowed; opacity: 0.6; }
 
+/* Results */
+.sim-results { display: flex; flex-direction: column; gap: 14px; }
+.sim-results .chart-head { margin-bottom: 0; }
+.sim-results-body { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.sim-results-window { margin-top: 0; }
+.sim-recomputing { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 14px; box-shadow: var(--shadow-sm); }
+.sim-status { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+.sim-status.ok { background: var(--accent-green-soft); color: var(--accent-green); border-color: transparent; }
+.sim-status.error { color: var(--accent-orange); }
+.sim-status-message { display: block; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
+.sim-coverage { display: block; margin-top: 2px; font-weight: 400; }
+.sim-unevaluated { margin-top: 0; }
+/* The dashboard's donut and per-metric bars on one line: the bars keep their own grid of three */
+.sim-charts-row { display: grid; grid-template-columns: 1fr 3fr; gap: 20px; align-items: stretch; }
+.sim-charts-row .metrics-row { align-items: stretch; }
+.sim-not-computed { color: var(--text-dim); font-style: italic; }
+
+/* Evaluation settings */
+.sim-settings { display: flex; flex-direction: column; gap: 18px; max-width: 560px; }
+.sim-settings-section { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.sim-settings-section ul { display: flex; flex-direction: column; gap: 6px; padding-left: 18px; }
+.sim-settings-title { font-size: 13px; font-weight: 700; color: var(--text); }
+
 /* Duplicate dialog */
 .sim-duplicate { display: flex; flex-direction: column; gap: 14px; }
+
+@media (max-width: 1100px) {
+  .sim-charts-row { grid-template-columns: 1fr; }
+}
 
 @media (max-width: 800px) {
   .sim-create-fields { grid-template-columns: 1fr; }

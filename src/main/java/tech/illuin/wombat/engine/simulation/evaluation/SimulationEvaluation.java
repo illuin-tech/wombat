@@ -15,10 +15,13 @@ import java.util.Map;
  * What a simulation would cost and emit: its assets evaluated over the reference {@code window}, each result then
  * scaled linearly to every period.
  *
- * @param totals the scaled results summed over the assets evaluated {@link AssetStatus#OK}, per period
+ * @param factors how many windows each period holds: a period's results are the window's times its factor, which also
+ *                scales the details of {@link AssetResult#result()}
+ * @param totals  the scaled results summed over the assets evaluated {@link AssetStatus#OK}, per period
  */
 public record SimulationEvaluation(
     Window window,
+    Map<SimulationPeriod, Double> factors,
     Map<SimulationPeriod, Scaled> totals,
     List<AssetResult> assets
 ) {

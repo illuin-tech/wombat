@@ -38,7 +38,7 @@ onMounted(() => listing.run())
 <template>
   <div class="main">
     <div class="env-list-head">
-      <PageHead title="Simulations" description="What systems would cost and emit, from copies of real assets or definitions written from scratch. Nothing here is monitored." />
+      <PageHead title="Simulations" description="A sandbox for estimating system impacts, you can work from copies of real assets or definitions written from scratch." />
       <RouterLink v-if="canManage" class="btn-apply btn-link" :to="{ name: 'simulation-create' }" id="newSimulation">New simulation</RouterLink>
     </div>
 

@@ -11,6 +11,8 @@ const props = withDefaults(defineProps<{open: boolean; title: string; warning?: 
 })
 const emit = defineEmits<{ close: [] }>()
 const closeButton = ref<HTMLButtonElement | null>(null)
+/* Stacked in the order they open, not the order they were mounted: a confirmation mounted before the modal it opens over still shows above it */
+const depth = ref(0)
 /* Unique per instance: modals stay in the page while closed, and several can be mounted at once */
 const titleId = `modal-title-${useId()}`
 const self = Symbol(titleId)
@@ -29,6 +31,7 @@ function release(): void {
 watch(() => props.open, async (open) => {
   if (open) {
     openModals.push(self)
+    depth.value = openModals.length
     document.body.classList.add('modal-open')
     document.addEventListener('keydown', onKeydown)
     await nextTick()
@@ -43,7 +46,7 @@ onBeforeUnmount(release)
 
 <template>
   <Teleport to="body">
-    <div class="asset-modal-overlay" :hidden="!open" @click.self="emit('close')">
+    <div class="asset-modal-overlay" :hidden="!open" :style="{zIndex: 1000 + depth}" @click.self="emit('close')">
       <div class="asset-modal" role="dialog" aria-modal="true" :aria-labelledby="titleId">
         <div class="asset-modal-head">
           <span v-if="warning" class="warning-icon-head">

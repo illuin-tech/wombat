@@ -9,9 +9,10 @@
 .asset-form .control > .label { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }
 .asset-form .control > .label .asterisk { color: var(--accent-orange); margin-left: 2px; }
 .asset-form .input, .asset-form .select, .asset-form .text-area {
-  width: 100%; background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans);
+  width: 100%; background-color: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans);
   font-size: 13px; padding: 8px 12px; border-radius: var(--radius-sm); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
 }
+.asset-form .select { padding-right: 34px; cursor: pointer; }
 .asset-form input[type="checkbox"].input { width: auto; accent-color: var(--accent-green); }
 .asset-form .input:focus, .asset-form .select:focus, .asset-form .text-area:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
 .asset-form .input:disabled, .asset-form .select:disabled, .asset-form .text-area:disabled { opacity: 0.7; cursor: not-allowed; }
@@ -50,10 +51,10 @@
 .asset-form .af-card { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); padding: 12px 14px 14px; }
 .asset-form .af-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .asset-form .af-card-title { font-size: 13px; font-weight: 700; color: var(--text); }
-.asset-form .af-card-variant { width: auto; min-width: 160px; padding: 5px 10px; background: var(--surface); }
+.asset-form .af-card-variant { width: auto; min-width: 160px; padding: 5px 30px 5px 10px; background-color: var(--surface); }
 .asset-form .af-card-actions { display: inline-flex; gap: 2px; margin-left: auto; }
 .asset-form .af-card > .description { margin-top: -6px; }
-.asset-form .af-card .input, .asset-form .af-card .select:not(.af-card-variant) { background: var(--surface); }
+.asset-form .af-card .input, .asset-form .af-card .select:not(.af-card-variant) { background-color: var(--surface); }
 .asset-form .af-array-add { font: inherit; font-size: 13px; font-weight: 600; color: var(--text-muted); background: transparent; border: 2px dashed var(--text-dim); border-radius: var(--radius-sm); padding: 10px; cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
 .asset-form .af-array-add:hover, .asset-form .af-array-add:focus-visible { color: var(--accent-green); border-color: var(--accent-green); background: var(--accent-green-soft); outline: none; }
 

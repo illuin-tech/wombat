@@ -204,6 +204,8 @@ class SimulationEvaluatorTest
 
         assertEquals(2, gwp(evaluation.totals().get(SimulationPeriod.DAY).impact()), 1e-3);
         assertEquals(730, gwp(evaluation.totals().get(SimulationPeriod.YEAR).impact()), 1e-3);
+        assertEquals(1.0 / 30, evaluation.factors().get(SimulationPeriod.DAY), 1e-9);
+        assertEquals(365.0 / 30, evaluation.factors().get(SimulationPeriod.YEAR), 1e-9);
     }
 
     @Test

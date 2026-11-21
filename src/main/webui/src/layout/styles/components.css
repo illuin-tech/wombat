@@ -49,6 +49,11 @@
 .collapsible-notes-toggle:hover, .collapsible-notes-toggle:focus-visible { color: var(--text); }
 .collapsible-notes-chevron { transition: transform 0.15s; }
 .collapsible-notes.expanded .collapsible-notes-chevron { transform: rotate(90deg); }
+.collapsible-notes-region { display: flex; flex-direction: column; gap: 6px; }
+/* Long notes fade out at NOTES_PREVIEW_HEIGHT (CollapsibleNotes.vue), except while edited */
+.collapsible-notes-frame.clamped:not(:focus-within) { max-height: 240px; overflow: hidden; mask-image: linear-gradient(to bottom, #000 75%, transparent); }
+.collapsible-notes-frame:focus-within + .collapsible-notes-more { display: none; }
+.collapsible-notes-more { align-self: flex-start; }
 
 /* Confirmation */
 .confirm-dialog { display: flex; flex-direction: column; gap: 14px; }
@@ -60,11 +65,30 @@
 .confirm-delete code { font-family: monospace; color: var(--text); }
 .confirm-delete-input { font-family: monospace; }
 
+/* A button showing only an icon, which says what it does through its aria-label and title */
+.icon-button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; padding: 0; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 50%; color: var(--text-muted); cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+.icon-button:hover, .icon-button:focus-visible { color: var(--accent-green); border-color: var(--accent-green); outline: none; }
+
+/* An icon of public/icons drawn in the text's colour: the file only gives its shape */
+.icon { display: inline-block; width: 16px; height: 16px; flex-shrink: 0; background-color: currentColor; mask: var(--icon) center / contain no-repeat; }
+.icon-settings { --icon: url('/icons/settings.svg'); }
+
+/* A page holding a form, such as an environment's or a simulation's: centred, and no wider than reads well */
+.form-page { width: 100%; max-width: 1440px; margin-inline: auto; }
+
 /* Form fields */
 .form-field { display: flex; flex-direction: column; gap: 6px; }
 .form-field input[type="text"], .form-field input[type="date"] { background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 8px 12px; border-radius: var(--radius-sm); outline: none; max-width: 360px; transition: border-color 0.15s, box-shadow 0.15s; }
 .form-field input:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
 .form-field input:disabled { opacity: 0.5; }
+.form-field select { max-width: 360px; }
+
+/* Selects, in the look of the dashboard's pickers (DropdownPicker): its chevron, in --text-dim, as a data URI can't read a variable */
+:root { --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='%239ab4a6' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); }
+[data-theme="dark"] { --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='%236b8478' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); }
+select { appearance: none; background-color: var(--surface2); background-image: var(--select-chevron); background-repeat: no-repeat; background-position: right 12px center; border: 1.5px solid var(--border); color: var(--text); font-family: var(--sans); font-size: 13px; padding: 8px 34px 8px 12px; border-radius: var(--radius-sm); outline: none; cursor: pointer; min-width: 160px; transition: border-color 0.15s, box-shadow 0.15s; }
+select:hover:not(:disabled), select:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); }
+select:disabled { opacity: 0.5; cursor: not-allowed; }
 .form-hint { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
 .form-hint code { font-family: monospace; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
 .form-actions { display: flex; align-items: center; gap: 12px; }
@@ -99,7 +123,8 @@
 .creation-choice-subtitle { font-size: 13px; color: var(--text-muted); }
 
 /* Asset cards (AssetGrid) */
-.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+/* Wide enough for a card's tags on one row: its family, its regime and a simulation badge; never wider than the page */
+.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 14px; }
 .asset-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-sm); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; min-height: 140px; }
 .asset-card:hover, .asset-card:focus-visible { border-color: var(--accent-green); box-shadow: var(--shadow); outline: none; }
 .asset-card.disabled { opacity: 0.65; }

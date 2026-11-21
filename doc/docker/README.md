@@ -21,7 +21,14 @@ More complete documentation can be found [over at GitHub](https://github.com/ill
 
 ## How to run
 
-Here is a sample docker-compose local setup for:
+Wombat works out of the box: it needs no configuration file to start. Run it, open the dashboard at http://localhost:8080,
+and create your first environment and its assets from the **Environments** page:
+
+```sh
+docker run -p 8080:8080 illuin/wombat:latest
+```
+
+Its SQLite database then lives in the container. Here is a sample docker-compose local setup for:
 
 * Wombat app
 * local boavizta & ecologits APIs
@@ -36,8 +43,6 @@ services:
       - "8080:8080"
     volumes:
       - ./application.yaml:/deployments/config/application.yaml:ro
-      - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      - ~/.kube:/deployments/monitored/k8s:ro # optional: only required if using live kubernetes-api assets
       - ./data:/var/data:rw
 
   boavizta:
@@ -65,7 +70,21 @@ wombat:
       uri: "http://ecologits:80/"
 ```
 
-And the following `monitored-environments.yaml` file:
+### Provisioning environments (optional)
+
+Environments can also be provisioned from a YAML file, read at every startup: those it declares are kept in sync with
+it, and read-only from the dashboard and the API. See
+[environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
+
+Mount it at `/deployments/monitored/monitored-environments.yaml`, or point `WOMBAT_MONITOR_ENVIRONMENTS_FILE` at it:
+
+```yaml
+    volumes:
+      - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
+      - ~/.kube:/deployments/monitored/k8s:ro # optional: only required if using live kubernetes-api assets
+```
+
+For example, this `monitored-environments.yaml` file:
 
 ```yaml
 environments:

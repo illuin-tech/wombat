@@ -48,7 +48,7 @@ Wombat exposes an OpenAPI and Swagger at the following paths:
 ## How It Works
 
 Wombat works by doing a few things:
-1. **Configuration**: the user provides a set of configurations that will define the scope of the activity to be measured: either through actual data-source connectors (e.g. querying a K8S cluster's metrics API) or through declarative hypothesis
+1. **Configuration**: the user declares the environments and assets that define the scope of the activity to be measured, from the dashboard, the API or an optional provisioning file: either through actual data-source connectors (e.g. querying a K8S cluster's metrics API) or through declarative hypothesis
 2. **Activity sourcing**: for each of these configurations, if needed, wombat will orchestrate the activation of sources and compile activity metrics into a database
 3. **Activity resolving**: when an estimation is requested, it will gather observed and modeled activity metrics for a given time period
 4. **Evaluation**: activity data is then submitted to a modular evaluation engine, which will return a standardized multi-criteria impact estimate
@@ -215,6 +215,7 @@ More information on each of these modules can be found [in the `wombat-core` doc
 
 ## Documentation
 
+* [Environments and provisioning](doc/provisioning.md): creating environments from the dashboard or the API, and optionally provisioning them from a YAML file
 * [Access control (OpenID Connect)](doc/access-control.md): how to configure access control on the app through user credentials and API keys
 * [Secret management](doc/secret-management.md): how to provide necessary credentials to Wombat connectors
 * [Metric compaction](doc/compaction.md): how sourced metrics are folded before being served, and the effects of tuning the compaction window
@@ -223,22 +224,30 @@ More information on each of these modules can be found [in the `wombat-core` doc
 
 ## How to run
 
-You can find a sample docker compose file for a basic local setup [here](compose/demo-standalone/compose.yaml).
+Wombat works out of the box: it needs no configuration file to start. Run its image, open the dashboard, and create
+your first environment and its assets from the **Environments** page:
 
-It will let you run:
+```bash
+docker run -p 8080:8080 illuin/wombat:latest
+```
 
-* a Wombat app with an sqlite storage backend
+This keeps its SQLite database in the container and uses the public Boavizta and Ecologits APIs, which suits a first
+look. For anything longer lived, the sample docker compose file for a basic local setup [here](compose/demo-standalone/compose.yaml) runs:
+
+* a Wombat app with an SQLite storage backend
 * local Boavizta & Ecologits APIs
 
-You will also find [`application.yaml.dist`](compose/demo-standalone/application.yaml.dist) and [`monitored-environments.yaml.dist`](compose/demo-standalone/monitored-environments.yaml.dist) files that you can use to create the required `application.yaml` and `monitored-environments.yaml`.
+Create its `application.yaml` from [`application.yaml.dist`](compose/demo-standalone/application.yaml.dist), which can
+be used as is: it points the connectors to the local Boavizta and Ecologits APIs, and enables the SQLite backend. Then
+run `docker compose -f compose/demo-standalone/compose.yaml up`.
 
-The `application.yaml` template can be used as is, it's a basic setup that will simply override the connectors to use local Boavizta and Ecologits APIs, and enable the SQLite backend.
-
-The `monitored-environments.yaml` template however needs to be tweaked, you will find comments on the parts requiring your input.
+Optionally, environments can also be provisioned from a YAML file, kept in sync at every startup: see
+[environments and provisioning](doc/provisioning.md). To try it, create `monitored-environments.yaml` from
+[`monitored-environments.yaml.dist`](compose/demo-standalone/monitored-environments.yaml.dist), whose comments tell what
+to adapt, and uncomment its volume in `compose.yaml`. A live `kubernetes-api` asset also needs a valid kubeconfig, mounted
+from `~/.kube` in the same file.
 
 For a distributed setup (an aggregator and two workers), see [running it locally](doc/distributed.md#running-it-locally).
-
-And a valid kubeconfig in `k8s/`, in the configuration above we've named it `my-kube.config`.
 
 ### Running in dev mode
 

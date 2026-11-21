@@ -6,6 +6,8 @@ import jakarta.inject.Singleton;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
@@ -15,17 +17,32 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Set;
 
 @ApplicationScoped
 public class MonitorConfig
 {
+    private static final Logger logger = LoggerFactory.getLogger(MonitorConfig.class);
+
     @Singleton
     public MonitoredEnvironments provideMonitoredEnvironments(WombatProperties wombat, YAMLMapper mapper, Validator validator)
     {
-        String location = wombat.monitor().environmentsFile();
+        return load(wombat.monitor().environmentsFile(), mapper, validator);
+    }
+
+    /**
+     * The file is optional: without it nothing is provisioned, and environments are managed through the API.
+     */
+    static MonitoredEnvironments load(String location, YAMLMapper mapper, Validator validator)
+    {
         try (InputStream in = open(location))
         {
+            if (in == null)
+            {
+                logger.info("No monitored environments file at '{}', no environment is provisioned", location);
+                return new MonitoredEnvironments(Map.of());
+            }
             MonitoredEnvironments monitoredEnvironments = mapper.readValue(in, MonitoredEnvironments.class);
             Set<ConstraintViolation<MonitoredEnvironments>> violations = validator.validate(monitoredEnvironments);
             if (!violations.isEmpty())
@@ -52,16 +69,16 @@ public class MonitorConfig
         return new MonitorService(assetMonitor);
     }
 
+    /**
+     * The file at the location, else the classpath resource, else {@code null}. A directory counts as no file: Docker
+     * mounts one when the host file of a bind mount is missing. A file that can't be read fails.
+     */
     private static InputStream open(String location) throws IOException
     {
         Path path = Path.of(location);
-        if (Files.isReadable(path))
+        if (Files.isRegularFile(path))
             return Files.newInputStream(path);
 
-        InputStream classpath = Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
-        if (classpath != null)
-            return classpath;
-
-        throw new IllegalStateException("Monitored resources file not found on filesystem or classpath: '" + location + "'");
+        return Thread.currentThread().getContextClassLoader().getResourceAsStream(location);
     }
 }

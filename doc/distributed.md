@@ -75,7 +75,9 @@ for the metrics of its assets to be skipped. See [modules](modules.md).
 
 ### Declared environments
 
-Each asset belongs to the declaration it comes from: the aggregator's own `monitor.environments-file`, or one worker.
+Each provisioned asset belongs to the declaration it comes from: the aggregator's own `wombat.monitor.environments-file`, if
+it has one (see [provisioning](provisioning.md)), or one worker. The aggregator also holds the environments and assets
+created from its pages or its API, which no declaration touches.
 The aggregator identifies the assets of a worker as `workerId.assetId` (e.g. `east.cluster`): two workers declaring the
 same asset id declare two assets, listed apart on the dashboard, whose metrics stay apart. The metrics a worker pushes
 go to its own assets the same way.
@@ -109,16 +111,13 @@ WOMBAT_WORKER_AGGREGATOR_TIMEOUT=30s  # optional, connect and read timeout of ea
 WOMBAT_WORKER_AGGREGATOR_PROXY_URL=http://proxy.example.com:3128  # optional, HTTP proxy to reach the aggregator through
 ```
 
-The aggregator cannot tell two workers sharing an id apart: each declaration replaces the other's assets, and their
-metrics are mixed. Give every worker its own id.
+The aggregator cannot tell two workers sharing an id apart: each declaration replaces the other's assets, and their metrics are mixed. Give every worker its own id.
 
-A worker declares its whole `monitor.environments-file` at startup, then again every minute: declaring unchanged
-environments changes nothing, and an aggregator started after its workers, or restored from a backup, catches up within
-a minute. A declaration that fails is logged, and the next one tries again. Removing an asset from the worker's file
-removes it from the aggregator at the worker's next startup.
+A worker serves no page nor API, so its `wombat.monitor.environments-file` is what it samples.
+It declares that whole file at startup, then again every minute: declaring unchanged environments changes nothing, and an aggregator started after its workers, or restored from a backup, catches up within a minute.
+A declaration that fails is logged, and the next one tries again. Removing an asset from the worker's file removes it from the aggregator at the worker's next startup.
 
-No metric is written to the worker's database, so a worker always runs on an in-memory SQLite database, whatever its
-`persistence.backend.mode` setting.
+No metric is written to the worker's database, so a worker always runs on an in-memory SQLite database, whatever its `persistence.backend.mode` setting.
 
 A worker enables every module it detects and currently cannot turn them off: it will only declare to the aggregator the assets it samples. The worker deploys its own core at startup, and does not take part in the [core deployments](modules.md#replicas) of the aggregator.
 
@@ -181,7 +180,7 @@ holding `api.metric.write` and `api.environment.write` on its **API keys** page,
 For development purposes, you can use this sample distributed configuration to your advantage by running the aggregator as a dev instance, and launching workers as configured in the docker compose demo:
 
 ```sh
-./mvnw quarkus:dev -Dwombat.mode=aggregator -Dmonitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
+./mvnw quarkus:dev -Dwombat.mode=aggregator -Dwombat.monitor.environments-file=compose/demo-distributed/aggregator/monitored-environments.yaml ;
 
 WOMBAT_AGGREGATOR_URL=http://host.docker.internal:8080 docker compose -f compose/demo-distributed/compose.yaml up --no-deps worker-east worker-west ;
 ```

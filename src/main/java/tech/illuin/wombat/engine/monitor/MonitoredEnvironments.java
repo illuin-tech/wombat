@@ -12,6 +12,13 @@ import java.util.Map;
 @RegisterForReflection
 public record MonitoredEnvironments(Map<String, @Valid @NotNull Environment> environments)
 {
+    public MonitoredEnvironments
+    {
+        /* An `environments:` key left empty provisions nothing */
+        if (environments == null)
+            environments = Map.of();
+    }
+
     public List<Asset> allAssets()
     {
         return this.environments.values().stream()

@@ -37,7 +37,7 @@ import {
   or,
   rankWith,
   type ControlElement,
-  type JsonFormsRendererRegistryEntry,
+  type RankedTester,
 } from '@jsonforms/core'
 import { rendererProps, useJsonFormsControl, type RendererProps } from '@jsonforms/vue'
 import { ControlWrapper, useVanillaControl } from '@jsonforms/vue-vanilla'
@@ -122,8 +122,5 @@ const isPlainTextControl = and(
   not(or(isEnumControl, isOneOfEnumControl, isMultiLineControl, isDateControl, isDateTimeControl)),
 )
 
-export const entry: JsonFormsRendererRegistryEntry = {
-  renderer: FieldControl,
-  tester: rankWith(3, or(isTimeControl, isPlainTextControl, isNumberControl, isIntegerControl)),
-}
+export const tester: RankedTester = rankWith(3, or(isTimeControl, isPlainTextControl, isNumberControl, isIntegerControl))
 </script>

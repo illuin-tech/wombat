@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { parentEnvironmentRemoved, type SimulationInfo, type SimulationSummary } from '@/domain/simulation'
+import { sourceEnvironmentRemoved, type SimulationInfo, type SimulationSummary } from '@/domain/simulation'
 import { errorText } from '@/services/api/client'
 import { fetchSimulations } from '@/services/api/simulations'
 import { can } from '@/services/auth/permissions'
@@ -37,7 +37,7 @@ onMounted(() => listing.run())
 
 <template>
   <div class="main">
-    <div class="env-list-head">
+    <div class="list-head">
       <PageHead title="Simulations" description="A sandbox for estimating system impacts, you can work from copies of real assets or definitions written from scratch." />
       <RouterLink v-if="canManage" class="btn-apply btn-link" :to="{ name: 'simulation-create' }" id="newSimulation">New simulation</RouterLink>
     </div>
@@ -48,7 +48,7 @@ onMounted(() => listing.run())
       <template #controls>
         <input v-model="search" type="search" class="search-input" placeholder="Filter by name" aria-label="Filter simulations by name" />
       </template>
-      <table class="env-table">
+      <table class="record-table">
         <thead><tr><th>Name</th><th>Source environment</th><th>Assets</th><th>Updated</th><th></th></tr></thead>
         <tbody>
           <template v-if="listing.loading.value && !listing.data.value">
@@ -60,23 +60,23 @@ onMounted(() => listing.run())
             <tr
               v-for="simulation in shown"
               :key="simulation.id"
-              class="env-row"
+              class="record-row"
               tabindex="0"
               @click="open(simulation)"
               @keydown.enter="open(simulation)"
             >
               <td class="name">
-                <span class="env-row-name">{{ simulation.name }}</span>
-                <code class="env-row-id">{{ simulation.id }}</code>
+                <span class="record-row-name">{{ simulation.name }}</span>
+                <code class="record-id">{{ simulation.id }}</code>
               </td>
               <td>
-                <span v-if="parentEnvironmentRemoved(simulation)" class="env-row-none">Source environment removed</span>
-                <span v-else-if="simulation.parentEnvironmentName">{{ simulation.parentEnvironmentName }}</span>
-                <span v-else class="env-row-none">None</span>
+                <span v-if="sourceEnvironmentRemoved(simulation)" class="record-row-none">Source environment removed</span>
+                <span v-else-if="simulation.sourceEnvironmentName">{{ simulation.sourceEnvironmentName }}</span>
+                <span v-else class="record-row-none">None</span>
               </td>
               <td>{{ simulation.assetCount }}</td>
               <td><TimestampInfo :updated-at="simulation.updatedAt" /></td>
-              <td class="env-row-actions">
+              <td class="record-row-actions">
                 <button v-if="canManage" class="btn-link-inline sim-duplicate-action" type="button" @click.stop="duplicated = simulation">Duplicate</button>
               </td>
             </tr>

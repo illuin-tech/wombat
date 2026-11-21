@@ -64,9 +64,9 @@ describe('EnvironmentsPage', () => {
   it('lists environments with their status, lock and asset counts', async () => {
     await render(['ui.environments.read'])
 
-    const rows = wrapper.findAll('.env-row')
-    expect(rows.map(row => row.find('.env-row-id').text())).toEqual(['lab', 'preprod'])
-    expect(rows[0].find('.env-status').text()).toBe('Disabled')
+    const rows = wrapper.findAll('.record-row')
+    expect(rows.map(row => row.find('.record-id').text())).toEqual(['lab', 'preprod'])
+    expect(rows[0].find('.status-chip').text()).toBe('Disabled')
     expect(rows[1].find('.lock-badge').exists()).toBe(true)
     expect(rows[1].find('.asset-type-tag.llm').text()).toBe('2')
   })
@@ -74,7 +74,7 @@ describe('EnvironmentsPage', () => {
   it('only links live environments to the dashboard', async () => {
     await render(['ui.environments.read'])
 
-    const [lab, preprod] = wrapper.findAll('.env-row')
+    const [lab, preprod] = wrapper.findAll('.record-row')
     expect(lab.find('.dashboard-link').classes()).toContain('disabled')
     expect(preprod.find('a.dashboard-link').attributes('href')).toBe('/impact/preprod')
   })
@@ -83,7 +83,7 @@ describe('EnvironmentsPage', () => {
     await render(['ui.environments.read'])
 
     await wrapper.find('.search-input').setValue('pre')
-    expect(wrapper.findAll('.env-row')).toHaveLength(1)
+    expect(wrapper.findAll('.record-row')).toHaveLength(1)
     await wrapper.find('.search-input').setValue('nothing like it')
     expect(wrapper.find('.table-empty').text()).toBe('No environment matches these filters.')
   })
@@ -91,7 +91,7 @@ describe('EnvironmentsPage', () => {
   it('opens an environment from its row', async () => {
     await render(['ui.environments.read'])
 
-    await wrapper.findAll('.env-row')[1].trigger('click')
+    await wrapper.findAll('.record-row')[1].trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.fullPath).toBe('/environments/preprod')
   })

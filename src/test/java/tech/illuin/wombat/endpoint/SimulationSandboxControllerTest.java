@@ -15,8 +15,8 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -54,7 +54,7 @@ class SimulationSandboxControllerTest
             .body("payload.name", is("Sim controller"))
             .body("payload.description", is("Described"))
             .body("payload.referenceWindow", is("MONTH"))
-            .body("payload.parentEnvironmentId", nullValue())
+            .body("payload.sourceEnvironmentId", nullValue())
             .body("payload.createdAt", notNullValue())
             .body("payload.assets", empty());
 
@@ -81,33 +81,33 @@ class SimulationSandboxControllerTest
     }
 
     @Test
-    void create_copiesThePickedAssetsOfTheParentEnvironment()
+    void create_copiesThePickedAssetsOfTheSourceEnvironment()
     {
-        this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("test-llm")))
+        this.create(CREATED, Map.of("sourceEnvironmentId", "test", "assetIds", List.of("test-llm")))
             .then()
             .statusCode(201)
-            .body("payload.parentEnvironmentId", is("test"))
-            .body("payload.parentEnvironmentName", is("test"))
+            .body("payload.sourceEnvironmentId", is("test"))
+            .body("payload.sourceEnvironmentName", is("test"))
             .body("payload.assets", hasSize(1))
             .body("payload.assets[0].id", is("test-llm"))
             .body("payload.assets[0].simulationId", is(CREATED))
-            .body("payload.assets[0].environmentId", is("simulation:" + CREATED))
+            .body("payload.assets[0]", not(hasKey("environmentId")))
             .body("payload.assets[0].name", is("test-llm"))
-            .body("payload.assets[0].parentAssetId", is("test-llm"))
-            .body("payload.assets[0].parentEnvironmentId", is("test"))
-            .body("payload.assets[0].parentStatus", is("in-sync"))
-            .body("payload.assets[0].syncedAt", notNullValue())
+            .body("payload.assets[0].source.assetId", is("test-llm"))
+            .body("payload.assets[0].source.environmentId", is("test"))
+            .body("payload.assets[0].source.status", is("in-sync"))
+            .body("payload.assets[0].source.syncedAt", notNullValue())
             .body("payload.assets[0].profile.models[0].model", is("mistral-large-latest"));
 
         given().when().get("/api/simulation/sandbox").then().statusCode(200)
             .body("payload.find { it.id == '" + CREATED + "' }.assetCount", is(1))
-            .body("payload.find { it.id == '" + CREATED + "' }.parentEnvironmentName", is("test"));
+            .body("payload.find { it.id == '" + CREATED + "' }.sourceEnvironmentName", is("test"));
     }
 
     @Test
     void create_isAllOrNothing()
     {
-        this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("test-llm", "does-not-exist"))).then().statusCode(404);
+        this.create(CREATED, Map.of("sourceEnvironmentId", "test", "assetIds", List.of("test-llm", "does-not-exist"))).then().statusCode(404);
 
         given().when().get("/api/simulation/sandbox/" + CREATED).then().statusCode(404);
     }
@@ -122,10 +122,10 @@ class SimulationSandboxControllerTest
     }
 
     @Test
-    void create_unknownParent_returns404()
+    void create_unknownSource_returns404()
     {
-        this.create(CREATED, Map.of("parentEnvironmentId", "does-not-exist")).then().statusCode(404);
-        this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("does-not-exist"))).then().statusCode(404);
+        this.create(CREATED, Map.of("sourceEnvironmentId", "does-not-exist")).then().statusCode(404);
+        this.create(CREATED, Map.of("sourceEnvironmentId", "test", "assetIds", List.of("does-not-exist"))).then().statusCode(404);
     }
 
     @Test
@@ -145,9 +145,9 @@ class SimulationSandboxControllerTest
     }
 
     @Test
-    void duplicate_keepsTheAssets_theirIdsAndParents()
+    void duplicate_keepsTheAssets_theirIdsAndSources()
     {
-        this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("test-llm", "test-cluster"), "notes", "Noted")).then().statusCode(201);
+        this.create(CREATED, Map.of("sourceEnvironmentId", "test", "assetIds", List.of("test-llm", "test-cluster"), "notes", "Noted")).then().statusCode(201);
 
         given().contentType(ContentType.JSON)
             .body(Map.of("id", DUPLICATED, "name", "Sim controller (copy)"))
@@ -158,11 +158,11 @@ class SimulationSandboxControllerTest
             .body("payload.name", is("Sim controller (copy)"))
             .body("payload.description", is("Described"))
             .body("payload.notes", is("Noted"))
-            .body("payload.parentEnvironmentId", is("test"))
+            .body("payload.sourceEnvironmentId", is("test"))
             .body("payload.assets.id", is(List.of("test-cluster", "test-llm")))
-            .body("payload.assets.environmentId", is(List.of("simulation:" + DUPLICATED, "simulation:" + DUPLICATED)))
-            .body("payload.assets.parentAssetId", is(List.of("test-cluster", "test-llm")))
-            .body("payload.assets.parentStatus", is(List.of("in-sync", "in-sync")));
+            .body("payload.assets.simulationId", is(List.of(DUPLICATED, DUPLICATED)))
+            .body("payload.assets.source.assetId", is(List.of("test-cluster", "test-llm")))
+            .body("payload.assets.source.status", is(List.of("in-sync", "in-sync")));
 
         given().contentType(ContentType.JSON)
             .body(Map.of("id", DUPLICATED, "name", "Again"))
@@ -177,7 +177,7 @@ class SimulationSandboxControllerTest
     @Test
     void delete_removesTheAssets()
     {
-        this.create(CREATED, Map.of("parentEnvironmentId", "test", "assetIds", List.of("test-llm"))).then().statusCode(201);
+        this.create(CREATED, Map.of("sourceEnvironmentId", "test", "assetIds", List.of("test-llm"))).then().statusCode(201);
 
         given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(204);
 
@@ -198,9 +198,13 @@ class SimulationSandboxControllerTest
             .body("paths.'/api/simulation/sandbox/{id}/evaluation'.post.requestBody.required", is(false))
             .body("components.schemas.SimulationEvaluation.properties.keySet()", hasItems("window", "factors", "totals", "assets"))
             /* A result is an impact or a cost, told apart by the type the mapper serves */
-            .body("components.schemas.AssetEvaluation.'$ref'", is("#/components/schemas/AssetEvaluationSchema"))
-            .body("components.schemas.AssetImpact.properties.type.enum", contains("IMPACT"))
-            .body("components.schemas.AssetCost.required", hasItem("type"));
+            .body("components.schemas.AssetResult.properties.result.items.'$ref'", is("#/components/schemas/AssetEvaluationSchema"))
+            .body("components.schemas.AssetImpact.properties.keySet()", hasItem("type"))
+            .body("components.schemas.AssetCost.properties.keySet()", hasItem("type"))
+            .body("components.schemas.SimulationAssetInfo.properties.keySet()", hasItem("source"))
+            /* A cost is in a currency, served as its code */
+            .body("components.schemas.Scaled.properties.cost.items.'$ref'", is("#/components/schemas/Money"))
+            .body("components.schemas.Currency.type", is("string"));
     }
 
     private io.restassured.response.Response create(String id, Map<String, Object> extra)

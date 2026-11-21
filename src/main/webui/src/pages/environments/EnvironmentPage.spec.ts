@@ -106,11 +106,11 @@ describe('EnvironmentPage', () => {
   it('shows the environment read only to readers', async () => {
     await render('/environments/lab', READER)
 
-    expect(wrapper.find('.env-name-input').exists()).toBe(false)
+    expect(wrapper.find('.record-name-input').exists()).toBe(false)
     expect(wrapper.find('h2.page-title').text()).toBe('Lab')
     await vi.waitFor(() => expect(wrapper.find('.markdown-view strong').text()).toBe('lab'))
     expect(wrapper.find('.toggle-switch').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('.env-delete').exists()).toBe(false)
+    expect(wrapper.find('.record-delete').exists()).toBe(false)
     expect(wrapper.find('.asset-card-add').exists()).toBe(false)
     expect(wrapper.findAll('.asset-card')).toHaveLength(1)
   })
@@ -118,8 +118,8 @@ describe('EnvironmentPage', () => {
   it('locks provisioned environments, even for admins', async () => {
     await render('/environments/preprod', ADMIN)
 
-    expect(wrapper.find('.env-id-line .lock-badge').exists()).toBe(true)
-    expect(wrapper.find('.env-name-input').exists()).toBe(false)
+    expect(wrapper.find('.record-id-line .lock-badge').exists()).toBe(true)
+    expect(wrapper.find('.record-name-input').exists()).toBe(false)
     expect(wrapper.find('.asset-card-add').exists()).toBe(false)
   })
 
@@ -128,20 +128,20 @@ describe('EnvironmentPage', () => {
     await render('/environments/lab', ADMIN)
     vi.useFakeTimers()
 
-    await wrapper.find('.env-name-input').setValue('Laboratory')
+    await wrapper.find('.record-name-input').setValue('Laboratory')
     await wrapper.find('.toggle-switch').trigger('click')
-    expect(wrapper.find('.env-save-status').text()).toBe('Unsaved changes')
+    expect(wrapper.find('.save-status').text()).toBe('Unsaved changes')
     await vi.advanceTimersByTimeAsync(1500)
 
     expect(updateEnvironment).toHaveBeenCalledExactlyOnceWith('lab', { name: 'Laboratory', description: 'A **lab**', disabled: true })
-    expect(wrapper.find('.env-save-status').text()).toBe('All changes saved')
+    expect(wrapper.find('.save-status').text()).toBe('All changes saved')
   })
 
   it('does not save a blank name', async () => {
     await render('/environments/lab', ADMIN)
     vi.useFakeTimers()
 
-    await wrapper.find('.env-name-input').setValue('  ')
+    await wrapper.find('.record-name-input').setValue('  ')
     await vi.advanceTimersByTimeAsync(2000)
 
     expect(updateEnvironment).not.toHaveBeenCalled()
@@ -150,15 +150,15 @@ describe('EnvironmentPage', () => {
 
   it('only deletes environments without assets', async () => {
     await render('/environments/lab', ADMIN)
-    expect(wrapper.find('.env-delete').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('.env-delete-wrapper').attributes('title')).toBe('Delete its 1 asset first to delete this environment')
+    expect(wrapper.find('.record-delete').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.record-delete-wrapper').attributes('title')).toBe('Delete its 1 asset first to delete this environment')
     expect(wrapper.text()).not.toContain('Delete its')
     wrapper.unmount()
 
     await render('/environments/empty', ADMIN)
-    expect(wrapper.find('.env-delete').attributes('disabled')).toBeUndefined()
-    expect(wrapper.find('.env-delete-wrapper').attributes('title')).toBeUndefined()
-    await wrapper.find('.env-delete').trigger('click')
+    expect(wrapper.find('.record-delete').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('.record-delete-wrapper').attributes('title')).toBeUndefined()
+    await wrapper.find('.record-delete').trigger('click')
     const confirm = document.querySelector<HTMLButtonElement>('.confirm-delete-submit')!
     expect(confirm.disabled).toBe(true)
     const input = document.querySelector<HTMLInputElement>('.confirm-delete-input')!
@@ -173,8 +173,8 @@ describe('EnvironmentPage', () => {
     await render('/environments/new', ADMIN)
 
     expect(wrapper.find('.asset-grid').exists()).toBe(false)
-    await wrapper.find('.env-name-input').setValue('My Lab')
-    expect((wrapper.find('.env-id-field input').element as HTMLInputElement).value).toBe('my-lab')
+    await wrapper.find('.record-name-input').setValue('My Lab')
+    expect((wrapper.find('.record-id-field input').element as HTMLInputElement).value).toBe('my-lab')
     await wrapper.find('#createEnvironment').trigger('click')
     await flushPromises()
 

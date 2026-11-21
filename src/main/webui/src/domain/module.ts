@@ -7,7 +7,7 @@ export interface ModuleMetadata {
   assetClass: string | null
   /** Disabled modules accept assets, but their metrics are skipped. */
   enabled: boolean
-  /** Simulated types only exist within simulation requests. */
+  /** Simulated types only exist within simulation requests. A simulation holds the same types, and relies on it. */
   creatable: boolean
 }
 

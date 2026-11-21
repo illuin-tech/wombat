@@ -5,15 +5,23 @@ import type { AssetFields } from '@/services/api/assets'
 /** What the editor saves: `notes` only when it edits them. */
 export type AssetEditorFields = AssetFields & { notes?: string | null }
 
-/** What the editor saves through, so that it serves whatever holds the assets. */
-export interface AssetEditorAdapter {
-  create: (body: AssetEditorFields & { id: string; type: string }) => Promise<AssetInfo>
-  update: (id: string, body: AssetEditorFields) => Promise<AssetInfo>
+/** Whatever holds the assets, e.g. an environment or a simulation: what its assets have, and how they are saved. */
+export interface AssetEditorAdapter<T extends AssetInfo = AssetInfo> {
+  create: (body: AssetEditorFields & { id: string; type: string }) => Promise<T>
+  update: (id: string, body: AssetEditorFields) => Promise<T>
   remove: (id: string) => Promise<void>
+  /** The fields the holder adds to its assets' records, which are not properties. */
+  recordFields: ReadonlySet<string>
+  /** Whether an asset can be made inactive, as a monitored one can. */
+  activeToggle: boolean
+  /** Whether an asset has long-form notes. */
+  notes: boolean
+  /** What deleting an asset entails. */
+  deleteNotice: string
 }
 </script>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends AssetInfo">
 import { computed, provide, ref, shallowRef, watch } from 'vue'
 import { FAMILIES, FAMILY_ORDER } from '@/domain/assetTypeDisplay'
 import { assetTypeName, displayName } from '@/domain/environment'
@@ -45,28 +53,18 @@ import {
 import { useIdFromName } from '@/services/tools/useIdFromName'
 
 /** Shows an asset, edits it when allowed, or creates one when `asset` is null. The `notice` slot heads the form. */
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   open: boolean
-  adapter: AssetEditorAdapter
+  adapter: AssetEditorAdapter<T>
   /** Null to create an asset. */
-  asset: AssetInfo | null
+  asset: T | null
   modules: ModuleMetadata[]
   /** Whether the user may edit assets, and the asset is not provisioned. */
   canEdit: boolean
   /** Whether the user may check secret names against the server. */
   canCheckSecrets: boolean
-  /** Whether the asset can be made inactive, as a monitored one can. */
-  activeToggle?: boolean
-  /** Whether the asset has long-form notes. */
-  withNotes?: boolean
-  /** What deleting the asset entails. */
-  deleteNotice?: string
-}>(), {
-  activeToggle: true,
-  withNotes: false,
-  deleteNotice: 'The asset stops being monitored and leaves the dashboard; its past metrics are kept.',
-})
-const emit = defineEmits<{ close: []; saved: [asset: AssetInfo]; deleted: [id: string] }>()
+}>()
+const emit = defineEmits<{ close: []; saved: [asset: T]; deleted: [id: string] }>()
 
 const creating = computed(() => props.asset === null)
 const typeName = ref<string | null>(null)
@@ -120,10 +118,14 @@ const dirty = computed(() => {
   const asset = props.asset!
   return name.value !== displayName(asset)
     || description.value !== (asset.description ?? '')
-    || notes.value !== (asset.notes ?? '')
+    || notes.value !== notesOf(asset)
     || active.value !== !asset.disabledAt
     || !isSameProperties(properties.value, initialProperties.value)
 })
+
+function notesOf(asset: T | null): string {
+  return typeof asset?.notes === 'string' ? asset.notes : ''
+}
 
 /* Without the permission, secret names are not checked rather than refused */
 if (props.canCheckSecrets) provide(SECRET_CHECKER_KEY, async key => (await checkSecretKey(key)).exists)
@@ -137,9 +139,9 @@ watch(() => [props.open, props.asset] as const, ([open, asset]) => {
   resetId(asset?.id ?? '')
   name.value = asset ? displayName(asset) : ''
   description.value = asset?.description ?? ''
-  notes.value = asset?.notes ?? ''
+  notes.value = notesOf(asset)
   active.value = !asset?.disabledAt
-  const initial = asset ? toAssetProperties(asset) : {}
+  const initial = asset ? toAssetProperties(asset, props.adapter.recordFields) : {}
   properties.value = initial
   initialProperties.value = initial
   validity.value = { valid: true, errors: [] }
@@ -186,7 +188,7 @@ async function save(): Promise<void> {
     description: description.value.trim() || null,
     disabled: !active.value,
     properties: properties.value,
-    ...(props.withNotes ? { notes: notes.value.trim() || null } : {}),
+    ...(props.adapter.notes ? { notes: notes.value.trim() || null } : {}),
   }
   try {
     const saved = creating.value
@@ -245,7 +247,7 @@ async function remove(): Promise<void> {
           <AssetTypeTag v-if="module" :family="module.type.family" />
           <code class="asset-card-id">{{ typeName ?? 'Unknown type' }}</code>
           <LockBadge v-if="asset && readonly && asset.provisioned" />
-          <span v-if="module && !module.enabled" class="env-status disabled">Module disabled</span>
+          <span v-if="module && !module.enabled" class="status-chip">Module disabled</span>
           <button v-if="creating" class="btn-link-inline" type="button" @click="selectType(null)">Change type</button>
         </div>
 
@@ -274,11 +276,11 @@ async function remove(): Promise<void> {
             />
             <span v-if="descriptionProblem" class="form-error">{{ descriptionProblem }}</span>
           </div>
-          <div v-if="withNotes" class="form-field asset-editor-description">
+          <div v-if="adapter.notes" class="form-field asset-editor-description">
             <CollapsibleNotes v-model="notes" :maxlength="NOTES_MAX_LENGTH" :disabled="readonly" />
             <span v-if="notesProblem" class="form-error">{{ notesProblem }}</span>
           </div>
-          <ToggleSwitch v-if="activeToggle" v-model="active" label="Active" :disabled="readonly" />
+          <ToggleSwitch v-if="adapter.activeToggle" v-model="active" label="Active" :disabled="readonly" />
         </div>
 
         <AssetFormPlaceholder v-if="schemaLoading" />
@@ -323,7 +325,7 @@ async function remove(): Promise<void> {
     @close="confirmingDelete = false"
     @confirm="remove"
   >
-    {{ deleteNotice }}
+    {{ adapter.deleteNotice }}
   </ConfirmDeleteDialog>
 
   <ConfirmDialog :open="confirmingDiscard" title="Discard the changes?" confirm-label="Discard" @close="confirmingDiscard = false" @confirm="discard">

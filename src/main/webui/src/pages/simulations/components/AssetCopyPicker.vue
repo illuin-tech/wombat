@@ -42,7 +42,7 @@ const groups = computed(() => {
         >
           <span>{{ displayName(candidate.asset) }}</span>
           <code class="asset-card-id">{{ candidate.asset.id }}</code>
-          <span v-if="candidate.blocked" class="env-status disabled">{{ candidate.blocked }}</span>
+          <span v-if="candidate.blocked" class="status-chip">{{ candidate.blocked }}</span>
         </button>
       </section>
     </div>

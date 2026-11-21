@@ -24,6 +24,7 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -32,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Copies either the provisioned {@code test-llm}, or {@code sim-asset-parent}: an asset created here, which can be
+ * Copies either the provisioned {@code test-llm}, or {@code sim-asset-source}: an asset created here, which can be
  * edited and deleted.
  */
 @QuarkusTest
@@ -41,7 +42,7 @@ class SimulationSandboxAssetControllerTest
     private static final String SIMULATION = "sim-asset-controller";
     private static final String OTHER_SIMULATION = "sim-asset-controller-other";
     private static final String ENVIRONMENT = "sim-asset-env";
-    private static final String PARENT = "sim-asset-parent";
+    private static final String SOURCE = "sim-asset-source";
     private static final String TYPE = LLMStaticModule.TYPE.name();
 
     @Inject SimulationRepository simulations;
@@ -64,7 +65,7 @@ class SimulationSandboxAssetControllerTest
     void clean()
     {
         SimulationSandboxControllerTest.clean(this.simulations, this.simulationAssets, List.of(SIMULATION, OTHER_SIMULATION));
-        ContextControllerCleanup.clean(this.environments, this.assets, this.history, List.of(ENVIRONMENT), List.of(PARENT));
+        ContextControllerCleanup.clean(this.environments, this.assets, this.history, List.of(ENVIRONMENT), List.of(SOURCE));
     }
 
     @Test
@@ -75,13 +76,12 @@ class SimulationSandboxAssetControllerTest
             .statusCode(201)
             .body("payload.id", is("scratch"))
             .body("payload.simulationId", is(SIMULATION))
-            .body("payload.environmentId", is("simulation:" + SIMULATION))
+            .body("payload", not(hasKey("environmentId")))
             .body("payload.type", is(TYPE))
             .body("payload.name", is("From scratch"))
             .body("payload.notes", is("Noted"))
-            .body("payload.parentAssetId", nullValue())
-            .body("payload.parentStatus", nullValue())
-            .body("payload.syncedAt", nullValue());
+            .body("payload.source", nullValue())
+            .body("payload.source", nullValue());
 
         Map<String, Object> properties = this.properties("mistral-small-latest");
         given().contentType(ContentType.JSON)
@@ -149,79 +149,84 @@ class SimulationSandboxAssetControllerTest
     }
 
     @Test
-    void copy_takesTheParentsTypeAndProperties_underAnIdOfItsOwn()
+    void copy_takesTheSourcesTypeAndProperties_underAnIdOfItsOwn()
     {
-        this.copy(Map.of("parentAssetId", "test-llm"))
+        this.copy(Map.of("sourceAssetId", "test-llm"))
             .then()
             .statusCode(201)
             .body("payload.id", is("test-llm"))
-            .body("payload.environmentId", is("simulation:" + SIMULATION))
+            .body("payload", not(hasKey("environmentId")))
             .body("payload.type", is(TYPE))
-            .body("payload.parentAssetId", is("test-llm"))
-            .body("payload.parentEnvironmentId", is("test"))
-            .body("payload.parentStatus", is("in-sync"))
-            .body("payload.syncedAt", notNullValue())
+            .body("payload.source.assetId", is("test-llm"))
+            .body("payload.source.environmentId", is("test"))
+            .body("payload.source.status", is("in-sync"))
+            .body("payload.source.syncedAt", notNullValue())
             .body("payload.profile.models[0].model", is("mistral-large-latest"));
 
-        this.copy(Map.of("parentAssetId", "test-llm")).then().statusCode(201).body("payload.id", is("test-llm-2"));
-        this.copy(Map.of("parentAssetId", "test-llm", "id", "test-llm")).then().statusCode(409);
+        this.copy(Map.of("sourceAssetId", "test-llm")).then().statusCode(201).body("payload.id", is("test-llm-2"));
+        this.copy(Map.of("sourceAssetId", "test-llm", "id", "test-llm")).then().statusCode(409);
     }
 
     @Test
     void copy_editedBeforeItsFirstSave_hasDiverged()
     {
-        this.copy(Map.of("parentAssetId", "test-llm", "properties", this.properties("mistral-small-latest")))
+        this.copy(Map.of("sourceAssetId", "test-llm", "properties", this.properties("mistral-small-latest")))
             .then()
             .statusCode(201)
-            .body("payload.parentStatus", is("diverged"))
+            .body("payload.source.status", is("diverged"))
             .body("payload.profile.models[0].model", is("mistral-small-latest"));
     }
 
     @Test
     void copy_invalid()
     {
-        this.copy(Map.of("parentAssetId", "does-not-exist")).then().statusCode(404);
-        this.copy(Map.of("parentAssetId", "test-llm", "type", "tech.illuin.wombat-module.kubernetes-api")).then().statusCode(400);
-        given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "parentAssetId", "test-llm"))
+        this.copy(Map.of("sourceAssetId", "does-not-exist")).then().statusCode(404);
+        this.copy(Map.of("sourceAssetId", "test-llm", "type", "tech.illuin.wombat-module.kubernetes-api")).then().statusCode(400);
+        given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "sourceAssetId", "test-llm"))
             .when().post("/api/simulation/sandbox/does-not-exist/assets")
             .then().statusCode(404);
     }
 
     @Test
-    void parentStatus_followsEitherSide_andSyncTakesTheParentBack()
+    void sourceStatus_followsEitherSide_andSyncTakesTheSourceBack()
     {
-        this.createParent();
-        this.copy(Map.of("parentAssetId", PARENT)).then().statusCode(201).body("payload.parentStatus", is("in-sync"));
+        this.createSource();
+        given().contentType(ContentType.JSON).body(Map.of("sourceAssetId", SOURCE)).when().post(this.path(""))
+            .then()
+            .statusCode(201)
+            .body("payload.source.status", is("in-sync"))
+            .body("payload.name", is("Asset controller LLM"))
+            .body("payload.description", is("Described"));
 
         given().contentType(ContentType.JSON)
             .body(Map.of("name", "Copy", "properties", this.properties("mistral-small-latest")))
-            .when().put(this.path(PARENT))
-            .then().statusCode(200).body("payload.parentStatus", is("diverged"));
+            .when().put(this.path(SOURCE))
+            .then().statusCode(200).body("payload.source.status", is("diverged"));
 
-        String syncedAt = given().when().post(this.path(PARENT + "/sync"))
+        String syncedAt = given().when().post(this.path(SOURCE + "/sync"))
             .then()
             .statusCode(200)
-            .body("payload.parentStatus", is("in-sync"))
+            .body("payload.source.status", is("in-sync"))
             .body("payload.profile.models[0].model", is("mistral-large-latest"))
-            .extract().path("payload.syncedAt");
+            .extract().path("payload.source.syncedAt");
 
         given().contentType(ContentType.JSON)
-            .body(Map.of("name", "Parent", "properties", this.properties("open-mistral-nemo")))
-            .when().put("/api/assets/" + PARENT)
+            .body(Map.of("name", "Source", "properties", this.properties("open-mistral-nemo")))
+            .when().put("/api/assets/" + SOURCE)
             .then().statusCode(200);
-        given().when().get(this.path(PARENT)).then().statusCode(200)
-            .body("payload.parentStatus", is("diverged"))
-            .body("payload.syncedAt", is(syncedAt));
+        given().when().get(this.path(SOURCE)).then().statusCode(200)
+            .body("payload.source.status", is("diverged"))
+            .body("payload.source.syncedAt", is(syncedAt));
 
-        given().when().delete("/api/assets/" + PARENT).then().statusCode(204);
-        given().when().get(this.path(PARENT)).then().statusCode(200)
-            .body("payload.parentStatus", is("parent-removed"))
+        given().when().delete("/api/assets/" + SOURCE).then().statusCode(204);
+        given().when().get(this.path(SOURCE)).then().statusCode(200)
+            .body("payload.source.status", is("source-removed"))
             .body("payload.profile.models[0].model", is("mistral-large-latest"));
-        given().when().post(this.path(PARENT + "/sync")).then().statusCode(409);
+        given().when().post(this.path(SOURCE + "/sync")).then().statusCode(409);
     }
 
     @Test
-    void sync_withoutParent_returns409()
+    void sync_withoutSource_returns409()
     {
         this.createFromScratch("scratch").then().statusCode(201);
 
@@ -240,7 +245,7 @@ class SimulationSandboxAssetControllerTest
     @Test
     void simulationAssets_neverReachTheMonitoredContext()
     {
-        this.copy(Map.of("parentAssetId", "test-llm", "id", "sim-only")).then().statusCode(201);
+        this.copy(Map.of("sourceAssetId", "test-llm", "id", "sim-only")).then().statusCode(201);
 
         given().when().get("/api/assets").then().statusCode(200).body("payload.id", not(hasItem("sim-only")));
         given().when().get("/api/environments").then().statusCode(200).body("payload.id", not(hasItem("simulation:" + SIMULATION)));
@@ -258,11 +263,11 @@ class SimulationSandboxAssetControllerTest
         return given().contentType(ContentType.JSON).body(body).when().post(this.path(""));
     }
 
-    private void createParent()
+    private void createSource()
     {
         given().contentType(ContentType.JSON).body(Map.of("id", ENVIRONMENT, "name", "Sim asset env")).when().post("/api/environments").then().statusCode(201);
         given().contentType(ContentType.JSON)
-            .body(AssetControllerTest.createBody(PARENT, ENVIRONMENT, this.properties("mistral-large-latest")))
+            .body(AssetControllerTest.createBody(SOURCE, ENVIRONMENT, this.properties("mistral-large-latest")))
             .when().post("/api/assets")
             .then().statusCode(201);
     }

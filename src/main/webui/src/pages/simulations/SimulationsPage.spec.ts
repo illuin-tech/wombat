@@ -21,8 +21,8 @@ const MANAGER = ['ui.simulations.read', 'ui.simulations.manage', 'api.simulation
 const READER = ['ui.simulations.read']
 
 const simulations: SimulationSummary[] = [
-  { id: 'bigger', name: 'Bigger cluster', referenceWindow: 'MONTH', parentEnvironmentId: 'prod', parentEnvironmentName: 'Production', assetCount: 2 },
-  { id: 'orphan', name: 'Orphan', referenceWindow: 'MONTH', parentEnvironmentId: 'gone', parentEnvironmentName: null, assetCount: 1 },
+  { id: 'bigger', name: 'Bigger cluster', referenceWindow: 'MONTH', sourceEnvironmentId: 'prod', sourceEnvironmentName: 'Production', assetCount: 2 },
+  { id: 'orphan', name: 'Orphan', referenceWindow: 'MONTH', sourceEnvironmentId: 'gone', sourceEnvironmentName: null, assetCount: 1 },
   { id: 'scratch', name: 'Scratch', referenceWindow: 'YEAR', assetCount: 0 },
 ]
 
@@ -58,8 +58,8 @@ describe('SimulationsPage', () => {
   it('lists the simulations with their source environment, and filters them', async () => {
     await render(READER)
 
-    const rows = wrapper.findAll('.env-row')
-    expect(rows.map(row => row.find('.env-row-name').text())).toEqual(['Bigger cluster', 'Orphan', 'Scratch'])
+    const rows = wrapper.findAll('.record-row')
+    expect(rows.map(row => row.find('.record-row-name').text())).toEqual(['Bigger cluster', 'Orphan', 'Scratch'])
     expect(rows[0].text()).toContain('Production')
     expect(rows[1].text()).toContain('Source environment removed')
     expect(rows[2].text()).toContain('None')
@@ -67,13 +67,13 @@ describe('SimulationsPage', () => {
     expect(wrapper.find('.sim-duplicate-action').exists()).toBe(false)
 
     await wrapper.find('.search-input').setValue('prod')
-    expect(wrapper.findAll('.env-row')).toHaveLength(1)
+    expect(wrapper.findAll('.record-row')).toHaveLength(1)
   })
 
   it('opens a simulation', async () => {
     await render(READER)
 
-    await wrapper.findAll('.env-row')[2].trigger('click')
+    await wrapper.findAll('.record-row')[2].trigger('click')
     await flushPromises()
 
     expect(router.currentRoute.value.fullPath).toBe('/simulations/scratch')

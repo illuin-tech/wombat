@@ -23,20 +23,12 @@ export interface AssetRecord {
   updatedAt?: string | null
   disabledAt?: string | null
   deletedAt?: string | null
-  /* Those of an asset held by a simulation */
-  simulationId?: string
-  notes?: string | null
-  parentAssetId?: string | null
-  parentEnvironmentId?: string | null
-  parentStatus?: string | null
-  syncedAt?: string | null
 }
 
 /* A record, so that a field added to AssetRecord must be listed here */
 const RECORD_FIELDS: Record<keyof AssetRecord, true> = {
   id: true, name: true, environmentId: true, owner: true, type: true, uuid: true, description: true,
   provisioned: true, createdAt: true, updatedAt: true, disabledAt: true, deletedAt: true,
-  simulationId: true, notes: true, parentAssetId: true, parentEnvironmentId: true, parentStatus: true, syncedAt: true,
 }
 export const ASSET_RECORD_FIELDS: ReadonlySet<string> = new Set(Object.keys(RECORD_FIELDS))
 

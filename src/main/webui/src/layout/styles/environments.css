@@ -1,52 +1,7 @@
-/* ── Environments: listing and edition ── */
-/* Active/disabled pill */
-.env-status { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
-.env-status.active { background: var(--accent-green-soft); color: var(--accent-green); }
-.env-status.disabled { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
-
+/* ── Environments; their list and page use the record classes of components.css ── */
 /* Dashboard shortcut */
 .dashboard-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--accent-green); text-decoration: none; padding: 5px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); white-space: nowrap; transition: border-color 0.15s, background 0.15s; }
 .dashboard-link:hover { border-color: var(--accent-green); background: var(--surface2); }
 .dashboard-link.compact { padding: 5px 7px; }
 .dashboard-link.disabled { color: var(--text-dim); cursor: not-allowed; }
 .dashboard-link.disabled:hover { border-color: var(--border); background: none; }
-
-/* Listing */
-.env-list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.env-table .env-row { cursor: pointer; }
-.env-table .env-row:hover td, .env-table .env-row:focus-visible td { background: var(--surface2); }
-.env-table .env-row:focus-visible { outline: none; }
-.env-row-name { display: inline-flex; align-items: center; gap: 6px; }
-.env-row-id { display: block; font-family: monospace; font-size: 11px; font-weight: 400; color: var(--text-dim); margin-top: 2px; }
-.env-row-families { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.env-row-none { font-size: 12px; color: var(--text-dim); }
-.env-row-actions { text-align: right; }
-
-/* Edition */
-.env-back { font-size: 12px; font-weight: 600; color: var(--text-muted); text-decoration: none; }
-.env-back:hover { color: var(--accent-green); }
-.env-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 32px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; box-shadow: var(--shadow-sm); }
-.env-head-main { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.env-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; max-width: 300px; text-align: right; }
-.env-head-loading { display: flex; flex-direction: column; gap: 12px; }
-.env-head-foot { grid-column: 1 / -1; justify-self: end; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; }
-.env-title { display: block; }
-.env-name-input { width: 100%; font-family: var(--sans); font-size: 20px; font-weight: 700; color: var(--text); background: transparent; border: 1.5px solid transparent; border-radius: var(--radius-sm); padding: 4px 8px; margin-left: -9px; outline: none; transition: border-color 0.15s, background 0.15s; }
-.env-name-input:hover { border-color: var(--border); }
-.env-name-input:focus { border-color: var(--accent-green); background: var(--surface2); }
-.env-id-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.env-id-line .env-row-id { display: inline; margin: 0; font-size: 12px; }
-.env-id-field { max-width: 360px; }
-.env-description { display: flex; flex-direction: column; gap: 6px; }
-.env-delete-wrapper { display: inline-flex; }
-.env-delete-wrapper:has(.env-delete:disabled) { cursor: not-allowed; }
-.env-save-status { font-size: 12px; color: var(--text-dim); }
-.env-save-status.saved { color: var(--accent-green); }
-.env-save-status.error, .env-save-status.invalid { color: var(--accent-orange); }
-.env-assets .chart-title { margin-bottom: 12px; }
-
-@media (max-width: 800px) {
-  .env-head { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 18px; }
-  .env-head-side { align-items: flex-start; text-align: left; max-width: none; }
-  .env-head-foot { justify-self: start; justify-content: flex-start; }
-}

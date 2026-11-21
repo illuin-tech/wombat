@@ -13,19 +13,26 @@ import tech.illuin.wombat.core.activity.kubernetes.NoCPUUsageException;
 import tech.illuin.wombat.core.activity.llm.LLMActivityData;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
+import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation.EvaluationType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.cost.commons.AssetCost;
+import tech.illuin.wombat.core.evaluation.cost.commons.Money;
+import tech.illuin.wombat.core.evaluation.cost.commons.ServiceCost;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint.FootprintImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint.FootprintImpact.FootprintImpactItem;
 import tech.illuin.wombat.core.evaluation.impact.commons.ImpactProvider;
+import tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.engine.context.asset.AssetDefinitionReader;
 import tech.illuin.wombat.engine.context.asset.AssetValidator;
+import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistries;
 import tech.illuin.wombat.engine.module.runtime.CoreDeployment;
@@ -34,7 +41,11 @@ import tech.illuin.wombat.engine.simulation.SimulationAssetService;
 import tech.illuin.wombat.engine.simulation.SimulationPeriod;
 import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.AssetResult;
 import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.AssetStatus;
+import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.Scaled;
+import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.ScaledService;
 import tech.illuin.wombat.engine.simulation.persistence.SimulationAssetEntity;
+import tech.illuin.wombat.engine.simulation.persistence.SimulationAssetRepository;
+import tech.illuin.wombat.engine.simulation.persistence.SimulationRepository;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
@@ -88,11 +99,14 @@ class SimulationEvaluatorTest
         when(this.runtime.current()).thenReturn(new CoreDeployment(
             1, "id", List.of(new LLMStaticModule()), Set.of(), mock(AssetMonitor.class), mock(AssetEvaluator.class), this::newEvaluator, NOW
         ));
-        this.simulations = new SimulationEvaluator(this.runtime, reader(), MAPPER, Clock.fixed(NOW, ZoneOffset.UTC));
+        SimulationAssetService assets = new SimulationAssetService(
+            mock(SimulationAssetRepository.class), mock(SimulationRepository.class), mock(AssetRepository.class), reader(), MAPPER
+        );
+        this.simulations = new SimulationEvaluator(this.runtime, assets, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test
-    void aCopy_resolvesItsActivityUnderItsParentsIdentity_andItsImpactUnderItsOwn() throws Exception
+    void aCopy_resolvesItsActivityUnderItsSourcesIdentity_andItsImpactUnderItsOwn() throws Exception
     {
         SimulationEvaluation evaluation = this.simulations.evaluate(SIMULATION, List.of(copy("chatbot")), SimulationPeriod.MONTH, BOTH);
 
@@ -105,7 +119,7 @@ class SimulationEvaluatorTest
     }
 
     @Test
-    void anAssetWithoutParent_isResolvedUnderItsOwnIdentity() throws Exception
+    void anAssetWithoutSource_isResolvedUnderItsOwnIdentity() throws Exception
     {
         this.simulations.evaluate(SIMULATION, List.of(scratch("scratch")), SimulationPeriod.MONTH, BOTH);
 
@@ -209,6 +223,56 @@ class SimulationEvaluatorTest
     }
 
     @Test
+    void eachServicesFootprint_isScaled_andSummedOverTheEvaluations()
+    {
+        AssetIdentity identity = SimulationAssetService.identity(SIMULATION, "a", TYPE);
+        List<AssetEvaluation> evaluations = List.of(
+            new AssetImpact(identity, footprint(30), List.of(new Service("chat", footprint(20)), new Service("search", footprint(10))), ImpactProvider.ECOLOGITS, null),
+            new AssetImpact(identity, footprint(30), List.of(new Service("chat", footprint(30))), ImpactProvider.ECOLOGITS, null)
+        );
+
+        List<ScaledService> services = SimulationEvaluator.scale(evaluations, SimulationPeriod.MONTH, BOTH).get(SimulationPeriod.YEAR).services();
+
+        assertEquals(List.of("chat", "search"), services.stream().map(ScaledService::serviceId).toList());
+        assertEquals(50 * 365.0 / 30, gwp(services.getFirst().impact()), 1e-1);
+        assertEquals(LLMStaticModule.TYPE, services.getFirst().assetType());
+        /* Costed only, impacts name no service */
+        assertTrue(SimulationEvaluator.scale(evaluations, SimulationPeriod.MONTH, Set.of(EvaluationType.COST)).get(SimulationPeriod.YEAR).services().isEmpty());
+        assertNull(SimulationEvaluator.scale(evaluations, SimulationPeriod.MONTH, Set.of()).get(SimulationPeriod.YEAR).services());
+    }
+
+    @Test
+    void theWindowsCost_isScaledLikeItsFootprint_perServiceToo_andSummedPerCurrency()
+    {
+        SimulationEvaluation evaluation = this.simulations.evaluate(SIMULATION, List.of(scratch("a"), copy("b")), SimulationPeriod.MONTH, BOTH);
+
+        AssetResult first = evaluation.assets().getFirst();
+        assertEquals(List.of(Money.of(36.5, "EUR")), first.scaled().get(SimulationPeriod.YEAR).cost());
+        ScaledService chat = first.scaled().get(SimulationPeriod.YEAR).services().getFirst();
+        assertEquals("chat", chat.serviceId());
+        assertEquals(List.of(Money.of(36.5, "EUR")), chat.cost());
+        assertNull(chat.impact());
+        assertEquals(List.of(Money.of(0.2, "EUR")), evaluation.totals().get(SimulationPeriod.DAY).cost());
+
+        List<AssetEvaluation> mixed = List.of(
+            new AssetCost(AssetIdentity.of("a", "e", TYPE), Money.of(30, "EUR"), List.of(), null),
+            new AssetCost(AssetIdentity.of("a", "e", TYPE), Money.of(60, "USD"), List.of(), null)
+        );
+        assertEquals(List.of(Money.of(1, "EUR"), Money.of(2, "USD")), SimulationEvaluator.scale(mixed, SimulationPeriod.MONTH, BOTH).get(SimulationPeriod.DAY).cost());
+    }
+
+    @Test
+    void aCostThatPricesNothing_isEvaluated_withoutAmount()
+    {
+        List<AssetEvaluation> unpriced = List.of(new AssetCost(AssetIdentity.of("a", "e", TYPE), null, List.of(), null));
+
+        Scaled day = SimulationEvaluator.scale(unpriced, SimulationPeriod.MONTH, Set.of(EvaluationType.COST)).get(SimulationPeriod.DAY);
+
+        assertTrue(day.cost().isEmpty());
+        assertNull(day.impact());
+    }
+
+    @Test
     void coverage_isTheShareOfTheWindowsSlotsWithActivity()
     {
         this.coveredDays = 15;
@@ -264,7 +328,7 @@ class SimulationEvaluatorTest
             when(evaluator.computeCost(any(), any())).thenAnswer(invocation -> {
                 Asset asset = invocation.getArgument(0);
                 ActivityData data = invocation.getArgument(1);
-                return Optional.of(new AssetCost(asset.identity(), data.range()));
+                return Optional.of(new AssetCost(asset.identity(), Money.of(3, "EUR"), List.of(new Service("chat", null, Money.of(3, "EUR"))), data.range()));
             });
         }
         catch (Exception e) {
@@ -293,8 +357,8 @@ class SimulationEvaluatorTest
     private static SimulationAssetEntity copy(String id)
     {
         SimulationAssetEntity entity = scratch(id);
-        entity.parentAssetId = "real-chatbot";
-        entity.parentEnvironmentId = "prod";
+        entity.sourceAssetId = "real-chatbot";
+        entity.sourceEnvironmentId = "prod";
         return entity;
     }
 
@@ -319,6 +383,27 @@ class SimulationEvaluatorTest
             Validation.buildDefaultValidatorFactory().getValidator(),
             MAPPER
         );
+    }
+
+    /* A service of either kind: its footprint for an impact, its cost for a cost */
+    private record Service(String serviceId, Footprint footprint, Money cost) implements ServiceImpact, ServiceCost
+    {
+        Service(String serviceId, Footprint footprint)
+        {
+            this(serviceId, footprint, null);
+        }
+
+        @Override
+        public AssetProfile profile()
+        {
+            return null;
+        }
+
+        @Override
+        public AssetType assetType()
+        {
+            return LLMStaticModule.TYPE;
+        }
     }
 
     private sealed interface Failure

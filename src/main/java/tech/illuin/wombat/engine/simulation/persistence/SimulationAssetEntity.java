@@ -41,22 +41,22 @@ public class SimulationAssetEntity
     public String notes;
 
     /** The asset the definition was copied from, in any environment; it may have been deleted since. */
-    @Column(name = "parent_asset_id")
-    public String parentAssetId;
+    @Column(name = "source_asset_id")
+    public String sourceAssetId;
 
-    /** The parent's environment, as it was at copy time. */
-    @Column(name = "parent_environment_id")
-    public String parentEnvironmentId;
+    /** The source's environment, as it was at copy time. */
+    @Column(name = "source_environment_id")
+    public String sourceEnvironmentId;
 
     @Column(nullable = false)
     public String type;
 
-    /** The definition, under the identity of the simulation asset. */
+    /** The definition; its identity is derived from the row, never read from here ({@code SimulationAssetService#asset}). */
     @Convert(converter = AssetConverter.class)
     @Column(name = "properties", nullable = false)
     public Asset properties;
 
-    /** When the definition was last taken from the parent; {@code null} without a parent. */
+    /** When the definition was last taken from the source; {@code null} without a source. */
     @Column(name = "synced_at", columnDefinition = "INTEGER")
     public Instant syncedAt;
 

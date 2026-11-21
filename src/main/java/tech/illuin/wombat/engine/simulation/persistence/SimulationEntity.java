@@ -36,8 +36,8 @@ public class SimulationEntity
     public SimulationPeriod referenceWindow;
 
     /** The environment the simulation was generated from, if any; it may have been deleted since. */
-    @Column(name = "parent_environment_id")
-    public String parentEnvironmentId;
+    @Column(name = "source_environment_id")
+    public String sourceEnvironmentId;
 
     @Column(name = "created_at", nullable = false, columnDefinition = "INTEGER")
     public Instant createdAt;

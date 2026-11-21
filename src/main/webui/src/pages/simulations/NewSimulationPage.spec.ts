@@ -63,7 +63,7 @@ describe('NewSimulationPage', () => {
     await render()
     await wrapper.find('[data-source="existing"]').trigger('click')
 
-    await wrapper.find('#parentEnvironment').setValue('prod')
+    await wrapper.find('#sourceEnvironment').setValue('prod')
     const boxes = wrapper.findAll<HTMLInputElement>('.sim-asset-checklist input')
     expect(boxes.map(box => [box.element.value, box.element.checked, box.element.disabled])).toEqual([
       ['chatbot', true, false],
@@ -78,7 +78,7 @@ describe('NewSimulationPage', () => {
     await flushPromises()
 
     expect(createSimulation).toHaveBeenCalledExactlyOnceWith({
-      id: 'production-what-if', name: 'Production what-if', description: null, parentEnvironmentId: 'prod', assetIds: ['chatbot', 'legacy'],
+      id: 'production-what-if', name: 'Production what-if', description: null, sourceEnvironmentId: 'prod', assetIds: ['chatbot', 'legacy'],
     })
     expect(router.currentRoute.value.fullPath).toBe('/simulations/production-what-if')
   })
@@ -86,7 +86,7 @@ describe('NewSimulationPage', () => {
   it('creates an empty simulation from scratch', async () => {
     await render()
     await wrapper.find('[data-source="scratch"]').trigger('click')
-    expect(wrapper.find('#parentEnvironment').exists()).toBe(false)
+    expect(wrapper.find('#sourceEnvironment').exists()).toBe(false)
 
     await wrapper.find('#simulationName').setValue('Chatbot launch')
     await wrapper.find('#createSimulation').trigger('click')

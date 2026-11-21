@@ -10,7 +10,7 @@ export interface CopyCandidate {
   pickedByDefault: boolean
 }
 
-/* A simulation evaluates with the running modules, and a simulated type only serves stateless simulations */
+/* A simulation evaluates with the running modules, and only holds the types that can be created (ModuleMetadata.creatable) */
 function blockedReason(asset: AssetInfo, modules: ReadonlyMap<string, ModuleMetadata>): string | null {
   const module = modules.get(assetTypeName(asset) ?? '')
   if (!module)

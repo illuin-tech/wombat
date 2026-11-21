@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.simulation.evaluation;
 
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -12,20 +11,25 @@ import tech.illuin.wombat.core.activity.commons.AssetActivity;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.activity.kubernetes.NoCPUUsageException;
 import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.AssetIdentity;
+import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation.EvaluationType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
+import tech.illuin.wombat.core.evaluation.cost.commons.AssetCost;
+import tech.illuin.wombat.core.evaluation.cost.commons.Money;
+import tech.illuin.wombat.core.evaluation.cost.commons.ServiceCost;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
 import tech.illuin.wombat.core.evaluation.impact.commons.Footprint;
-import tech.illuin.wombat.engine.context.asset.AssetDefinitionReader;
+import tech.illuin.wombat.core.evaluation.impact.commons.ServiceImpact;
 import tech.illuin.wombat.engine.module.runtime.CoreDeployment;
 import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
+import tech.illuin.wombat.engine.simulation.SimulationAssetService;
 import tech.illuin.wombat.engine.simulation.SimulationPeriod;
 import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.AssetResult;
 import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.AssetStatus;
 import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.Scaled;
+import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.ScaledService;
 import tech.illuin.wombat.engine.simulation.evaluation.SimulationEvaluation.Window;
 import tech.illuin.wombat.engine.simulation.persistence.SimulationAssetEntity;
 
@@ -35,6 +39,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,32 +57,30 @@ import static tech.illuin.wombat.core.evaluation.AssetEvaluation.EvaluationType.
  * own, built from the running core and closed once done, so that the components it builds never serve the dashboard,
  * nor another asset.
  * <p>
- * A copy's activity is resolved under its parent's identity, which is how it finds the parent's metrics; its impact
- * and cost under its own, so that every result names the simulation asset. The reference window is evaluated once,
- * then scaled linearly to every period.
+ * A copy's activity is resolved under its source's identity, which is how it finds the source's metrics; its impact
+ * and cost under its own (see {@link SimulationAssetService#asset}). The reference window is evaluated once, then
+ * scaled linearly to every period, here only.
  */
 @ApplicationScoped
 public class SimulationEvaluator
 {
     private final CoreRuntime runtime;
-    private final AssetDefinitionReader reader;
-    private final JsonMapper mapper;
+    private final SimulationAssetService assets;
     private final Clock clock;
     private final ExecutorService executor;
 
     private static final Logger logger = LoggerFactory.getLogger(SimulationEvaluator.class);
 
     @Inject
-    public SimulationEvaluator(CoreRuntime runtime, AssetDefinitionReader reader, JsonMapper mapper)
+    public SimulationEvaluator(CoreRuntime runtime, SimulationAssetService assets)
     {
-        this(runtime, reader, mapper, Clock.systemUTC());
+        this(runtime, assets, Clock.systemUTC());
     }
 
-    SimulationEvaluator(CoreRuntime runtime, AssetDefinitionReader reader, JsonMapper mapper, Clock clock)
+    SimulationEvaluator(CoreRuntime runtime, SimulationAssetService assets, Clock clock)
     {
         this.runtime = runtime;
-        this.reader = reader;
-        this.mapper = mapper;
+        this.assets = assets;
         this.clock = clock;
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
     }
@@ -99,11 +102,7 @@ public class SimulationEvaluator
             .map(CompletableFuture::join)
             .toList();
 
-        List<AssetEvaluation> evaluated = results.stream()
-            .filter(result -> result.status() == AssetStatus.OK)
-            .flatMap(result -> result.result().stream())
-            .toList();
-        return new SimulationEvaluation(window, factors(period), scale(evaluated, period, scopes), results);
+        return new SimulationEvaluation(window, factors(period), totals(results, scopes), results);
     }
 
     @PreDestroy
@@ -126,11 +125,8 @@ public class SimulationEvaluator
             return failed(asset, AssetStatus.MODULE_DISABLED, "The running core has no module for asset-type " + asset.type);
 
         try (AssetEvaluator evaluator = deployment.newEvaluator()) {
-            /* Stored under the simulation asset's identity */
-            Asset evaluated = asset.properties;
-            Asset resolved = asset.parentAssetId == null
-                ? evaluated
-                : this.reader.read(AssetIdentity.of(asset.parentAssetId, asset.parentEnvironmentId, asset.type), this.mapper.valueToTree(evaluated));
+            Asset evaluated = this.assets.asset(asset);
+            Asset resolved = this.assets.activityAsset(asset);
 
             Optional<AssetActivity> activity = evaluator.computeActivity(resolved, new TimeRange(window.start(), window.end()), null);
             if (activity.isEmpty())
@@ -182,22 +178,82 @@ public class SimulationEvaluator
     }
 
     /**
-     * The standardized part of the evaluations over {@code window}, scaled to each period.
+     * The standardized part of one asset's evaluations over {@code window}, scaled to each period: its footprint and
+     * cost, and each service's, summed over the evaluations.
      */
     static Map<SimulationPeriod, Scaled> scale(List<AssetEvaluation> evaluations, SimulationPeriod window, Set<EvaluationType> scopes)
     {
+        List<AssetImpact> impacts = evaluations.stream()
+            .filter(AssetImpact.class::isInstance)
+            .map(AssetImpact.class::cast)
+            .toList();
+        List<AssetCost> costs = evaluations.stream()
+            .filter(AssetCost.class::isInstance)
+            .map(AssetCost.class::cast)
+            .toList();
         Footprint footprint = scopes.contains(IMPACT)
-            ? Footprint.sum(evaluations.stream()
-                .filter(AssetImpact.class::isInstance)
-                .map(evaluation -> ((AssetImpact) evaluation).footprint())
-                .filter(Objects::nonNull)
-                .toList())
+            ? Footprint.sum(impacts.stream().map(AssetImpact::footprint).filter(Objects::nonNull).toList())
             : null;
+        List<Money> cost = scopes.contains(COST)
+            ? Money.sum(costs.stream().map(AssetCost::cost).filter(Objects::nonNull).toList())
+            : null;
+        List<ScaledService> services = scopes.isEmpty() ? null : services(impacts, costs, scopes);
 
         Map<SimulationPeriod, Scaled> scaled = new EnumMap<>(SimulationPeriod.class);
-        /* A cost carries no amount yet */
-        factors(window).forEach((period, factor) -> scaled.put(period, new Scaled(footprint != null ? footprint.multiply(factor) : null, null)));
+        factors(window).forEach((period, factor) -> scaled.put(period, new Scaled(
+            footprint != null ? footprint.multiply(factor) : null,
+            ScaledService.multiply(cost, factor),
+            services != null ? services.stream().map(service -> service.multiply(factor)).toList() : null
+        )));
         return scaled;
+    }
+
+    /**
+     * The scaled results of the assets evaluated {@link AssetStatus#OK}, summed per period; zero without any.
+     */
+    static Map<SimulationPeriod, Scaled> totals(List<AssetResult> results, Set<EvaluationType> scopes)
+    {
+        Map<SimulationPeriod, Scaled> totals = new EnumMap<>(SimulationPeriod.class);
+        for (SimulationPeriod period : SimulationPeriod.values())
+        {
+            List<Scaled> evaluated = results.stream()
+                .filter(result -> result.status() == AssetStatus.OK)
+                .map(result -> result.scaled().get(period))
+                .toList();
+            Footprint impact = scopes.contains(IMPACT)
+                ? Footprint.sum(evaluated.stream().map(Scaled::impact).filter(Objects::nonNull).toList())
+                : null;
+            List<Money> cost = scopes.contains(COST)
+                ? Money.sum(evaluated.stream().map(Scaled::cost).filter(Objects::nonNull).flatMap(List::stream).toList())
+                : null;
+            totals.put(period, new Scaled(impact, cost, null));
+        }
+        return totals;
+    }
+
+    /* One line per service, in the order met: an asset evaluated over several activities names a service in each */
+    private static List<ScaledService> services(List<AssetImpact> impacts, List<AssetCost> costs, Set<EvaluationType> scopes)
+    {
+        Map<String, ServiceLine> lines = new LinkedHashMap<>();
+        if (scopes.contains(IMPACT))
+        {
+            for (AssetImpact impact : impacts)
+            {
+                for (ServiceImpact service : impact.serviceImpacts())
+                    lines.computeIfAbsent(service.serviceId(), id -> new ServiceLine(service.assetType())).add(service.footprint());
+            }
+        }
+        if (scopes.contains(COST))
+        {
+            for (AssetCost cost : costs)
+            {
+                for (ServiceCost service : cost.serviceCosts())
+                    lines.computeIfAbsent(service.serviceId(), id -> new ServiceLine(service.assetType())).add(service.cost());
+            }
+        }
+        return lines.entrySet().stream()
+            .map(line -> line.getValue().toScaled(line.getKey(), scopes))
+            .toList();
     }
 
     private static AssetResult failed(SimulationAssetEntity asset, AssetStatus status, String message)
@@ -214,5 +270,40 @@ public class SimulationEvaluator
                 return Optional.of(noCpuUsage);
         }
         return Optional.empty();
+    }
+
+    /* What a service sums up to, over the evaluations naming it */
+    private static final class ServiceLine
+    {
+        private final AssetType assetType;
+        private final List<Footprint> footprints = new ArrayList<>();
+        private final List<Money> costs = new ArrayList<>();
+
+        ServiceLine(AssetType assetType)
+        {
+            this.assetType = assetType;
+        }
+
+        void add(Footprint footprint)
+        {
+            if (footprint != null)
+                this.footprints.add(footprint);
+        }
+
+        void add(Money cost)
+        {
+            if (cost != null)
+                this.costs.add(cost);
+        }
+
+        ScaledService toScaled(String serviceId, Set<EvaluationType> scopes)
+        {
+            return new ScaledService(
+                serviceId,
+                this.assetType,
+                scopes.contains(IMPACT) && !this.footprints.isEmpty() ? Footprint.sum(this.footprints) : null,
+                scopes.contains(COST) ? Money.sum(this.costs) : null
+            );
+        }
     }
 }

@@ -5,7 +5,7 @@ export function filterSimulations(simulations: readonly SimulationSummary[], que
   const needle = query.trim().toLowerCase()
   if (!needle)
     return [...simulations]
-  return simulations.filter(simulation => [simulation.id, simulation.name, simulation.description, simulation.parentEnvironmentName]
+  return simulations.filter(simulation => [simulation.id, simulation.name, simulation.description, simulation.sourceEnvironmentName]
     .some(text => text?.toLowerCase().includes(needle)))
 }
 

@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
-import { byDisplayName, displayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
+import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { byDisplayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
 import { DESCRIPTION_MAX_LENGTH, descriptionError, NAME_MAX_LENGTH, nameError, NOTES_MAX_LENGTH, notesError } from '@/domain/identifiers'
 import type { ModuleMetadata } from '@/domain/module'
-import { parentEnvironmentRemoved, type EvaluationScope, type SimulationAssetInfo, type SimulationInfo, type SimulationPeriod } from '@/domain/simulation'
+import {
+  SIMULATION_ASSET_RECORD_FIELDS,
+  sourceEnvironmentRemoved,
+  sourceLabel,
+  type EvaluationScope,
+  type SimulationAssetInfo,
+  type SimulationInfo,
+  type SimulationPeriod,
+} from '@/domain/simulation'
 import { errorText } from '@/services/api/client'
 import { fetchEnvironments } from '@/services/api/environments'
 import { fetchModules } from '@/services/api/modules'
@@ -21,7 +29,8 @@ import {
 } from '@/services/api/simulations'
 import { can } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
-import { useAutosave, type AutosaveStatus } from '@/services/tools/useAutosave'
+import { useAutosave } from '@/services/tools/useAutosave'
+import { autosaveStatusText, useAutosaveGuard } from '@/services/tools/useAutosaveGuard'
 import AssetEditorModal, { type AssetEditorAdapter } from '@/components/AssetEditorModal.vue'
 import AssetGrid from '@/components/AssetGrid.vue'
 import CollapsibleNotes from '@/components/CollapsibleNotes.vue'
@@ -74,13 +83,17 @@ const descriptionProblem = computed(() => descriptionError(form.description))
 const notesProblem = computed(() => notesError(form.notes))
 
 /* The asset editor saves into this simulation */
-const assetAdapter = computed<AssetEditorAdapter | null>(() => {
+const assetAdapter = computed<AssetEditorAdapter<SimulationAssetInfo> | null>(() => {
   const simulationId = simulation.value?.id
   if (!simulationId) return null
   return {
     create: ({ id, type, name, description, notes, properties }) => createSimulationAsset(simulationId, { id, type, name, description, notes, properties }),
     update: (id, { name, description, notes, properties }) => updateSimulationAsset(simulationId, id, { name, description, notes: notes ?? null, properties }),
     remove: id => deleteSimulationAsset(simulationId, id),
+    recordFields: SIMULATION_ASSET_RECORD_FIELDS,
+    activeToggle: false,
+    notes: true,
+    deleteNotice: 'The asset leaves the simulation; the asset it was copied from, if any, is left as it is.',
   }
 })
 
@@ -103,18 +116,8 @@ const results = useSimulationResults(() => {
 /* Synchronous, so that the change made by loading is dropped by the run that follows it */
 watch([() => form.referenceWindow, impactShown, costShown], () => results.schedule(), { flush: 'sync' })
 
-const STATUS_TEXTS: Record<AutosaveStatus, string> = {
-  idle: '',
-  pending: 'Unsaved changes',
-  saving: 'Saving…',
-  saved: 'All changes saved',
-  invalid: 'Not saved: fix the highlighted fields',
-  error: 'Not saved',
-}
-const saveStatusText = computed(() => {
-  const text = STATUS_TEXTS[autosave.status.value]
-  return autosave.status.value === 'error' && autosave.error.value ? `${text}: ${autosave.error.value}` : text
-})
+const saveStatusText = computed(() => autosaveStatusText(autosave))
+const guard = useAutosaveGuard(autosave)
 
 function show(loaded: SimulationInfo): void {
   simulation.value = loaded
@@ -169,11 +172,11 @@ function chooseSource(source: CreationSource): void {
       .catch(caught => { pickError.value = errorText(caught) })
 }
 
-/* The copy is saved at once, then opened for changes */
-async function copy(parent: AssetInfo): Promise<void> {
+/* The copy is saved at once, named and described as its source, then opened for changes */
+async function copy(source: AssetInfo): Promise<void> {
   pickError.value = null
   try {
-    const created = await createSimulationAsset(simulation.value!.id, { name: displayName(parent), parentAssetId: parent.id })
+    const created = await createSimulationAsset(simulation.value!.id, { sourceAssetId: source.id })
     picking.value = false
     upsert(created)
     openAsset(created)
@@ -182,14 +185,13 @@ async function copy(parent: AssetInfo): Promise<void> {
   }
 }
 
-/* Opened as it stands now, so that the notice tells whether its parent changed since the page loaded */
-function openAsset(asset: AssetInfo): void {
-  const opened = asset as SimulationAssetInfo
-  editedAsset.value = opened
+/* Opened as it stands now, so that the notice tells whether its source changed since the page loaded */
+function openAsset(asset: SimulationAssetInfo): void {
+  editedAsset.value = asset
   syncError.value = null
   assetEditorOpen.value = true
-  if (opened.parentAssetId)
-    fetchSimulationAsset(simulation.value!.id, opened.id)
+  if (asset.source)
+    fetchSimulationAsset(simulation.value!.id, asset.id)
       .then(current => { if (editedAsset.value?.id === current.id) editedAsset.value = current })
       .catch(() => {})
 }
@@ -199,8 +201,8 @@ function upsert(saved: SimulationAssetInfo): void {
   results.schedule()
 }
 
-function onAssetSaved(saved: AssetInfo): void {
-  upsert(saved as SimulationAssetInfo)
+function onAssetSaved(saved: SimulationAssetInfo): void {
+  upsert(saved)
   assetEditorOpen.value = false
 }
 
@@ -222,64 +224,45 @@ async function sync(): Promise<void> {
   }
 }
 
-function parentLabel(asset: AssetInfo | null): string {
-  return `${asset?.parentEnvironmentId}/${asset?.parentAssetId}`
-}
-
-onBeforeRouteLeave(async () => {
-  if (autosave.hasUnsavedChanges()) await autosave.flush()
-  if (autosave.hasUnsavedChanges())
-    return window.confirm('Some changes could not be saved. Leave anyway?')
-  return true
-})
-
-function onBeforeUnload(event: BeforeUnloadEvent): void {
-  if (autosave.hasUnsavedChanges()) event.preventDefault()
-}
-
 watch(() => route.params.id, (id, previous) => {
   if (id && id !== previous) void load()
 })
 
-onMounted(() => {
-  window.addEventListener('beforeunload', onBeforeUnload)
-  void load()
-})
-onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+onMounted(() => void load())
 </script>
 
 <template>
   <div class="main form-page">
-    <RouterLink class="env-back" :to="{ name: 'simulations' }">← Simulations</RouterLink>
+    <RouterLink class="back-link" :to="{ name: 'simulations' }">← Simulations</RouterLink>
 
     <NoticeCard v-if="loadError" title="This simulation could not be loaded" tone="error">{{ loadError }}</NoticeCard>
 
-    <div v-else-if="loading && !simulation" class="env-head env-head-loading">
+    <div v-else-if="loading && !simulation" class="record-head record-head-loading">
       <SkeletonBlock width="240px" height="28px" />
       <SkeletonBlock width="360px" height="14px" />
     </div>
 
     <template v-else-if="simulation">
-      <div class="env-head">
-        <div class="env-head-main">
-          <label class="env-title">
+      <div class="record-head">
+        <div class="record-head-main">
+          <label class="record-title">
             <span class="visually-hidden">Name</span>
-            <input v-if="canEdit" v-model="form.name" class="env-name-input" type="text" :maxlength="NAME_MAX_LENGTH" placeholder="Name" />
+            <input v-if="canEdit" v-model="form.name" class="record-name-input" type="text" :maxlength="NAME_MAX_LENGTH" placeholder="Name" />
             <h2 v-else class="page-title">{{ form.name }}</h2>
           </label>
           <span v-if="nameProblem" class="form-error">{{ nameProblem }}</span>
 
-          <div class="env-id-line">
-            <code class="env-row-id">{{ simulation.id }}</code>
-            <span v-if="parentEnvironmentRemoved(simulation)" class="sim-parent removed">Source environment removed</span>
+          <div class="record-id-line">
+            <code class="record-id">{{ simulation.id }}</code>
+            <span v-if="sourceEnvironmentRemoved(simulation)" class="sim-source removed">Source environment removed</span>
             <RouterLink
-              v-else-if="simulation.parentEnvironmentId"
-              class="sim-parent"
-              :to="{ name: 'environment', params: { id: simulation.parentEnvironmentId } }"
-            >From {{ simulation.parentEnvironmentName }}</RouterLink>
+              v-else-if="simulation.sourceEnvironmentId"
+              class="sim-source"
+              :to="{ name: 'environment', params: { id: simulation.sourceEnvironmentId } }"
+            >From {{ simulation.sourceEnvironmentName }}</RouterLink>
           </div>
 
-          <div class="env-description">
+          <div class="record-description">
             <MarkdownEditor
               v-model="form.description"
               label="Description"
@@ -293,17 +276,17 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           <span v-if="notesProblem" class="form-error">{{ notesProblem }}</span>
         </div>
 
-        <div class="env-head-side">
-          <button v-if="canEdit" class="btn-danger env-delete" type="button" @click="confirmingDelete = true">Delete</button>
+        <div class="record-head-side">
+          <button v-if="canEdit" class="btn-danger record-delete" type="button" @click="confirmingDelete = true">Delete</button>
         </div>
 
-        <div class="env-head-foot">
-          <span v-if="saveStatusText" class="env-save-status" :class="autosave.status.value" role="status">{{ saveStatusText }}</span>
-          <TimestampInfo class="env-timestamps" :created-at="simulation.createdAt" :updated-at="simulation.updatedAt" />
+        <div class="record-head-foot">
+          <span v-if="saveStatusText" class="save-status" :class="autosave.status.value" role="status">{{ saveStatusText }}</span>
+          <TimestampInfo class="record-timestamps" :created-at="simulation.createdAt" :updated-at="simulation.updatedAt" />
         </div>
       </div>
 
-      <section class="env-assets">
+      <section class="record-assets">
         <div class="chart-title">Assets</div>
         <AssetGrid
           :assets="assets"
@@ -314,10 +297,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           @add="choosingSource = true"
         >
           <template #badges="{ asset }">
-            <template v-if="asset.parentAssetId">
-              <span v-if="asset.parentStatus === 'parent-removed'" class="sim-badge removed">Source removed</span>
-              <span v-else class="sim-badge copy" :title="`Copied from ${parentLabel(asset)}`">
-                Copy{{ asset.parentStatus === 'diverged' ? ', changed' : '' }}
+            <template v-if="asset.source">
+              <span v-if="asset.source.status === 'source-removed'" class="status-chip bad">Source removed</span>
+              <span v-else class="status-chip warn" :title="`Copied from ${sourceLabel(asset.source)}`">
+                Copy{{ asset.source.status === 'diverged' ? ', changed' : '' }}
               </span>
             </template>
           </template>
@@ -358,20 +341,17 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       :modules="modules"
       :can-edit="canEdit"
       :can-check-secrets="can(user, 'api.secret.read')"
-      :active-toggle="false"
-      with-notes
-      delete-notice="The asset leaves the simulation; the asset it was copied from, if any, is left as it is."
       @close="assetEditorOpen = false"
       @saved="onAssetSaved"
       @deleted="onAssetDeleted"
     >
       <template #notice>
-        <NoticeCard v-if="editedAsset?.parentStatus === 'diverged'" title="This copy and its source have diverged" tone="warning">
-          This copy or {{ parentLabel(editedAsset) }} was changed since the copy was created.
+        <NoticeCard v-if="editedAsset?.source?.status === 'diverged'" title="This copy and its source have diverged" tone="warning">
+          This copy or {{ sourceLabel(editedAsset.source) }} was changed since the copy was created.
           <button v-if="canEdit" class="btn-link-inline sim-sync" type="button" @click="confirmingSync = true">Sync with the source</button>
           <span v-if="syncError" class="form-error" role="alert">{{ syncError }}</span>
         </NoticeCard>
-        <NoticeCard v-else-if="editedAsset?.parentStatus === 'parent-removed'" title="The source asset was deleted">
+        <NoticeCard v-else-if="editedAsset?.source?.status === 'source-removed'" title="The source asset was deleted">
           This copy is kept as it is, and can no longer be synced.
         </NoticeCard>
       </template>
@@ -393,5 +373,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
     >
       The simulation and its assets are deleted for good. The assets they were copied from are left as they are.
     </ConfirmDeleteDialog>
+
+    <ConfirmDialog v-if="guard.leaving.value" open title="Leave without saving?" confirm-label="Leave" @close="guard.stay()" @confirm="guard.leave()">
+      Some changes could not be saved.
+    </ConfirmDialog>
   </div>
 </template>

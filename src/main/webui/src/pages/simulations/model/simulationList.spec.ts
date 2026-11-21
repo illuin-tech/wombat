@@ -6,7 +6,7 @@ const simulation = (id: string, name: string, extra: Partial<SimulationSummary> 
   ({ id, name, referenceWindow: 'MONTH', assetCount: 0, ...extra })
 
 const simulations = [
-  simulation('bigger-cluster', 'Bigger cluster', { parentEnvironmentId: 'prod', parentEnvironmentName: 'Production' }),
+  simulation('bigger-cluster', 'Bigger cluster', { sourceEnvironmentId: 'prod', sourceEnvironmentName: 'Production' }),
   simulation('chatbot', 'Chatbot launch', { description: 'Estimates the **assistant**' }),
 ]
 

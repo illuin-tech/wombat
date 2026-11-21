@@ -31,12 +31,12 @@ describe('simulations API', () => {
   it('reaches the sandbox of the simulation endpoints', async () => {
     await fetchSimulations()
     await fetchSimulation('what if')
-    await createSimulation({ id: 'what-if', name: 'What if', description: null, parentEnvironmentId: 'prod', assetIds: ['chatbot'] })
+    await createSimulation({ id: 'what-if', name: 'What if', description: null, sourceEnvironmentId: 'prod', assetIds: ['chatbot'] })
     await duplicateSimulation('what-if', { id: 'what-if-2', name: 'What if (copy)' })
 
     expect(call(0)).toMatchObject({ url: '/api/simulation/sandbox', method: 'GET' })
     expect(call(1)).toMatchObject({ url: '/api/simulation/sandbox/what%20if', method: 'GET' })
-    expect(call(2)).toEqual({ url: '/api/simulation/sandbox', method: 'POST', body: { id: 'what-if', name: 'What if', description: null, parentEnvironmentId: 'prod', assetIds: ['chatbot'] } })
+    expect(call(2)).toEqual({ url: '/api/simulation/sandbox', method: 'POST', body: { id: 'what-if', name: 'What if', description: null, sourceEnvironmentId: 'prod', assetIds: ['chatbot'] } })
     expect(call(3)).toMatchObject({ url: '/api/simulation/sandbox/what-if/duplicate', method: 'POST', body: { id: 'what-if-2', name: 'What if (copy)' } })
   })
 
@@ -44,12 +44,12 @@ describe('simulations API', () => {
     fetchMock.mockImplementation(async () => new Response(null, { status: 204 }))
     await deleteSimulation('what-if')
     fetchMock.mockImplementation(async () => new Response(JSON.stringify({ status: { message: 'ok' }, payload: {} }), { status: 200 }))
-    await createSimulationAsset('what-if', { name: 'Copy', parentAssetId: 'chatbot' })
+    await createSimulationAsset('what-if', { sourceAssetId: 'chatbot' })
     await updateSimulationAsset('what-if', 'chatbot', { name: 'Copy', description: null, notes: 'Noted', properties: {} })
     await syncSimulationAsset('what-if', 'chatbot')
 
     expect(call(0)).toMatchObject({ url: '/api/simulation/sandbox/what-if', method: 'DELETE' })
-    expect(call(1)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets', method: 'POST', body: { name: 'Copy', parentAssetId: 'chatbot' } })
+    expect(call(1)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets', method: 'POST', body: { sourceAssetId: 'chatbot' } })
     expect(call(2)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets/chatbot', method: 'PUT' })
     expect(call(3)).toMatchObject({ url: '/api/simulation/sandbox/what-if/assets/chatbot/sync', method: 'POST' })
   })

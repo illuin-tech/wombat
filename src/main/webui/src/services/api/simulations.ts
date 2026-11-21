@@ -5,7 +5,7 @@ export type { SimulationAssetInfo, SimulationEvaluation, SimulationInfo, Simulat
 
 export const SIMULATION_MESSAGES: StatusMessages = {
   400: 'The simulation was refused: check its id, name and description.',
-  403: 'You are not allowed to edit simulations.',
+  403: 'You are not allowed to do this with simulations.',
   404: 'This simulation no longer exists.',
 }
 
@@ -28,7 +28,7 @@ export interface SimulationCreation {
   name: string
   description: string | null
   /** The environment whose `assetIds` are copied. */
-  parentEnvironmentId?: string | null
+  sourceEnvironmentId?: string | null
   assetIds?: string[]
 }
 
@@ -40,13 +40,16 @@ export interface SimulationAssetFields {
   properties: Record<string, unknown>
 }
 
-/** Either a copy of `parentAssetId`, or a definition written from scratch with its `id`, `type` and `properties`. */
+/**
+ * Either a copy of `sourceAssetId`, whose id, name and description default to the source's, or a definition written
+ * from scratch with its `id`, `name`, `type` and `properties`.
+ */
 export interface SimulationAssetCreation {
-  name: string
+  name?: string
   description?: string | null
   notes?: string | null
   id?: string
-  parentAssetId?: string
+  sourceAssetId?: string
   type?: string
   properties?: Record<string, unknown>
 }
@@ -93,7 +96,7 @@ export function deleteSimulation(id: string): Promise<void> {
   return request<void>(simulationPath(id), { method: 'DELETE', messages: SIMULATION_MESSAGES })
 }
 
-/** The asset as it stands now, with how it compares to its parent. */
+/** The asset as it stands now, with how it compares to its source. */
 export function fetchSimulationAsset(simulationId: string, assetId: string): Promise<SimulationAssetInfo> {
   return request<SimulationAssetInfo>(assetPath(simulationId, assetId), { messages: SIMULATION_ASSET_MESSAGES })
 }
@@ -114,7 +117,7 @@ export function deleteSimulationAsset(simulationId: string, assetId: string): Pr
   return request<void>(assetPath(simulationId, assetId), { method: 'DELETE', messages: SIMULATION_ASSET_MESSAGES })
 }
 
-/** Replaces the copy's properties with its parent's current ones, overwriting its changes. */
+/** Replaces the copy's properties with its source's current ones, overwriting its changes. */
 export function syncSimulationAsset(simulationId: string, assetId: string): Promise<SimulationAssetInfo> {
   return request<SimulationAssetInfo>(`${assetPath(simulationId, assetId)}/sync`, {
     method: 'POST',

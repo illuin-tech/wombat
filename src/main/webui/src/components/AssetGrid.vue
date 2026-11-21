@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends AssetInfo">
 import { assetFamily, assetTypeName, displayName, type ActivityRegime, type AssetInfo, type AssetType } from '@/domain/environment'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import LockBadge from '@/components/LockBadge.vue'
@@ -7,7 +7,7 @@ import TimestampInfo from '@/components/TimestampInfo.vue'
 
 /** The assets of an environment or a simulation as cards; the `badges` slot adds to each one's tags. */
 const props = withDefaults(defineProps<{
-  assets: AssetInfo[]
+  assets: T[]
   typesByName: ReadonlyMap<string, AssetType>
   /** Whether the environment is provisioned, which locks all its assets. */
   locked?: boolean
@@ -15,9 +15,10 @@ const props = withDefaults(defineProps<{
   emptyText?: string
 }>(), {
   locked: false,
-  emptyText: 'No assets in this environment.',
+  emptyText: 'No assets.',
 })
-const emit = defineEmits<{ open: [asset: AssetInfo]; add: [] }>()
+const emit = defineEmits<{ open: [asset: T]; add: [] }>()
+defineSlots<{ badges?: (props: { asset: T }) => unknown }>()
 
 function typeLabel(asset: AssetInfo): string {
   const name = assetTypeName(asset)
@@ -50,7 +51,7 @@ function knownRegime(asset: AssetInfo): ActivityRegime | null {
       <span class="asset-card-tags">
         <AssetTypeTag :family="assetFamily(asset, typesByName)" />
         <RegimePill v-if="knownRegime(asset)" :regime="knownRegime(asset)!" />
-        <span v-if="asset.disabledAt" class="env-status disabled">Disabled</span>
+        <span v-if="asset.disabledAt" class="status-chip">Disabled</span>
         <slot name="badges" :asset="asset" />
       </span>
       <span class="asset-card-type">{{ typeLabel(asset) }}</span>

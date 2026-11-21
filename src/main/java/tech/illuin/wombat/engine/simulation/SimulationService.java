@@ -70,7 +70,7 @@ public class SimulationService
     }
 
     /**
-     * @return the names of the environments simulations may name as their parent, by id; deleted ones are absent
+     * @return the names of the environments simulations may name as their source, by id; deleted ones are absent
      */
     @Transactional
     public Map<String, String> environmentNames()
@@ -80,22 +80,22 @@ public class SimulationService
     }
 
     /**
-     * @return the name of the simulation's parent environment, empty without one or once it was deleted
+     * @return the name of the simulation's source environment, empty without one or once it was deleted
      */
     @Transactional
-    public Optional<String> parentEnvironmentName(SimulationEntity simulation)
+    public Optional<String> sourceEnvironmentName(SimulationEntity simulation)
     {
-        if (simulation.parentEnvironmentId == null)
+        if (simulation.sourceEnvironmentId == null)
             return Optional.empty();
-        return this.environmentRepository.findVisibleById(simulation.parentEnvironmentId).map(environment -> environment.name);
+        return this.environmentRepository.findVisibleById(simulation.sourceEnvironmentId).map(environment -> environment.name);
     }
 
     /**
-     * Copies the {@code assetIds} of {@code parentEnvironmentId}, if given, in the same transaction: either they all are,
+     * Copies the {@code assetIds} of {@code sourceEnvironmentId}, if given, in the same transaction: either they all are,
      * or the simulation is not created.
      *
      * @param referenceWindow {@link SimulationPeriod#MONTH} when null
-     * @param assetIds        assets of {@code parentEnvironmentId}, which they require
+     * @param assetIds        assets of {@code sourceEnvironmentId}, which they require
      */
     @Transactional
     public SimulationEntity create(
@@ -104,15 +104,15 @@ public class SimulationService
         String description,
         String notes,
         SimulationPeriod referenceWindow,
-        String parentEnvironmentId,
+        String sourceEnvironmentId,
         List<String> assetIds
     ) {
-        if (parentEnvironmentId == null && !assetIds.isEmpty())
-            throw new IllegalArgumentException("assets are copied from a parent environment, which is missing");
+        if (sourceEnvironmentId == null && !assetIds.isEmpty())
+            throw new IllegalArgumentException("assets are copied from a source environment, which is missing");
         if (this.repository.findByIdOptional(id).isPresent())
             throw new SimulationConflictException("Simulation " + id + " already exists");
-        if (parentEnvironmentId != null)
-            this.environmentRepository.findVisibleById(parentEnvironmentId).orElseThrow(() -> new UnknownEnvironmentException(parentEnvironmentId));
+        if (sourceEnvironmentId != null)
+            this.environmentRepository.findVisibleById(sourceEnvironmentId).orElseThrow(() -> new UnknownEnvironmentException(sourceEnvironmentId));
 
         SimulationEntity entity = new SimulationEntity();
         entity.id = id;
@@ -120,24 +120,24 @@ public class SimulationService
         entity.description = description;
         entity.notes = notes;
         entity.referenceWindow = referenceWindow != null ? referenceWindow : SimulationPeriod.MONTH;
-        entity.parentEnvironmentId = parentEnvironmentId;
+        entity.sourceEnvironmentId = sourceEnvironmentId;
         this.repository.persist(entity);
 
         Set<String> taken = new HashSet<>();
         for (String assetId : new LinkedHashSet<>(assetIds))
         {
-            AssetEntity parent = this.assetRepository.findVisibleById(assetId)
-                .filter(asset -> asset.environmentId.equals(parentEnvironmentId))
+            AssetEntity source = this.assetRepository.findVisibleById(assetId)
+                .filter(asset -> asset.environmentId.equals(sourceEnvironmentId))
                 .orElseThrow(() -> new UnknownAssetException(assetId));
-            String copyId = SimulationAssetService.uniqueId(SlugHelper.slugify(parent.id), taken);
+            String copyId = SimulationAssetService.uniqueId(SlugHelper.slugify(source.id), taken);
             taken.add(copyId);
-            this.simulationAssetRepository.persist(this.simulationAssets.copy(entity, parent, copyId));
+            this.simulationAssetRepository.persist(this.simulationAssets.copy(entity, source, copyId));
         }
         return entity;
     }
 
     /**
-     * Replaces the editable fields; the id and the parent environment are immutable.
+     * Replaces the editable fields; the id and the source environment are immutable.
      */
     @Transactional
     public SimulationEntity update(String id, String name, String description, String notes, SimulationPeriod referenceWindow)
@@ -151,25 +151,25 @@ public class SimulationService
     }
 
     /**
-     * Copies the simulation with all its assets, which keep their ids, parents and sync times.
+     * Copies the simulation with all its assets, which keep their ids, sources and sync times.
      */
     @Transactional
-    public SimulationEntity duplicate(String sourceId, String id, String name)
+    public SimulationEntity duplicate(String originalId, String id, String name)
     {
-        SimulationEntity source = this.get(sourceId);
+        SimulationEntity original = this.get(originalId);
         if (this.repository.findByIdOptional(id).isPresent())
             throw new SimulationConflictException("Simulation " + id + " already exists");
 
         SimulationEntity entity = new SimulationEntity();
         entity.id = id;
         entity.name = name;
-        entity.description = source.description;
-        entity.notes = source.notes;
-        entity.referenceWindow = source.referenceWindow;
-        entity.parentEnvironmentId = source.parentEnvironmentId;
+        entity.description = original.description;
+        entity.notes = original.notes;
+        entity.referenceWindow = original.referenceWindow;
+        entity.sourceEnvironmentId = original.sourceEnvironmentId;
         this.repository.persist(entity);
 
-        for (SimulationAssetEntity asset : this.simulationAssetRepository.findBySimulation(sourceId))
+        for (SimulationAssetEntity asset : this.simulationAssetRepository.findBySimulation(originalId))
             this.simulationAssetRepository.persist(this.simulationAssets.duplicate(entity, asset));
         return entity;
     }

@@ -5,11 +5,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * How a copied asset stands against the asset it was copied from, compared on their definitions.
  */
-public enum ParentStatus
+public enum SourceStatus
 {
     @JsonProperty("in-sync") IN_SYNC,
     /** Either side changed since the copy, or the last sync. */
     @JsonProperty("diverged") DIVERGED,
-    /** The parent was deleted. */
-    @JsonProperty("parent-removed") PARENT_REMOVED,
+    /** The source was deleted. */
+    @JsonProperty("source-removed") SOURCE_REMOVED,
 }

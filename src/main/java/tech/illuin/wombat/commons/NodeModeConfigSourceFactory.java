@@ -3,7 +3,6 @@ package tech.illuin.wombat.commons;
 import io.quarkus.runtime.annotations.StaticInitSafe;
 import io.smallrye.config.ConfigSourceContext;
 import io.smallrye.config.ConfigSourceFactory;
-import io.smallrye.config.ConfigValue;
 import io.smallrye.config.PropertiesConfigSource;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import org.slf4j.Logger;
@@ -16,7 +15,6 @@ import java.util.Map;
 import java.util.OptionalInt;
 
 import static tech.illuin.wombat.commons.ConfigSourceFactories.NODE_MODE;
-import static tech.illuin.wombat.persistence.PersistenceBackendConfigSourceFactory.ACTIVE_BACKEND_CONFIG_KEY;
 import static tech.illuin.wombat.persistence.PersistenceBackendConfigSourceFactory.PERSISTENCE_BACKEND_MODE_KEY;
 
 @StaticInitSafe

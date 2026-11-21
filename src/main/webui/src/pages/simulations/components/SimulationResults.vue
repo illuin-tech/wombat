@@ -11,7 +11,7 @@ import MetricBars from '@/pages/impact/components/MetricBars.vue'
 import ServiceTable from '@/pages/impact/components/ServiceTable.vue'
 import SharesDonut from '@/pages/impact/components/SharesDonut.vue'
 import EvaluationSettingsDialog from '@/pages/simulations/components/EvaluationSettingsDialog.vue'
-import { dashboardModel, resultRows, STATUS_LABELS, windowText } from '@/pages/simulations/model/results'
+import { costText, dashboardModel, resultRows, STATUS_LABELS, STATUS_TONES, totalRow, windowText } from '@/pages/simulations/model/results'
 
 const props = defineProps<{
   evaluation: SimulationEvaluation | null
@@ -32,6 +32,7 @@ const BREAKDOWNS: { value: Breakdown; label: string }[] = [{ value: 'assets', la
 
 const model = computed(() => props.evaluation && dashboardModel(props.evaluation, period.value, props.assets))
 const rows = computed(() => props.evaluation ? resultRows(props.evaluation, period.value, props.assets, props.typesByName) : [])
+const total = computed(() => props.evaluation && totalRow(props.evaluation, period.value))
 const unevaluated = computed(() => props.evaluation?.assets.filter(result => result.status !== 'ok').length ?? 0)
 const recomputing = computed(() => props.computing && !!props.evaluation)
 const breakdown = ref<Breakdown>('assets')
@@ -85,7 +86,7 @@ const settingsOpen = ref(false)
       </div>
 
       <template v-if="breakdown === 'services'">
-        <p v-if="!impact" class="table-empty">Turn Impact on to see the services: a cost has no breakdown per service.</p>
+        <p v-if="!impact" class="table-empty">Turn Impact on to see the services.</p>
         <template v-else>
           <p v-if="unevaluated > 0" class="chart-note sim-unevaluated">
             {{ unevaluated === 1 ? 'One asset has' : `${unevaluated} assets have` }} no results: see By asset.
@@ -119,7 +120,7 @@ const settingsOpen = ref(false)
                 <span v-if="row.coverageNote" class="sim-coverage form-hint">{{ row.coverageNote }}</span>
               </td>
               <td>
-                <span class="sim-status" :class="row.status" :title="row.message ?? undefined">{{ STATUS_LABELS[row.status] }}</span>
+                <span class="status-chip" :class="STATUS_TONES[row.status]" :title="row.message ?? undefined">{{ STATUS_LABELS[row.status] }}</span>
                 <span v-if="row.message" class="sim-status-message">{{ row.message }}</span>
               </td>
               <template v-if="impact">
@@ -128,12 +129,27 @@ const settingsOpen = ref(false)
                 <td class="metric adp bold">{{ asDecimal(row.adp) }}</td>
               </template>
               <td v-if="cost">
-                <template v-if="row.cost">{{ asDecimal(row.cost.value) }} {{ row.cost.unit }}</template>
+                <template v-if="row.cost?.length">{{ costText(row.cost) }}</template>
                 <span v-else-if="row.status === 'ok'" class="sim-not-computed">Not computed</span>
                 <template v-else>—</template>
               </td>
             </tr>
           </tbody>
+          <tfoot v-if="total && rows.length > 0">
+            <tr class="sim-total">
+              <td class="name">Total</td>
+              <td />
+              <template v-if="impact">
+                <td class="metric gwp bold">{{ asDecimal(total.gwp) }}</td>
+                <td class="metric pe bold">{{ asDecimal(total.pe) }}</td>
+                <td class="metric adp bold">{{ asDecimal(total.adp) }}</td>
+              </template>
+              <td v-if="cost">
+                <template v-if="total.cost?.length">{{ costText(total.cost) }}</template>
+                <span v-else class="sim-not-computed">Not computed</span>
+              </td>
+            </tr>
+          </tfoot>
         </table>
         <div v-if="evaluation && rows.length === 0" class="table-empty">Add assets to see what the simulation would emit.</div>
       </DataTable>

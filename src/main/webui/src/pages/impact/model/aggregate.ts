@@ -162,7 +162,8 @@ export function lifetimeHours(lifespan: unknown): number {
   }
 }
 
-function serviceImpact(assetName: string, impact: RawServiceImpact): ServiceImpact {
+/** A service's line in the model, under its asset's name. */
+export function serviceImpact(assetName: string, impact: Pick<RawServiceImpact, 'serviceId' | 'assetType' | 'footprint'>): ServiceImpact {
   return {
     assetName,
     service: impact.serviceId,
@@ -210,31 +211,52 @@ export function aggregate(impacts: AssetImpact[], assets: AssetInfo[], requested
     }
   }
 
-  services.sort((a, b) => totalValue(b.footprint.gwp) - totalValue(a.footprint.gwp))
+  return {
+    ...summarize(services, dockerFootprints, llmFootprints),
+    allServices,
+    includedServices: [...included],
+    assetPanels: panels,
+    kubernetesPanels: panels.filter((panel): panel is KubernetesPanel => panel.kind === 'kubernetes'),
+    llmPanels: panels.filter((panel): panel is LLMPanel => panel.kind === 'llm'),
+    assetCount: panels.length,
+  }
+}
 
-  const totalGwp = services.reduce((sum, service) => sum + totalValue(service.footprint.gwp), 0)
+/**
+ * The model of footprints per service alone, without asset panels: what a simulation's results give, as the server
+ * scaled them. Each service counts towards Docker or LLM by its family.
+ */
+export function serviceModel(services: ServiceImpact[], assetCount: number): DashboardModel {
+  const footprints = (family: ServiceFamily) => services.filter(service => service.assetType.family === family).map(service => service.footprint)
+  const allServices = [...new Set(services.map(service => service.service))].sort()
+  return {
+    ...summarize(services, footprints('KUBERNETES_CONTAINER'), footprints('LLM')),
+    allServices,
+    includedServices: allServices,
+    assetPanels: [],
+    kubernetesPanels: [],
+    llmPanels: [],
+    assetCount,
+  }
+}
+
+/* What the cards, the shares and the service table read */
+function summarize(services: ServiceImpact[], dockerFootprints: Footprint[], llmFootprints: Footprint[]) {
+  const sorted = [...services].sort((a, b) => totalValue(b.footprint.gwp) - totalValue(a.footprint.gwp))
+  const totalGwp = sorted.reduce((sum, service) => sum + totalValue(service.footprint.gwp), 0)
   const shares = new Map<string, number>()
-  services.forEach(service => shares.set(service.label, totalGwp === 0 ? 0 : totalValue(service.footprint.gwp) / totalGwp))
-
-  const kubernetesPanels = panels.filter((panel): panel is KubernetesPanel => panel.kind === 'kubernetes')
-  const llmPanels = panels.filter((panel): panel is LLMPanel => panel.kind === 'llm')
+  sorted.forEach(service => shares.set(service.label, totalGwp === 0 ? 0 : totalValue(service.footprint.gwp) / totalGwp))
 
   return {
     globalImpact: sumFootprints([...dockerFootprints, ...llmFootprints]),
     dockerImpact: sumFootprints(dockerFootprints),
     llmImpact: sumFootprints(llmFootprints),
-    serviceImpacts: services,
+    serviceImpacts: sorted,
     impactShares: shares,
-    allServices,
-    includedServices: [...included],
-    assetPanels: panels,
-    kubernetesPanels,
-    llmPanels,
-    serviceLines: services.map(serviceLine),
-    assetCount: panels.length,
-    serviceCount: services.length,
-    dockerServiceCount: services.filter(service => service.assetType.family === 'KUBERNETES_CONTAINER').length,
-    llmServiceCount: services.filter(service => service.assetType.family === 'LLM').length,
+    serviceLines: sorted.map(serviceLine),
+    serviceCount: sorted.length,
+    dockerServiceCount: sorted.filter(service => service.assetType.family === 'KUBERNETES_CONTAINER').length,
+    llmServiceCount: sorted.filter(service => service.assetType.family === 'LLM').length,
   }
 }
 

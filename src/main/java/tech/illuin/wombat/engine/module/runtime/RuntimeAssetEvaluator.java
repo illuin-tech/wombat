@@ -17,6 +17,7 @@ import tech.illuin.wombat.core.module.ProcessorFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The app's {@link AssetEvaluator}: each call runs on the evaluator of the current {@link CoreDeployment}. A subclass
@@ -66,6 +67,18 @@ public class RuntimeAssetEvaluator extends AssetEvaluator
     public Optional<AssetEvaluation> computeCost(Asset asset, ActivityData activity) throws WombatEvaluationException
     {
         return this.runtime.current().evaluator().computeCost(asset, activity);
+    }
+
+    @Override
+    public CompletableFuture<Optional<AssetEvaluation>> computeImpactAsync(Asset asset, ActivityData activity)
+    {
+        return this.runtime.current().evaluator().computeImpactAsync(asset, activity);
+    }
+
+    @Override
+    public CompletableFuture<Optional<AssetEvaluation>> computeCostAsync(Asset asset, ActivityData activity)
+    {
+        return this.runtime.current().evaluator().computeCostAsync(asset, activity);
     }
 
     /** Resolvers are registered by {@link CoreDeploymentFactory}, from the deployed modules. */

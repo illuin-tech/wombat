@@ -25,18 +25,22 @@ The pages don't offer some assets:
 | Of a disabled module    | Offered once the module is enabled again. Through the API, such an asset is accepted, and evaluated as `module-disabled`.  |
 | Of a `*-simulated` type | Their identity is fixed, and their activity comes with them. The API refuses them too (400): use `llm-static` or `kubernetes-static`, whose scenarios resolve activity over any window. |
 
-A copy takes its parent's id, with any character outside `[a-z0-9_-]` replaced by `-` (a worker's `worker.chatbot`
-becomes `worker-chatbot`), and `-2`, `-3`… when that id is taken in the simulation.
+A copy takes its source's id, name and description, unless given its own. Its id has any character outside `[a-z0-9_-]` replaced by `-` (a worker's
+`worker.chatbot` becomes `worker-chatbot`), and `-2`, `-3`… appended when that id is taken in the simulation.
 
 ### Copies and their source
 
-A copy is a snapshot: it does not follow its source. Comparing their definitions (identities aside) tells how it stands:
+A copy is a snapshot: it does not follow its source. A copy's `source` holds the source's `assetId` and
+`environmentId` (as they were at copy time), when it was last `syncedAt`, and its `status`, from comparing their
+definitions (identities aside). An asset written from scratch has no `source`.
 
-| `parentStatus`   | Meaning                                                                                         |
+| `source.status`  | Meaning                                                                                         |
 |------------------|-------------------------------------------------------------------------------------------------|
 | `in-sync`        | The copy and its source have the same definition.                                               |
 | `diverged`       | Either was changed since the copy was created, or last synced. The comparison can't tell which. |
-| `parent-removed` | The source was deleted. The copy is kept as it is, and can no longer be synced.                 |
+| `source-removed` | The source was deleted. The copy is kept as it is, and can no longer be synced.                 |
+
+A simulation asset belongs to no environment: unlike an environment's asset, it is served without `environmentId`.
 
 **Sync** (`POST …/assets/{assetId}/sync`) replaces the copy's definition with its source's current one, and loses the
 changes made to the copy.
@@ -74,12 +78,10 @@ afresh, from its definition as stored, on the core deployed at that moment (see 
 
 ### Identities
 
-An evaluation reads activity under the identity of the asset it comes from:
-* a copy reads its source's, `(source id, source environment, type)`, so that it finds its metrics;
-* an asset written from scratch reads `(id, "simulation:<simulation id>", type)`.
-
-Its impact and cost are computed under the latter, so every result names its own simulation asset. The changes made to
-a copy never reach the dashboard, nor `api/impact`.
+An evaluation reads a copy's activity under its source's identity, `(source id, source environment, type)`, so that it
+finds the source's metrics. Everything else, the impact, the cost and the activity of an asset written from scratch, is
+computed under an identity of the simulation asset's own, internal to the app and never served. Each asset is evaluated
+with components built for it alone, so the changes made to a copy never reach the dashboard, nor `api/impact`.
 
 > **Caveat:** metrics are looked up by asset id alone. An asset written from scratch, of a measured type with a default
 > resolver (`llm-prometheus`, `kubernetes-api`…), would read the metrics of any real asset with the same id. Such an
@@ -103,18 +105,24 @@ optional `referenceWindow` overriding the simulation's:
 {
   window: { start, end, period },
   factors: { DAY: 0.033, WEEK: 0.233, MONTH: 1, YEAR: 12.17 },
-  totals: { DAY: { impact, cost }, … },               // summed over the assets evaluated ok
+  totals: { DAY: { impact, cost }, … },               // summed over the assets evaluated ok; cost: [{ value, currency }]
   assets: [{
     id, status, message, coverage,
     result: [AssetImpact | AssetCost],                // over the window, straight from the evaluator, told apart by `type`
-    scaled: { DAY: { impact, cost }, … }              // the footprint of `result`, scaled to each period
+    scaled: {                                         // the standardized part of `result`, scaled to each period
+      DAY: { impact, cost, services: [{ serviceId, assetType, impact, cost }] }, …
+    }
   }]
 }
 ```
 
-Only the footprints are scaled; the details of `result` (requests, CPU load…) cover the window. The page's per-service
-breakdown scales each service's footprint by the same factors. No module computes a cost amount yet: `cost` stays null,
-shown as "Not computed".
+The server does all the scaling: a client reads the period it shows and never multiplies anything. Only the
+standardized figures are scaled, the footprints and the costs, the asset's and each service's; the details of `result`
+(requests, CPU load…) cover the window, and leave out the asset's identity, which `id` gives.
+
+A cost is a list with one amount per currency (`{ value, currency }`, an ISO 4217 code), summed per currency and never
+converted. It is null when the cost is not evaluated, and empty when nothing was priced: no module prices assets yet, so
+the page shows "Not computed".
 
 ## Permissions
 
@@ -136,14 +144,14 @@ All under `api/simulation/sandbox`:
 | Method   | Path                              | Does                                                      |
 |----------|-----------------------------------|-----------------------------------------------------------|
 | `GET`    | `/`                               | Lists the simulations, with their asset counts            |
-| `POST`   | `/`                               | Creates one, copying `assetIds` of `parentEnvironmentId`  |
+| `POST`   | `/`                               | Creates one, copying `assetIds` of `sourceEnvironmentId`  |
 | `GET`    | `/{id}`                           | Reads one, with its assets                                |
 | `PUT`    | `/{id}`                           | Updates its name, description, notes and reference window |
 | `DELETE` | `/{id}`                           | Deletes it, with its assets                               |
 | `POST`   | `/{id}/duplicate`                 | Duplicates it under a new id and name                     |
 | `POST`   | `/{id}/evaluation`                | Evaluates it                                              |
 | `GET`    | `/{id}/assets`                    | Lists its assets, with how each copy stands               |
-| `POST`   | `/{id}/assets`                    | Adds a copy of `parentAssetId`, or an asset from scratch  |
+| `POST`   | `/{id}/assets`                    | Adds a copy of `sourceAssetId`, or an asset from scratch  |
 | `GET`    | `/{id}/assets/{assetId}`          | Reads an asset, compared with its source as it is now     |
 | `PUT`    | `/{id}/assets/{assetId}`          | Updates an asset's name, description, notes and properties |
 | `DELETE` | `/{id}/assets/{assetId}`          | Removes an asset                                          |

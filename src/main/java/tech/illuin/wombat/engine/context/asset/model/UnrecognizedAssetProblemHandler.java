@@ -13,6 +13,7 @@ import java.io.IOException;
 public class UnrecognizedAssetProblemHandler extends DeserializationProblemHandler
 {
     private static final Logger logger = LoggerFactory.getLogger(UnrecognizedAssetProblemHandler.class);
+
     @Override
     public JavaType handleUnknownTypeId(DeserializationContext ctx, JavaType baseType, String subTypeId, TypeIdResolver idResolver, String failureMsg) throws IOException
     {

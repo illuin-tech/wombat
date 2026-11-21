@@ -1,4 +1,4 @@
-import type { AssetInfo } from '@/domain/environment'
+import type { AssetInfo, AssetType } from '@/domain/environment'
 import type { AssetImpact, Footprint } from '@/domain/impact'
 
 /** The durations a simulation is projected over, and the reference windows it is evaluated on. */
@@ -9,17 +9,39 @@ export const PERIODS: readonly SimulationPeriod[] = ['DAY', 'WEEK', 'MONTH', 'YE
 export const PERIOD_LABELS: Record<SimulationPeriod, string> = { DAY: 'Day', WEEK: 'Week', MONTH: 'Month', YEAR: 'Year' }
 
 /** How a copied asset stands against the asset it was copied from. */
-export type ParentStatus = 'in-sync' | 'diverged' | 'parent-removed'
+export type SourceStatus = 'in-sync' | 'diverged' | 'source-removed'
 
-/** An asset definition held by a simulation, its properties unwrapped as for an environment's asset. */
-export interface SimulationAssetInfo extends AssetInfo {
+/** The asset a simulation asset was copied from. */
+export interface AssetSource {
+  assetId: string
+  /** The source's environment, as it was at copy time. */
+  environmentId: string
+  status: SourceStatus
+  /** When the definition was last taken from the source. */
+  syncedAt: string
+}
+
+/** The fields of a simulation asset's record beyond those of an environment's asset. */
+interface SimulationAssetRecord {
   simulationId: string
   notes?: string | null
-  parentAssetId?: string | null
-  parentEnvironmentId?: string | null
-  /** Absent without a parent. */
-  parentStatus?: ParentStatus | null
-  syncedAt?: string | null
+  /** Absent for an asset written from scratch. */
+  source?: AssetSource | null
+}
+
+/* A record, so that a field added to SimulationAssetRecord must be listed here */
+const RECORD_FIELDS: Record<keyof SimulationAssetRecord, true> = { simulationId: true, notes: true, source: true }
+/** What `toAssetProperties` leaves out of a simulation asset, beside the fields of any asset's record. */
+export const SIMULATION_ASSET_RECORD_FIELDS: ReadonlySet<string> = new Set(Object.keys(RECORD_FIELDS))
+
+/** An asset definition held by a simulation, its properties unwrapped as for an environment's asset. It belongs to no environment. */
+export interface SimulationAssetInfo extends AssetInfo, SimulationAssetRecord {
+  environmentId?: never
+}
+
+/** `environment/asset`, naming the source of a copy. */
+export function sourceLabel(source: AssetSource): string {
+  return `${source.environmentId}/${source.assetId}`
 }
 
 /** GET /api/simulation/sandbox: a simulation as listed, without its assets. */
@@ -28,9 +50,9 @@ export interface SimulationSummary {
   name: string
   description?: string | null
   referenceWindow: SimulationPeriod
-  parentEnvironmentId?: string | null
-  /** Null without a parent environment, or once it was deleted. */
-  parentEnvironmentName?: string | null
+  sourceEnvironmentId?: string | null
+  /** Null without a source environment, or once it was deleted. */
+  sourceEnvironmentName?: string | null
   assetCount: number
   createdAt?: string | null
   updatedAt?: string | null
@@ -42,8 +64,8 @@ export interface SimulationInfo extends Omit<SimulationSummary, 'assetCount'> {
 }
 
 /** Whether the environment the simulation was generated from was deleted since. */
-export function parentEnvironmentRemoved(simulation: { parentEnvironmentId?: string | null; parentEnvironmentName?: string | null }): boolean {
-  return !!simulation.parentEnvironmentId && !simulation.parentEnvironmentName
+export function sourceEnvironmentRemoved(simulation: { sourceEnvironmentId?: string | null; sourceEnvironmentName?: string | null }): boolean {
+  return !!simulation.sourceEnvironmentId && !simulation.sourceEnvironmentName
 }
 
 /** What an evaluation computes: the impact, the cost, or both. */
@@ -52,15 +74,32 @@ export type EvaluationScope = 'IMPACT' | 'COST'
 /** Why an asset produced a result or not. */
 export type EvaluationStatus = 'ok' | 'no-data' | 'module-disabled' | 'error'
 
-/** The standardized part of a result, scaled to one period. Each is null when not evaluated. */
-export interface ScaledResult {
-  impact: Footprint | null
-  /** Always null for now: a cost carries no amount yet. */
-  cost: { value: number; unit: string } | null
+/** An amount of money; `currency` is an ISO 4217 code. */
+export interface Money {
+  value: number
+  currency: string
 }
 
-/** An evaluation straight from the evaluator: an impact as `/api/impact` serves it, or a cost. */
-export type AssetEvaluation = (AssetImpact & { type: 'IMPACT' }) | { type: 'COST'; [key: string]: unknown }
+/** One service's footprint and cost, scaled to one period. */
+export interface ScaledService {
+  serviceId: string
+  assetType: AssetType
+  /** Null when the impact is not evaluated, or the service has none. */
+  impact: Footprint | null
+  cost: Money[] | null
+}
+
+/** The standardized part of results, scaled to one period by the server. Each is null when not evaluated. */
+export interface ScaledResult {
+  impact: Footprint | null
+  /** One amount per currency, never converted; empty when nothing was priced. */
+  cost: Money[] | null
+  /** An asset's footprint per service; absent from the totals. */
+  services?: ScaledService[] | null
+}
+
+/** An evaluation straight from the evaluator, as `/api/impact` serves it but for its asset's identity, or a cost. */
+export type AssetEvaluation = (Omit<AssetImpact, 'assetIdentity'> & { type: 'IMPACT' }) | { type: 'COST'; [key: string]: unknown }
 
 export interface AssetEvaluationResult {
   id: string
@@ -68,7 +107,7 @@ export interface AssetEvaluationResult {
   message?: string | null
   /** The share of the window's slots with activity, from 0 to 1; null unless `ok`. */
   coverage?: number | null
-  /** The evaluations over the window, unscaled. */
+  /** The evaluations over the window, unscaled: details for whoever wants them, never scaled here. */
   result: AssetEvaluation[]
   /** Empty unless `ok`. */
   scaled: Partial<Record<SimulationPeriod, ScaledResult>>
@@ -77,7 +116,7 @@ export interface AssetEvaluationResult {
 /** POST /api/simulation/sandbox/{id}/evaluation: the assets evaluated over the window, then scaled to every period. */
 export interface SimulationEvaluation {
   window: { start: string; end: string; period: SimulationPeriod }
-  /** How many windows each period holds: a period's results are the window's times its factor. */
+  /** How many windows each period holds, which the server scaled the results by. */
   factors: Record<SimulationPeriod, number>
   /** Summed over the assets evaluated `ok`. */
   totals: Record<SimulationPeriod, ScaledResult>

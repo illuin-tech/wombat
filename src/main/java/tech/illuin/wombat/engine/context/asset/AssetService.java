@@ -156,10 +156,6 @@ public class AssetService
         return this.environmentRepository.findVisibleById(id).orElseThrow(() -> new UnknownEnvironmentException(id));
     }
 
-    /**
-     * Reads the properties as the asset of the given type, its identity taking precedence over the one they may carry,
-     * then checks it as a declared one would be.
-     */
     private static void apply(AssetEntity entity, String name, Asset properties)
     {
         entity.name = name;

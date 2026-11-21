@@ -71,7 +71,7 @@ class SimulationAccessControlTest
         given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "referenceWindow", "DAY")).when().put("/api/simulation/sandbox/" + CREATED).then().statusCode(403);
         given().contentType(ContentType.JSON).body(Map.of("id", "nope", "name", "Nope")).when().post("/api/simulation/sandbox/" + CREATED + "/duplicate").then().statusCode(403);
         given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(403);
-        given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "parentAssetId", "test-llm"))
+        given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "sourceAssetId", "test-llm"))
             .when().post("/api/simulation/sandbox/" + CREATED + "/assets").then().statusCode(403);
         given().contentType(ContentType.JSON).body(Map.of("name", "Nope", "properties", Map.of()))
             .when().put("/api/simulation/sandbox/" + CREATED + "/assets/test-llm").then().statusCode(403);
@@ -83,7 +83,7 @@ class SimulationAccessControlTest
     @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
     void admins_manage()
     {
-        given().contentType(ContentType.JSON).body(Map.of("id", CREATED, "name", "Created", "parentEnvironmentId", "test", "assetIds", List.of("test-llm")))
+        given().contentType(ContentType.JSON).body(Map.of("id", CREATED, "name", "Created", "sourceEnvironmentId", "test", "assetIds", List.of("test-llm")))
             .when().post("/api/simulation/sandbox").then().statusCode(201);
         given().when().post("/api/simulation/sandbox/" + CREATED + "/assets/test-llm/sync").then().statusCode(200);
         given().when().delete("/api/simulation/sandbox/" + CREATED).then().statusCode(204);
@@ -95,13 +95,13 @@ class SimulationAccessControlTest
         String key = this.issue(Permission.API_SIMULATION_READ, Permission.API_SIMULATION_WRITE);
 
         given().header(ApiKeyAuthenticationMechanism.HEADER, key).contentType(ContentType.JSON)
-            .body(Map.of("id", CREATED, "name", "Created", "parentEnvironmentId", "test", "assetIds", List.of("test-llm")))
+            .body(Map.of("id", CREATED, "name", "Created", "sourceEnvironmentId", "test", "assetIds", List.of("test-llm")))
             .when().post("/api/simulation/sandbox").then().statusCode(403);
         given().header(ApiKeyAuthenticationMechanism.HEADER, key).contentType(ContentType.JSON)
             .body(Map.of("id", CREATED, "name", "Created"))
             .when().post("/api/simulation/sandbox").then().statusCode(201);
         given().header(ApiKeyAuthenticationMechanism.HEADER, key).contentType(ContentType.JSON)
-            .body(Map.of("name", "Copy", "parentAssetId", "test-llm"))
+            .body(Map.of("name", "Copy", "sourceAssetId", "test-llm"))
             .when().post("/api/simulation/sandbox/" + CREATED + "/assets").then().statusCode(403);
     }
 

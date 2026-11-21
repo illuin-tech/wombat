@@ -114,6 +114,52 @@ select:disabled { opacity: 0.5; cursor: not-allowed; }
 .icon-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; padding: 2px 8px; border-radius: 14px; white-space: nowrap; background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
 .icon-pill svg { flex: none; }
 
+/* A status, e.g. active or disabled: muted, unless a tone tells otherwise */
+.status-chip { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+.status-chip.good { background: var(--accent-green-soft); color: var(--accent-green); border-color: transparent; }
+.status-chip.warn { background: var(--accent-yellow-soft); color: var(--accent-yellow); border-color: var(--accent-yellow); }
+.status-chip.bad { color: var(--accent-orange); }
+
+/* Record pages, e.g. environments, modules, simulations: a list of records, then one record's page */
+.list-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.record-table .record-row { cursor: pointer; }
+.record-table .record-row:hover td, .record-table .record-row:focus-visible td { background: var(--surface2); }
+.record-table .record-row:focus-visible { outline: none; }
+.record-row-name { display: inline-flex; align-items: center; gap: 6px; }
+.record-id { display: block; font-family: monospace; font-size: 11px; font-weight: 400; color: var(--text-dim); margin-top: 2px; }
+.record-row-tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.record-row-none { font-size: 12px; color: var(--text-dim); }
+.record-row-actions { text-align: right; }
+
+/* A record's page: its head, then what it holds */
+.back-link { font-size: 12px; font-weight: 600; color: var(--text-muted); text-decoration: none; }
+.back-link:hover { color: var(--accent-green); }
+.record-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 32px; align-items: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 26px; box-shadow: var(--shadow-sm); }
+.record-head-main { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.record-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; max-width: 300px; text-align: right; }
+.record-head-loading { display: flex; flex-direction: column; gap: 12px; }
+.record-head-foot { grid-column: 1 / -1; justify-self: end; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; }
+.record-title { display: block; }
+.record-name-input { width: 100%; font-family: var(--sans); font-size: 20px; font-weight: 700; color: var(--text); background: transparent; border: 1.5px solid transparent; border-radius: var(--radius-sm); padding: 4px 8px; margin-left: -9px; outline: none; transition: border-color 0.15s, background 0.15s; }
+.record-name-input:hover { border-color: var(--border); }
+.record-name-input:focus { border-color: var(--accent-green); background: var(--surface2); }
+.record-id-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.record-id-line .record-id { display: inline; margin: 0; font-size: 12px; }
+.record-id-field { max-width: 360px; }
+.record-description { display: flex; flex-direction: column; gap: 6px; }
+.record-delete-wrapper { display: inline-flex; }
+.record-delete-wrapper:has(.record-delete:disabled) { cursor: not-allowed; }
+.save-status { font-size: 12px; color: var(--text-dim); }
+.save-status.saved { color: var(--accent-green); }
+.save-status.error, .save-status.invalid { color: var(--accent-orange); }
+.record-assets .chart-title { margin-bottom: 12px; }
+
+@media (max-width: 800px) {
+  .record-head { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 18px; }
+  .record-head-side { align-items: flex-start; text-align: left; max-width: none; }
+  .record-head-foot { justify-self: start; justify-content: flex-start; }
+}
+
 /* Creation choice: from something existing, or from scratch */
 .creation-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .creation-choice-pane { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; font: inherit; color: inherit; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 32px 24px; box-shadow: var(--shadow-sm); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }

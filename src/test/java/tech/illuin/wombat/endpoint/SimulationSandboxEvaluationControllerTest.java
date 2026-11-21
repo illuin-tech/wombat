@@ -28,8 +28,10 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -76,7 +78,7 @@ class SimulationSandboxEvaluationControllerTest
     }
 
     @Test
-    void aCopy_readsItsParentsMetrics()
+    void aCopy_readsItsSourcesMetrics()
     {
         this.seedClusterMetrics();
         this.copy("test-cluster");
@@ -93,14 +95,17 @@ class SimulationSandboxEvaluationControllerTest
             .body("payload.assets[0].coverage", is((float) (1.0 / 30)))
             .body("payload.assets[0].result[0].provider", is("BOAVIZTA"))
             .body("payload.assets[0].result.type", is(List.of("IMPACT", "COST")))
-            .body("payload.assets[0].result[0].assetIdentity.environmentId", is("simulation:" + SIMULATION))
+            .body("payload.assets[0].result[0]", not(hasKey("assetIdentity")))
             .body("payload.assets[0].scaled.YEAR.impact.gwp", notNullValue())
-            .body("payload.assets[0].scaled.YEAR.cost", nullValue())
+            /* Evaluated, but priced by no module yet */
+            .body("payload.assets[0].scaled.YEAR.cost", empty())
+            .body("payload.assets[0].scaled.YEAR.services", not(empty()))
+            .body("payload.assets[0].scaled.YEAR.services[0].impact.gwp", notNullValue())
             .body("payload.totals.DAY.impact.gwp", notNullValue());
     }
 
     @Test
-    void aCopyWhoseParentHasNoMetrics_hasNoData()
+    void aCopyWhoseSourceHasNoMetrics_hasNoData()
     {
         this.copy("test-cluster");
 
@@ -157,7 +162,7 @@ class SimulationSandboxEvaluationControllerTest
     }
 
     @Test
-    void twoCopiesOfOneParent_areEvaluatedApart()
+    void twoCopiesOfOneSource_areEvaluatedApart()
     {
         this.copy("test-llm");
         this.copy("test-llm");
@@ -190,10 +195,10 @@ class SimulationSandboxEvaluationControllerTest
         return given().contentType(ContentType.JSON).body(body).when().post("/api/simulation/sandbox/" + SIMULATION + "/evaluation");
     }
 
-    private void copy(String parentAssetId)
+    private void copy(String sourceAssetId)
     {
         given().contentType(ContentType.JSON)
-            .body(Map.of("name", "Copy of " + parentAssetId, "parentAssetId", parentAssetId))
+            .body(Map.of("name", "Copy of " + sourceAssetId, "sourceAssetId", sourceAssetId))
             .when().post("/api/simulation/sandbox/" + SIMULATION + "/assets")
             .then().statusCode(201);
     }
@@ -224,8 +229,8 @@ class SimulationSandboxEvaluationControllerTest
     private Map<String, Object> properties(String path)
     {
         Map<String, Object> asset = new HashMap<>(given().when().get(path).then().statusCode(200).extract().path("payload"));
-        for (String key : List.of("id", "environmentId", "type", "simulationId", "name", "description", "notes", "parentAssetId",
-            "parentEnvironmentId", "parentStatus", "syncedAt", "createdAt", "updatedAt"))
+        for (String key : List.of("id", "environmentId", "type", "simulationId", "name", "description", "notes", "source",
+            "createdAt", "updatedAt"))
             asset.remove(key);
         return asset;
     }

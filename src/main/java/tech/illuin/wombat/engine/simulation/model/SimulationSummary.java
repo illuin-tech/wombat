@@ -8,23 +8,23 @@ import java.time.Instant;
 /**
  * A simulation as listed, without its assets.
  *
- * @param parentEnvironmentName {@code null} without a parent environment, or once it was deleted
+ * @param sourceEnvironmentName {@code null} without a source environment, or once it was deleted
  */
 public record SimulationSummary(
     String id,
     String name,
     String description,
     SimulationPeriod referenceWindow,
-    String parentEnvironmentId,
-    String parentEnvironmentName,
+    String sourceEnvironmentId,
+    String sourceEnvironmentName,
     long assetCount,
     Instant createdAt,
     Instant updatedAt
 ) {
-    public static SimulationSummary from(SimulationEntity entity, String parentEnvironmentName, long assetCount)
+    public static SimulationSummary from(SimulationEntity entity, String sourceEnvironmentName, long assetCount)
     {
         return new SimulationSummary(
-            entity.id, entity.name, entity.description, entity.referenceWindow, entity.parentEnvironmentId, parentEnvironmentName,
+            entity.id, entity.name, entity.description, entity.referenceWindow, entity.sourceEnvironmentId, sourceEnvironmentName,
             assetCount, entity.createdAt, entity.updatedAt
         );
     }

@@ -74,7 +74,7 @@ onMounted(() => listing.run())
 
 <template>
   <div class="main">
-    <div class="env-list-head">
+    <div class="list-head">
       <PageHead title="Modules">
         The asset types Wombat detects. Turning a module off hides it from the asset pickers at once; a core
         redeployment is required for monitoring and evaluations to take it into account, even across restarts.
@@ -97,7 +97,7 @@ onMounted(() => listing.run())
         <input v-model="search" type="search" class="search-input" placeholder="Filter by name" aria-label="Filter modules by name" />
         <DropdownPicker v-model="states" label="State" :options="stateOptions" :summary="stateSummary" picker-id="moduleStatePicker" />
       </template>
-      <table class="env-table">
+      <table class="record-table">
         <thead><tr><th>Module</th><th>Family</th><th>Source</th><th>State</th><th>Assets</th><th></th></tr></thead>
         <tbody>
           <template v-if="listing.loading.value && !listing.data.value">
@@ -109,7 +109,7 @@ onMounted(() => listing.run())
             <tr
               v-for="module in shown"
               :key="module.type.name"
-              class="env-row module-row"
+              class="record-row module-row"
               :class="{ inactive: module.missing }"
               tabindex="0"
               @click="open(module)"
@@ -134,7 +134,7 @@ onMounted(() => listing.run())
                 </span>
               </td>
               <td>{{ module.assetCount }}</td>
-              <td class="env-row-actions">
+              <td class="record-row-actions">
                 <button
                   v-if="module.missing && canManage"
                   class="btn-link-inline module-delete"

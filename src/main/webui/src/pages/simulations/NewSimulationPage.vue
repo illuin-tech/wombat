@@ -60,7 +60,7 @@ async function create(): Promise<void> {
   submitting.value = true
   creationError.value = null
   try {
-    const copied = source.value === 'existing' ? { parentEnvironmentId: environmentId.value, assetIds: picked.value } : {}
+    const copied = source.value === 'existing' ? { sourceEnvironmentId: environmentId.value, assetIds: picked.value } : {}
     const created = await createSimulation({ id: id.value, name: name.value.trim(), description: description.value.trim() || null, ...copied })
     await router.replace({ name: 'simulation', params: { id: created.id } })
   } catch (caught) {
@@ -75,7 +75,7 @@ onMounted(load)
 
 <template>
   <div class="main form-page">
-    <RouterLink class="env-back" :to="{ name: 'simulations' }">← Simulations</RouterLink>
+    <RouterLink class="back-link" :to="{ name: 'simulations' }">← Simulations</RouterLink>
     <h2 class="page-title">New simulation</h2>
 
     <CreationChoice
@@ -93,7 +93,7 @@ onMounted(load)
       <section v-if="source === 'existing'" class="sim-create-source">
         <label class="form-field">
           <span class="filter-label">Environment</span>
-          <select v-model="environmentId" id="parentEnvironment">
+          <select v-model="environmentId" id="sourceEnvironment">
             <option value="" disabled>Pick an environment</option>
             <option v-for="candidate in environments" :key="candidate.id" :value="candidate.id">{{ displayName(candidate) }}</option>
           </select>
@@ -106,8 +106,8 @@ onMounted(load)
             <input v-model="picked" type="checkbox" :value="candidate.asset.id" :disabled="candidate.blocked !== null" />
             <span>{{ displayName(candidate.asset) }}</span>
             <code class="asset-card-id">{{ candidate.asset.id }}</code>
-            <span v-if="candidate.blocked" class="env-status disabled">{{ candidate.blocked }}</span>
-            <span v-else-if="candidate.asset.disabledAt" class="env-status disabled">Inactive</span>
+            <span v-if="candidate.blocked" class="status-chip">{{ candidate.blocked }}</span>
+            <span v-else-if="candidate.asset.disabledAt" class="status-chip">Inactive</span>
           </label>
         </fieldset>
       </section>

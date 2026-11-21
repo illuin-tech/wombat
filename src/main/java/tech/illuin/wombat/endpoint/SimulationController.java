@@ -18,6 +18,7 @@ import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.jboss.resteasy.reactive.ResponseStatus;
 import tech.illuin.wombat.core.asset.SimulatedAsset;
@@ -278,7 +279,7 @@ public class SimulationController
     })))
     @APIResponse(responseCode = "400", description = "Invalid payload")
     @APIResponse(responseCode = "404", description = "Unknown simulation")
-    public Response<SimulationEvaluation> evaluate(@PathParam("id") String id, @Valid SimulationEvaluationRequest request)
+    public Response<SimulationEvaluation> evaluate(@PathParam("id") String id, @RequestBody(required = false) @Valid SimulationEvaluationRequest request)
     {
         SimulationEvaluationRequest options = request != null ? request : new SimulationEvaluationRequest(null, null);
         try {

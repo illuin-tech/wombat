@@ -15,7 +15,9 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -182,6 +184,23 @@ class SimulationSandboxControllerTest
         /* SQLite does not enforce the foreign key's cascade: the service deletes them */
         assertTrue(QuarkusTransaction.requiringNew().call(() -> this.simulationAssets.findBySimulation(CREATED)).isEmpty());
         this.create(CREATED, Map.of()).then().statusCode(201).body("payload.assets", empty());
+    }
+
+    @Test
+    void openApi_describesTheSandbox_andTheEvaluationsAsServed()
+    {
+        given().queryParam("format", "json")
+            .when().get("/api/openapi")
+            .then()
+            .statusCode(200)
+            .body("paths.'/api/simulation/sandbox/{id}'.keySet()", hasItems("get", "put", "delete"))
+            .body("paths.'/api/simulation/sandbox/{id}/assets/{assetId}/sync'.post.responses.keySet()", hasItems("200", "404", "409"))
+            .body("paths.'/api/simulation/sandbox/{id}/evaluation'.post.requestBody.required", is(false))
+            .body("components.schemas.SimulationEvaluation.properties.keySet()", hasItems("window", "factors", "totals", "assets"))
+            /* A result is an impact or a cost, told apart by the type the mapper serves */
+            .body("components.schemas.AssetEvaluation.'$ref'", is("#/components/schemas/AssetEvaluationSchema"))
+            .body("components.schemas.AssetImpact.properties.type.enum", contains("IMPACT"))
+            .body("components.schemas.AssetCost.required", hasItem("type"));
     }
 
     private io.restassured.response.Response create(String id, Map<String, Object> extra)

@@ -55,12 +55,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -94,7 +94,8 @@ class SimulationEvaluatorTest
     @BeforeEach
     void setUp()
     {
-        this.evaluators = new ArrayList<>();
+        /* The evaluator builds them from its virtual threads, one per asset */
+        this.evaluators = new CopyOnWriteArrayList<>();
         this.runtime = mock(CoreRuntime.class);
         when(this.runtime.current()).thenReturn(new CoreDeployment(
             1, "id", List.of(new LLMStaticModule()), Set.of(), mock(AssetMonitor.class), mock(AssetEvaluator.class), this::newEvaluator, NOW

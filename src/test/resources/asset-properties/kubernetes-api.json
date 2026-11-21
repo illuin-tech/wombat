@@ -1,5 +1,5 @@
 {
-  "configPath": "/path/to/kubeconfig",
+  "kubeconfigKey": "kubeconfig-my-cluster",
   "namespace": "my-namespace",
   "readTimeout": "PT30S",
   "period": "2s",

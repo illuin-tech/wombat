@@ -52,6 +52,11 @@ wombat:
     heartbeat: "1s"
     environments-file: monitored-environments-test.yaml
 
+  # Holds the kubeconfig of the cluster in monitored-environments-test.yaml
+  secret:
+    directory:
+      path: src/test/resources/secrets
+
   evaluator:
     cache:
       enabled: true

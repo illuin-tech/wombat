@@ -16,7 +16,8 @@ src/**/monitored-environments-dev.yaml
 /compose/demo-distributed/*/config/application.yaml
 /compose/demo-distributed/*/monitored-environments.yaml
 /compose/demo-distributed/*/data
-/compose/demo-distributed/*/kubeconfig
+/compose/demo-distributed/*/secrets
+/compose/demo-standalone/secrets
 
 /data/
 /secrets/

@@ -7,7 +7,7 @@ environments:
         id: test-cluster
         environment-id: test
         namespace: test-ns
-        config-path: src/test/resources/test-kubeconfig.yaml
+        kubeconfig-key: test-kubeconfig
         profile:
           provider: aws
           instance-type: c5.large

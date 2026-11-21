@@ -14,6 +14,7 @@ import tech.illuin.wombat.engine.context.environment.EnvironmentConflictExceptio
 import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity;
 import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepository;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
@@ -423,7 +424,7 @@ class EnvironmentReconcilerTest
     {
         return new KubernetesAPIAsset(
             AssetIdentity.of(id, "e1", KubernetesAPIModule.TYPE),
-            "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
+            new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, lifespan)
         );
     }

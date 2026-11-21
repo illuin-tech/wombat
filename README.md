@@ -245,8 +245,8 @@ run `docker compose -f compose/demo-standalone/compose.yaml up`.
 Optionally, environments can also be provisioned from a YAML file, kept in sync at every startup: see
 [environments and provisioning](doc/provisioning.md). To try it, create `monitored-environments.yaml` from
 [`monitored-environments.yaml.dist`](compose/demo-standalone/monitored-environments.yaml.dist), whose comments tell what
-to adapt, and uncomment its volume in `compose.yaml`. A live `kubernetes-api` asset also needs a valid kubeconfig, mounted
-from `~/.kube` in the same file.
+to adapt, and uncomment its volume in `compose.yaml`. A live `kubernetes-api` asset also needs a kubeconfig, which it names
+by its secret key: see the template's comments and [secret management](doc/secret-management.md).
 
 For a distributed setup (an aggregator and two workers), see [running it locally](doc/distributed.md#running-it-locally).
 

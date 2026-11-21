@@ -95,7 +95,8 @@ class SecretResolverCdiTest
                     "wombat.secret.write-mode", WriteMode.disabled.name(),
                     "wombat.secret.keystore.path", keyStorePath.toString(),
                     "wombat.secret.keystore.password", PASSWORD,
-                    "wombat.secret.directory.path", directory.toString()
+                    "wombat.secret.directory.path", directory.toString(),
+                    "wombat.monitor.environments-file", "src/test/resources/monitored-environments-empty.yaml"
                 );
             }
             catch (Exception e) {

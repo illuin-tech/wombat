@@ -12,6 +12,7 @@ import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
@@ -81,7 +82,7 @@ class WorkerControllerDisabledModuleTest
     {
         return new KubernetesAPIAsset(
             AssetIdentity.of(id, environment, KubernetesAPIModule.TYPE),
-            "kubeconfig/" + environment + ".config.yaml", "default", Optional.empty(), Optional.empty(), Period.ZERO,
+            new SecretKey("kubeconfig-" + environment), "default", Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
     }

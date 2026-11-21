@@ -89,7 +89,7 @@ class MonitoredEnvironmentsTemplateTest
                     id: "valid-cluster"
                     environment-id: "valid-env"
                     name: "Valid Cluster"
-                    config-path: "/path"
+                    kubeconfig-key: "kubeconfig"
             """;
         YAMLMapper yamlMapper = mapper();
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();

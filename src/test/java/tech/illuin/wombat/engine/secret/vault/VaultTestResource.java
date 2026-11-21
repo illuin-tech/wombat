@@ -50,7 +50,8 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
             "quarkus.vault.authentication.client-token", scopedToken,
             "quarkus.vault.kv-secret-engine-mount-path", "secret",
             "quarkus.vault.devservices.enabled", "false",
-            "wombat.secret.directory.path", this.resolverDirectory.toString()
+            "wombat.secret.directory.path", this.resolverDirectory.toString(),
+            "wombat.monitor.environments-file", "src/test/resources/monitored-environments-empty.yaml"
         );
     }
 

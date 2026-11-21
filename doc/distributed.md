@@ -152,8 +152,10 @@ what their sources use.
      cp compose/demo-distributed/$node/monitored-environments.yaml.dist compose/demo-distributed/$node/monitored-environments.yaml
    done
    ```
-2. Give each worker the kubeconfig of its cluster: `compose/demo-distributed/worker-east/kubeconfig/east.config.yaml` and
-   `compose/demo-distributed/worker-west/kubeconfig/west.config.yaml`. The aggregator never reads them.
+2. Give each worker the kubeconfig of its cluster, as the secret its asset names in `kubeconfig-key`:
+   `compose/demo-distributed/worker-east/secrets/kubeconfig-east` and
+   `compose/demo-distributed/worker-west/secrets/kubeconfig-west`. Each worker reads its `secrets` directory as a
+   secret source (`WOMBAT_SECRET_DIRECTORY_PATH` in `compose.yaml`). The aggregator never reads them.
 3. Start the setup, from the latest `illuin/wombat` image of Docker Hub:
    ```sh
    ANTHROPIC_ADMIN_KEY=<admin key> docker compose -f compose/demo-distributed/compose.yaml up

@@ -81,7 +81,7 @@ Mount it at `/deployments/monitored/monitored-environments.yaml`, or point `WOMB
 ```yaml
     volumes:
       - ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      - ~/.kube:/deployments/monitored/k8s:ro # optional: only required if using live kubernetes-api assets
+      - ./secrets:/secrets:ro # optional: secrets referenced by assets, such as the kubeconfig of a live kubernetes-api asset
 ```
 
 For example, this `monitored-environments.yaml` file:
@@ -153,13 +153,12 @@ environments:
                   trigger-time: "02:00:00"
                   duration: PT2H
                   smoothing: linear_ramp
-      # Alternatively, monitor live clusters via the Kubernetes Metrics API (requires mounting a valid kubeconfig into the container):
+      # Alternatively, monitor live clusters via the Kubernetes Metrics API (requires a kubeconfig in a secret source, see compose.yaml):
       # - type: tech.illuin.wombat-module.kubernetes-api
       #   id: prod-cluster
       #   environment-id: demo
-      #   name: Demo Live Cluster
       #   namespace: my-project-namespace # this should match the namespace you deployed your applications to
-      #   config-path: /deployments/monitored/k8s/my-kube.config # this should point at your kubeconfig file mounted in compose.yaml
+      #   kubeconfig-key: my-kube # the secret holding your kubeconfig, e.g. the file secrets/my-kube mounted in compose.yaml
       #   profile:
       #     provider: aws
       #     instance-type: c5.xlarge
@@ -167,7 +166,7 @@ environments:
       #     lifespan: 5y
 ```
 
-Static modeling assets run out-of-the-box without requiring live cluster credentials. If you choose to monitor live clusters via `tech.illuin.wombat-module.kubernetes-api`, mount your kubeconfig directory (`~/.kube:/deployments/monitored/k8s:ro`) in `compose.yaml` and reference the mounted config path (e.g. `/deployments/monitored/k8s/my-kube.config`).
+Static modeling assets run out-of-the-box without requiring live cluster credentials. If you choose to monitor live clusters via `tech.illuin.wombat-module.kubernetes-api`, the asset names its kubeconfig in `kubeconfig-key`, a secret resolved like any other: see [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). For instance, save the kubeconfig as `secrets/my-kube`, uncomment the `./secrets:/secrets:ro` volume in `compose.yaml` and `secret.directory` in `application.yaml`. The kubeconfig is read in memory, so it must inline its certificates and keys (`certificate-authority-data`, `client-certificate-data`, `client-key-data`) rather than point at files.
 
 ### Custom Extensions
 

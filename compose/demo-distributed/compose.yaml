@@ -34,13 +34,15 @@ services:
     environment:
       WOMBAT_MODE: worker
       WOMBAT_WORKER_ID: east
+      # Holds the kubeconfig of worker-east/monitored-environments.yaml, as the file kubeconfig-east
+      WOMBAT_SECRET_DIRECTORY_PATH: /deployments/secrets
       WOMBAT_WORKER_AGGREGATOR_URL: "${WOMBAT_AGGREGATOR_URL:-http://aggregator:8080}"
       # Any value works while the aggregator runs without authentication. With authentication on, use a key holding
       # api.metric.write and api.environment.write, created on the aggregator's API keys page.
       WOMBAT_WORKER_AGGREGATOR_API_KEY: "${WOMBAT_WORKER_API_KEY:-local-worker}"
     volumes:
       - ./worker-east/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      - ./worker-east/kubeconfig:/deployments/kubeconfig:ro
+      - ./worker-east/secrets:/deployments/secrets:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -53,11 +55,13 @@ services:
     environment:
       WOMBAT_MODE: worker
       WOMBAT_WORKER_ID: west
+      # Holds the kubeconfig of worker-west/monitored-environments.yaml, as the file kubeconfig-west
+      WOMBAT_SECRET_DIRECTORY_PATH: /deployments/secrets
       WOMBAT_WORKER_AGGREGATOR_URL: "${WOMBAT_AGGREGATOR_URL:-http://aggregator:8080}"
       WOMBAT_WORKER_AGGREGATOR_API_KEY: "${WOMBAT_WORKER_API_KEY:-local-worker}"
     volumes:
       - ./worker-west/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      - ./worker-west/kubeconfig:/deployments/kubeconfig:ro
+      - ./worker-west/secrets:/deployments/secrets:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

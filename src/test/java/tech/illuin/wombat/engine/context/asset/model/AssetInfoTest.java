@@ -68,7 +68,7 @@ class AssetInfoTest
         KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5));
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
-            "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
+            new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
         )));
 
         entity.name = "K";
@@ -90,7 +90,7 @@ class AssetInfoTest
         assertEquals("env", json.get("environmentId").asText());
         assertEquals("K", json.get("name").asText());
         assertEquals(KubernetesAPIModule.TYPE.name(), json.get("type").asText());
-        assertEquals("/kube/config", json.get("configPath").asText());
+        assertEquals("kubeconfig", json.get("kubeconfigKey").asText());
         assertEquals("ns", json.get("namespace").asText());
         assertEquals("c5.large", json.get("profile").get("instanceType").asText());
         assertFalse(json.has("environment-id"));
@@ -152,7 +152,7 @@ class AssetInfoTest
         assertEquals(LLMStaticModule.TYPE.name(), json.get("type").asText());
         assertFalse(json.has("prometheusUrl"));
         assertFalse(json.has("namespace"));
-        assertFalse(json.has("configPath"));
+        assertFalse(json.has("kubeconfigKey"));
     }
 
     @Test

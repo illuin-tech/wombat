@@ -9,8 +9,9 @@ services:
       # Optional: environments provisioned at startup, see doc/provisioning.md. Create the file before uncommenting,
       # or Docker mounts an empty directory in its place
       #- ./monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro
-      # Optional: kubeconfigs of live kubernetes-api assets, you can load them from another local directory
-      #- ~/.kube:/deployments/monitored/k8s:ro
+      # Optional: secrets referenced by assets, one file per key, such as the kubeconfig of a live kubernetes-api asset.
+      # Uncomment secret.directory in application.yaml too
+      #- ./secrets:/secrets:ro
       - ./data:/var/data:rw
 
   boavizta:

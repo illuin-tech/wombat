@@ -6,7 +6,7 @@ environments:
         id: my-cluster
         environment-id: preprod
         namespace: my-namespace
-        config-path: /path/to/kubeconfig
+        kubeconfig-key: kubeconfig-my-cluster
         heartbeat-skip: 1
         profile:
           provider: aws

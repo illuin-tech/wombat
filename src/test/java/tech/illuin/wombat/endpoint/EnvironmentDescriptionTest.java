@@ -2,6 +2,7 @@ package tech.illuin.wombat.endpoint;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
+import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
@@ -32,7 +33,7 @@ class EnvironmentDescriptionTest
         Environment environment = new Environment("Production", List.of(
             new KubernetesAPIAsset(
                 AssetIdentity.of("cluster-1", "Production", KubernetesAPIModule.TYPE),
-                "/kube/config", "ns", Optional.empty(), Optional.empty(), Period.ZERO,
+                new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO,
                 new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
             ),
             new LLMStaticAsset(

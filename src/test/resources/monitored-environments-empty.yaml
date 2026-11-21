@@ -1,0 +1,2 @@
+# Provisions nothing, for the tests whose secret sources lack the kubeconfig of monitored-environments-test.yaml
+environments: {}

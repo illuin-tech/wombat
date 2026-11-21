@@ -70,7 +70,7 @@ environments:
 #        environment-id: preprod
 #        name: My cluster live (preprod)
 #        namespace: my-namespace
-#        config-path: /path/to/kubeconfig
+#        kubeconfig-key: my-kubeconfig
 #        period: 2s
 #        resolvers:
 #          cost: random

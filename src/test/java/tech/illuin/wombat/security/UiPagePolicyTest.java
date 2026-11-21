@@ -31,6 +31,9 @@ class UiPagePolicyTest
         assertEquals(tech.illuin.wombat.security.Permission.UI_ENVIRONMENTS_MANAGE, UiPagePolicy.requiredFor("/environments/new"));
         assertEquals(tech.illuin.wombat.security.Permission.UI_MODULES_READ, UiPagePolicy.requiredFor("/modules"));
         assertEquals(tech.illuin.wombat.security.Permission.UI_MODULES_READ, UiPagePolicy.requiredFor("/modules/tech.illuin.wombat-module.llm-static"));
+        assertEquals(tech.illuin.wombat.security.Permission.UI_SIMULATIONS_READ, UiPagePolicy.requiredFor("/simulations"));
+        assertEquals(tech.illuin.wombat.security.Permission.UI_SIMULATIONS_READ, UiPagePolicy.requiredFor("/simulations/what-if"));
+        assertEquals(tech.illuin.wombat.security.Permission.UI_SIMULATIONS_MANAGE, UiPagePolicy.requiredFor("/simulations/new"));
     }
 
     @Test

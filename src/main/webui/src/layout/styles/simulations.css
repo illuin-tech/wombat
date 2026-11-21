@@ -1,0 +1,52 @@
+/* ── Simulations (pages/simulations); their list and page use the record classes of components.css ── */
+
+/* Creation */
+.sim-create { display: flex; flex-direction: column; gap: 18px; }
+.sim-create-source { display: flex; flex-direction: column; gap: 14px; }
+.sim-create-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.sim-create-fields .sim-create-description { grid-column: 1 / -1; }
+.sim-asset-checklist { display: flex; flex-direction: column; gap: 8px; border: none; padding: 0; margin: 0; }
+.sim-asset-checklist .form-check.blocked { cursor: not-allowed; opacity: 0.6; }
+
+/* Header */
+.sim-source { font-size: 12px; color: var(--accent-green); }
+.sim-source.removed { color: var(--text-dim); font-style: italic; }
+
+/* Copies; a copy's chip is yellow, as hot data: still tied to a monitored asset it can be synced from */
+.sim-copy-picker { display: flex; flex-direction: column; gap: 12px; }
+.sim-copy-group { display: flex; flex-direction: column; gap: 6px; }
+.sim-copy-option { display: flex; align-items: center; gap: 8px; font: inherit; color: inherit; text-align: left; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer; }
+.sim-copy-option:hover:not(:disabled), .sim-copy-option:focus-visible { border-color: var(--accent-green); outline: none; }
+.sim-copy-option:disabled { cursor: not-allowed; opacity: 0.6; }
+
+/* Results */
+.sim-results { display: flex; flex-direction: column; gap: 14px; }
+.sim-results .chart-head { margin-bottom: 0; }
+.sim-results-body { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.sim-results-window { margin-top: 0; }
+.sim-recomputing { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 14px; box-shadow: var(--shadow-sm); }
+.sim-status-message { display: block; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
+.sim-coverage { display: block; margin-top: 2px; font-weight: 400; }
+.sim-unevaluated { margin-top: 0; }
+/* The dashboard's donut and per-metric bars on one line: the bars keep their own grid of three */
+.sim-charts-row { display: grid; grid-template-columns: 1fr 3fr; gap: 20px; align-items: stretch; }
+.sim-charts-row .metrics-row { align-items: stretch; }
+.sim-not-computed { color: var(--text-dim); font-style: italic; }
+.sim-total td { border-top: 2px solid var(--border); font-weight: 700; }
+
+/* Evaluation settings */
+.sim-settings { display: flex; flex-direction: column; gap: 18px; max-width: 560px; }
+.sim-settings-section { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.sim-settings-section ul { display: flex; flex-direction: column; gap: 6px; padding-left: 18px; }
+.sim-settings-title { font-size: 13px; font-weight: 700; color: var(--text); }
+
+/* Duplicate dialog */
+.sim-duplicate { display: flex; flex-direction: column; gap: 14px; }
+
+@media (max-width: 1100px) {
+  .sim-charts-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 800px) {
+  .sim-create-fields { grid-template-columns: 1fr; }
+}

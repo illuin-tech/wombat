@@ -1,14 +1,37 @@
-<script setup lang="ts">
+<script lang="ts">
+import type { AssetInfo } from '@/domain/environment'
+import type { AssetFields } from '@/services/api/assets'
+
+/** What the editor saves: `notes` only when it edits them. */
+export type AssetEditorFields = AssetFields & { notes?: string | null }
+
+/** Whatever holds the assets, e.g. an environment or a simulation: what its assets have, and how they are saved. */
+export interface AssetEditorAdapter<T extends AssetInfo = AssetInfo> {
+  create: (body: AssetEditorFields & { id: string; type: string }) => Promise<T>
+  update: (id: string, body: AssetEditorFields) => Promise<T>
+  remove: (id: string) => Promise<void>
+  /** The fields the holder adds to its assets' records, which are not properties. */
+  recordFields: ReadonlySet<string>
+  /** Whether an asset can be made inactive, as a monitored one can. */
+  activeToggle: boolean
+  /** Whether an asset has long-form notes. */
+  notes: boolean
+  /** What deleting an asset entails. */
+  deleteNotice: string
+}
+</script>
+
+<script setup lang="ts" generic="T extends AssetInfo">
 import { computed, provide, ref, shallowRef, watch } from 'vue'
 import { FAMILIES, FAMILY_ORDER } from '@/domain/assetTypeDisplay'
-import { assetTypeName, displayName, type AssetInfo } from '@/domain/environment'
+import { assetTypeName, displayName } from '@/domain/environment'
 import type { JsonSchema, ModuleMetadata } from '@/domain/module'
-import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
 import { errorText } from '@/services/api/client'
 import { fetchModuleSchema } from '@/services/api/modules'
 import { checkSecretKey } from '@/services/api/secrets'
 import { AssetForm, AssetFormPlaceholder, defaultProperties, isSameProperties, SECRET_CHECKER_KEY, toAssetProperties, type AssetFormValidity, type AssetProperties } from '@/components/asset-forms'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
+import CollapsibleNotes from '@/components/CollapsibleNotes.vue'
 import RegimePill from '@/components/RegimePill.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -24,22 +47,24 @@ import {
   idError,
   NAME_MAX_LENGTH,
   nameError,
-} from '@/pages/environments/model/identifiers'
-import { useIdFromName } from '@/pages/environments/model/useIdFromName'
+  NOTES_MAX_LENGTH,
+  notesError,
+} from '@/domain/identifiers'
+import { useIdFromName } from '@/services/tools/useIdFromName'
 
-/** Shows an asset, edits it when allowed, or creates one when `asset` is null. */
+/** Shows an asset, edits it when allowed, or creates one when `asset` is null. The `notice` slot heads the form. */
 const props = defineProps<{
   open: boolean
-  environmentId: string
+  adapter: AssetEditorAdapter<T>
   /** Null to create an asset. */
-  asset: AssetInfo | null
+  asset: T | null
   modules: ModuleMetadata[]
   /** Whether the user may edit assets, and the asset is not provisioned. */
   canEdit: boolean
   /** Whether the user may check secret names against the server. */
   canCheckSecrets: boolean
 }>()
-const emit = defineEmits<{ close: []; saved: [asset: AssetInfo]; deleted: [id: string] }>()
+const emit = defineEmits<{ close: []; saved: [asset: T]; deleted: [id: string] }>()
 
 const creating = computed(() => props.asset === null)
 const typeName = ref<string | null>(null)
@@ -51,6 +76,7 @@ const schemaError = ref<string | null>(null)
 const name = ref('')
 const { id, idEdited, onIdInput, resetId } = useIdFromName(name, () => creating.value)
 const description = ref('')
+const notes = ref('')
 const active = ref(true)
 const properties = ref<AssetProperties>({})
 const initialProperties = ref<AssetProperties>({})
@@ -85,15 +111,21 @@ const title = computed(() => {
 const idProblem = computed(() => creating.value ? idError(id.value) : null)
 const nameProblem = computed(() => nameError(name.value))
 const descriptionProblem = computed(() => descriptionError(description.value))
-const fieldsValid = computed(() => !idProblem.value && !nameProblem.value && !descriptionProblem.value)
+const notesProblem = computed(() => notesError(notes.value))
+const fieldsValid = computed(() => !idProblem.value && !nameProblem.value && !descriptionProblem.value && !notesProblem.value)
 const dirty = computed(() => {
   if (creating.value) return typeName.value !== null
   const asset = props.asset!
   return name.value !== displayName(asset)
     || description.value !== (asset.description ?? '')
+    || notes.value !== notesOf(asset)
     || active.value !== !asset.disabledAt
     || !isSameProperties(properties.value, initialProperties.value)
 })
+
+function notesOf(asset: T | null): string {
+  return typeof asset?.notes === 'string' ? asset.notes : ''
+}
 
 /* Without the permission, secret names are not checked rather than refused */
 if (props.canCheckSecrets) provide(SECRET_CHECKER_KEY, async key => (await checkSecretKey(key)).exists)
@@ -107,8 +139,9 @@ watch(() => [props.open, props.asset] as const, ([open, asset]) => {
   resetId(asset?.id ?? '')
   name.value = asset ? displayName(asset) : ''
   description.value = asset?.description ?? ''
+  notes.value = notesOf(asset)
   active.value = !asset?.disabledAt
-  const initial = asset ? toAssetProperties(asset) : {}
+  const initial = asset ? toAssetProperties(asset, props.adapter.recordFields) : {}
   properties.value = initial
   initialProperties.value = initial
   validity.value = { valid: true, errors: [] }
@@ -150,16 +183,17 @@ async function save(): Promise<void> {
   }
   saving.value = true
   saveError.value = null
-  const fields = {
+  const fields: AssetEditorFields = {
     name: name.value.trim(),
     description: description.value.trim() || null,
     disabled: !active.value,
     properties: properties.value,
+    ...(props.adapter.notes ? { notes: notes.value.trim() || null } : {}),
   }
   try {
     const saved = creating.value
-      ? await createAsset({ ...fields, id: id.value, environmentId: props.environmentId, type: typeName.value! })
-      : await updateAsset(props.asset!.id, fields)
+      ? await props.adapter.create({ ...fields, id: id.value, type: typeName.value! })
+      : await props.adapter.update(props.asset!.id, fields)
     initialProperties.value = properties.value
     emit('saved', saved)
   } catch (caught) {
@@ -173,7 +207,7 @@ async function remove(): Promise<void> {
   deleting.value = true
   deleteError.value = null
   try {
-    await deleteAsset(props.asset!.id)
+    await props.adapter.remove(props.asset!.id)
     confirmingDelete.value = false
     emit('deleted', props.asset!.id)
   } catch (caught) {
@@ -213,9 +247,11 @@ async function remove(): Promise<void> {
           <AssetTypeTag v-if="module" :family="module.type.family" />
           <code class="asset-card-id">{{ typeName ?? 'Unknown type' }}</code>
           <LockBadge v-if="asset && readonly && asset.provisioned" />
-          <span v-if="module && !module.enabled" class="env-status disabled">Module disabled</span>
+          <span v-if="module && !module.enabled" class="status-chip">Module disabled</span>
           <button v-if="creating" class="btn-link-inline" type="button" @click="selectType(null)">Change type</button>
         </div>
+
+        <slot name="notice" />
 
         <div class="asset-editor-fields">
           <label class="form-field">
@@ -240,7 +276,11 @@ async function remove(): Promise<void> {
             />
             <span v-if="descriptionProblem" class="form-error">{{ descriptionProblem }}</span>
           </div>
-          <ToggleSwitch v-model="active" label="Active" :disabled="readonly" />
+          <div v-if="adapter.notes" class="form-field asset-editor-description">
+            <CollapsibleNotes v-model="notes" :maxlength="NOTES_MAX_LENGTH" :disabled="readonly" />
+            <span v-if="notesProblem" class="form-error">{{ notesProblem }}</span>
+          </div>
+          <ToggleSwitch v-if="adapter.activeToggle" v-model="active" label="Active" :disabled="readonly" />
         </div>
 
         <AssetFormPlaceholder v-if="schemaLoading" />
@@ -285,7 +325,7 @@ async function remove(): Promise<void> {
     @close="confirmingDelete = false"
     @confirm="remove"
   >
-    The asset stops being monitored and leaves the dashboard; its past metrics are kept.
+    {{ adapter.deleteNotice }}
   </ConfirmDeleteDialog>
 
   <ConfirmDialog :open="confirmingDiscard" title="Discard the changes?" confirm-label="Discard" @close="confirmingDiscard = false" @confirm="discard">

@@ -76,7 +76,8 @@ public class CoreDeploymentFactory
         Set<String> missing = new HashSet<>(requested);
         deployed.forEach(module -> missing.remove(module.type().name()));
 
-        /* The core holds nothing but the modules, which every deployment shares: it is neither kept nor closed */
+        /* The core holds nothing but the modules, which every deployment shares: it is only kept to build evaluators,
+           and never closed */
         WombatCore core = this.createCore(deployed);
         AssetMonitor monitor = core.createMonitor();
         AssetEvaluator uncached = core.createEvaluator();
@@ -84,7 +85,7 @@ public class CoreDeploymentFactory
             ? new CachedAssetEvaluator(uncached, this.cacheProperties)
             : uncached;
 
-        return new CoreDeployment(version, id, deployed, missing, monitor, evaluator, uncached, Instant.now());
+        return new CoreDeployment(version, id, deployed, missing, monitor, evaluator, core::createEvaluator, Instant.now());
     }
 
     private WombatCore createCore(List<WombatModule> deployed)

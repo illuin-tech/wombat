@@ -58,7 +58,7 @@ onMounted(() => listing.run())
 
 <template>
   <div class="main">
-    <div class="env-list-head">
+    <div class="list-head">
       <PageHead title="Environments" description="The environments Wombat monitors, and their assets." />
       <RouterLink v-if="canCreate" class="btn-apply btn-link" :to="{ name: 'environment-create' }" id="newEnvironment">New environment</RouterLink>
     </div>
@@ -70,7 +70,7 @@ onMounted(() => listing.run())
         <input v-model="search" type="search" class="search-input" placeholder="Filter by name" aria-label="Filter environments by name" />
         <DropdownPicker v-model="statuses" label="Status" :options="statusOptions" :summary="statusSummary" picker-id="envStatusPicker" />
       </template>
-      <table class="env-table">
+      <table class="record-table">
         <thead><tr><th>Name</th><th>Status</th><th>Assets</th><th>Updated</th><th></th></tr></thead>
         <tbody>
           <template v-if="listing.loading.value && !listing.data.value">
@@ -82,28 +82,28 @@ onMounted(() => listing.run())
             <tr
               v-for="environment in shown"
               :key="environment.id"
-              class="env-row"
+              class="record-row"
               :class="{ inactive: environment.disabledAt }"
               tabindex="0"
               @click="open(environment)"
               @keydown.enter="open(environment)"
             >
               <td class="name">
-                <span class="env-row-name">
+                <span class="record-row-name">
                   <LockBadge v-if="environment.provisioned" label="" />
                   {{ displayName(environment) }}
                 </span>
-                <code class="env-row-id">{{ environment.id }}</code>
+                <code class="record-id">{{ environment.id }}</code>
               </td>
-              <td><span class="env-status" :class="environment.disabledAt ? 'disabled' : 'active'">{{ environment.disabledAt ? 'Disabled' : 'Active' }}</span></td>
+              <td><span class="status-chip" :class="{ good: !environment.disabledAt }">{{ environment.disabledAt ? 'Disabled' : 'Active' }}</span></td>
               <td>
-                <span class="env-row-families">
+                <span class="record-row-tags">
                   <AssetTypeTag v-for="entry in familyCounts(environment, listing.data.value.typesByName)" :key="entry.family" :family="entry.family" :count="entry.count" />
-                  <span v-if="environment.assets.length === 0" class="env-row-none">None</span>
+                  <span v-if="environment.assets.length === 0" class="record-row-none">None</span>
                 </span>
               </td>
               <td><TimestampInfo :updated-at="environment.updatedAt" /></td>
-              <td class="env-row-actions"><DashboardLink :environment-id="environment.id" :live="listing.data.value.liveIds.has(environment.id)" compact /></td>
+              <td class="record-row-actions"><DashboardLink :environment-id="environment.id" :live="listing.data.value.liveIds.has(environment.id)" compact /></td>
             </tr>
           </template>
         </tbody>

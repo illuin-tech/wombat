@@ -12,6 +12,8 @@ const links = computed(() => settingsLinks(appInfo.value?.user))
 const onReport = computed(() => route.name === 'home' || route.name === 'impact')
 const onEnvironments = computed(() => typeof route.name === 'string' && route.name.startsWith('environment'))
 const showEnvironments = computed(() => can(appInfo.value?.user, 'ui.environments.read'))
+const onSimulations = computed(() => typeof route.name === 'string' && route.name.startsWith('simulation'))
+const showSimulations = computed(() => can(appInfo.value?.user, 'ui.simulations.read'))
 const inSettings = computed(() => links.value.some(link => route.path === link.to || route.path.startsWith(`${link.to}/`)))
 const { open, root } = useDropdown()
 </script>
@@ -20,6 +22,7 @@ const { open, root } = useDropdown()
   <nav v-if="links.length > 0" class="header-nav" aria-label="Main">
     <RouterLink class="header-nav-link" :to="lastDashboardLocation" :aria-current="onReport ? 'page' : undefined">Report</RouterLink>
     <RouterLink v-if="showEnvironments" class="header-nav-link" :to="{ name: 'environments' }" :aria-current="onEnvironments ? 'page' : undefined" id="environmentsLink">Environments</RouterLink>
+    <RouterLink v-if="showSimulations" class="header-nav-link" :to="{ name: 'simulations' }" :aria-current="onSimulations ? 'page' : undefined" id="simulationsLink">Simulations</RouterLink>
     <div ref="root" class="header-nav-menu" :class="{ open }" id="settingsMenu">
       <button
         class="header-nav-link header-nav-trigger"

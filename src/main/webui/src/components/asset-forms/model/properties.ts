@@ -13,9 +13,13 @@ function withoutNulls(value: unknown): unknown {
   return value
 }
 
-/** The type-specific properties of an asset, as its type's schema describes them. */
-export function toAssetProperties(asset: AssetInfo): AssetProperties {
-  const properties = Object.fromEntries(Object.entries(asset).filter(([key]) => !ASSET_RECORD_FIELDS.has(key)))
+/**
+ * The type-specific properties of an asset, as its type's schema describes them.
+ *
+ * @param holderFields the fields that whatever holds the asset adds to its record, e.g. a simulation's
+ */
+export function toAssetProperties(asset: AssetInfo, holderFields: ReadonlySet<string> = new Set()): AssetProperties {
+  const properties = Object.fromEntries(Object.entries(asset).filter(([key]) => !ASSET_RECORD_FIELDS.has(key) && !holderFields.has(key)))
   return withoutNulls(properties) as AssetProperties
 }
 

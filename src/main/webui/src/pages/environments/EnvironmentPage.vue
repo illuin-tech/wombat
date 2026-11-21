@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { byDisplayName, displayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
 import type { ModuleMetadata } from '@/domain/module'
+import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
 import { errorText } from '@/services/api/client'
 import {
   createEnvironment,
@@ -16,14 +17,15 @@ import { fetchModules } from '@/services/api/modules'
 import { can } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import LockBadge from '@/components/LockBadge.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import NoticeCard from '@/components/NoticeCard.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import TimestampInfo from '@/components/TimestampInfo.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
-import AssetEditorModal from '@/pages/environments/components/AssetEditorModal.vue'
-import AssetGrid from '@/pages/environments/components/AssetGrid.vue'
+import AssetEditorModal, { type AssetEditorAdapter } from '@/components/AssetEditorModal.vue'
+import AssetGrid from '@/components/AssetGrid.vue'
 import DashboardLink from '@/pages/environments/components/DashboardLink.vue'
 import {
   DESCRIPTION_MAX_LENGTH,
@@ -32,9 +34,10 @@ import {
   idError,
   NAME_MAX_LENGTH,
   nameError,
-} from '@/pages/environments/model/identifiers'
-import { useIdFromName } from '@/pages/environments/model/useIdFromName'
-import { useAutosave, type AutosaveStatus } from '@/services/tools/useAutosave'
+} from '@/domain/identifiers'
+import { useIdFromName } from '@/services/tools/useIdFromName'
+import { useAutosave } from '@/services/tools/useAutosave'
+import { autosaveStatusText, useAutosaveGuard } from '@/services/tools/useAutosaveGuard'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,6 +68,20 @@ const user = computed(() => appInfo.value?.user)
 const locked = computed(() => environment.value?.provisioned ?? false)
 const canEditEnvironment = computed(() => creating.value || (can(user.value, 'api.environment.write') && !locked.value))
 const canEditAssets = computed(() => can(user.value, 'api.asset.write') && !locked.value && !creating.value)
+/* The asset editor saves into this environment */
+const assetAdapter = computed<AssetEditorAdapter | null>(() => {
+  const environmentId = environment.value?.id
+  if (!environmentId) return null
+  return {
+    create: body => createAsset({ ...body, environmentId }),
+    update: updateAsset,
+    remove: deleteAsset,
+    recordFields: new Set(),
+    activeToggle: true,
+    notes: false,
+    deleteNotice: 'The asset stops being monitored and leaves the dashboard; its past metrics are kept.',
+  }
+})
 const deleteBlockedReason = computed(() => assets.value.length > 0
   ? `Delete its ${assets.value.length} asset${assets.value.length === 1 ? '' : 's'} first to delete this environment`
   : null)
@@ -92,18 +109,9 @@ const autosave = useAutosave(fields, async value => {
   void refreshLive()
 }, { isValid: value => !nameError(value.name) && !descriptionError(value.description ?? '') })
 
-const STATUS_TEXTS: Record<AutosaveStatus, string> = {
-  idle: '',
-  pending: 'Unsaved changes',
-  saving: 'Saving…',
-  saved: 'All changes saved',
-  invalid: 'Not saved: fix the highlighted fields',
-  error: 'Not saved',
-}
-const saveStatusText = computed(() => {
-  const text = STATUS_TEXTS[autosave.status.value]
-  return autosave.status.value === 'error' && autosave.error.value ? `${text}: ${autosave.error.value}` : text
-})
+const saveStatusText = computed(() => autosaveStatusText(autosave))
+/* Changes waiting for the idle delay are saved before leaving, and a closing tab warns about them */
+const guard = useAutosaveGuard(autosave, () => !creating.value)
 
 function show(loaded: EnvironmentInfo): void {
   environment.value = loaded
@@ -192,51 +200,35 @@ function onAssetDeleted(id: string): void {
   void refreshLive()
 }
 
-/* Changes waiting for the idle delay are saved before leaving, and a closing tab warns about them */
-onBeforeRouteLeave(async () => {
-  if (!creating.value && autosave.hasUnsavedChanges()) await autosave.flush()
-  if (autosave.hasUnsavedChanges())
-    return window.confirm('Some changes could not be saved. Leave anyway?')
-  return true
-})
-
-function onBeforeUnload(event: BeforeUnloadEvent): void {
-  if (!creating.value && autosave.hasUnsavedChanges()) event.preventDefault()
-}
-
 watch(() => route.fullPath, (path, previous) => {
   /* Creation replaces the route with the created environment's, which is already shown */
   if (previous && route.name === 'environment' && environment.value?.id === route.params.id) return
   void load()
 })
 
-onMounted(() => {
-  window.addEventListener('beforeunload', onBeforeUnload)
-  void load()
-})
-onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+onMounted(() => void load())
 </script>
 
 <template>
-  <div class="main env-page">
-    <RouterLink class="env-back" :to="{ name: 'environments' }">← Environments</RouterLink>
+  <div class="main form-page">
+    <RouterLink class="back-link" :to="{ name: 'environments' }">← Environments</RouterLink>
 
     <NoticeCard v-if="loadError" title="This environment could not be loaded" tone="error">{{ loadError }}</NoticeCard>
 
-    <div v-else-if="loading && !environment && !creating" class="env-head env-head-loading">
+    <div v-else-if="loading && !environment && !creating" class="record-head record-head-loading">
       <SkeletonBlock width="240px" height="28px" />
       <SkeletonBlock width="360px" height="14px" />
     </div>
 
     <template v-else>
-      <div class="env-head">
-        <div class="env-head-main">
-          <label class="env-title">
+      <div class="record-head">
+        <div class="record-head-main">
+          <label class="record-title">
             <span class="visually-hidden">Name</span>
             <input
               v-if="canEditEnvironment"
               v-model="form.name"
-              class="env-name-input"
+              class="record-name-input"
               type="text"
               :maxlength="NAME_MAX_LENGTH"
               :placeholder="creating ? 'New environment' : 'Name'"
@@ -245,9 +237,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           </label>
           <span v-if="(showErrors || !creating) && nameProblem" class="form-error">{{ nameProblem }}</span>
 
-          <div class="env-id-line">
+          <div class="record-id-line">
             <template v-if="creating">
-              <label class="form-field env-id-field">
+              <label class="form-field record-id-field">
                 <span class="filter-label">Id</span>
                 <input :value="id" class="mono" type="text" :maxlength="ID_MAX_LENGTH" spellcheck="false" @input="onIdInput" />
               </label>
@@ -255,12 +247,12 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
               <span v-else class="form-hint">Used in URLs and by the API: it cannot be changed once created.</span>
             </template>
             <template v-else>
-              <code class="env-row-id">{{ environment?.id }}</code>
+              <code class="record-id">{{ environment?.id }}</code>
               <LockBadge v-if="locked" />
             </template>
           </div>
 
-          <div class="env-description">
+          <div class="record-description">
             <MarkdownEditor
               v-model="form.description"
               label="Description"
@@ -272,13 +264,13 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           </div>
         </div>
 
-        <div class="env-head-side">
+        <div class="record-head-side">
           <ToggleSwitch v-model="form.active" label="Active" :disabled="!canEditEnvironment" />
           <template v-if="!creating && environment">
             <DashboardLink :environment-id="environment.id" :live="live" />
             <!-- The explanation sits on a wrapper: a disabled button gets no hover, hence no tooltip, in some browsers -->
-            <span v-if="canEditEnvironment" class="env-delete-wrapper" :title="deleteBlockedReason ?? undefined">
-              <button class="btn-danger env-delete" type="button" :disabled="deleteBlockedReason !== null" @click="confirmingDelete = true">Delete</button>
+            <span v-if="canEditEnvironment" class="record-delete-wrapper" :title="deleteBlockedReason ?? undefined">
+              <button class="btn-danger record-delete" type="button" :disabled="deleteBlockedReason !== null" @click="confirmingDelete = true">Delete</button>
             </span>
           </template>
           <template v-else-if="creating">
@@ -287,23 +279,31 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
           </template>
         </div>
 
-        <div v-if="!creating && environment" class="env-head-foot">
-          <span v-if="saveStatusText" class="env-save-status" :class="autosave.status.value" role="status">{{ saveStatusText }}</span>
-          <TimestampInfo class="env-timestamps" :created-at="environment.createdAt" :updated-at="environment.updatedAt" />
+        <div v-if="!creating && environment" class="record-head-foot">
+          <span v-if="saveStatusText" class="save-status" :class="autosave.status.value" role="status">{{ saveStatusText }}</span>
+          <TimestampInfo class="record-timestamps" :created-at="environment.createdAt" :updated-at="environment.updatedAt" />
         </div>
       </div>
 
-      <section v-if="!creating && environment" class="env-assets">
+      <section v-if="!creating && environment" class="record-assets">
         <div class="chart-title">Assets</div>
-        <AssetGrid :assets="assets" :types-by-name="typesByName" :locked="locked" :can-add="canEditAssets" @open="openAsset" @add="openAsset(null)" />
+        <AssetGrid
+          :assets="assets"
+          :types-by-name="typesByName"
+          :locked="locked"
+          :can-add="canEditAssets"
+          empty-text="No assets in this environment."
+          @open="openAsset"
+          @add="openAsset(null)"
+        />
       </section>
       <p v-else-if="creating" class="form-hint">Assets can be added once the environment is created.</p>
     </template>
 
     <AssetEditorModal
-      v-if="environment"
+      v-if="assetAdapter"
       :open="assetEditorOpen"
-      :environment-id="environment.id"
+      :adapter="assetAdapter"
       :asset="editedAsset"
       :modules="modules"
       :can-edit="canEditAssets && !editedAsset?.provisioned"
@@ -325,5 +325,9 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
     >
       The environment leaves the dashboard; its past metrics are kept.
     </ConfirmDeleteDialog>
+
+    <ConfirmDialog v-if="guard.leaving.value" open title="Leave without saving?" confirm-label="Leave" @close="guard.stay()" @confirm="guard.leave()">
+      Some changes could not be saved.
+    </ConfirmDialog>
   </div>
 </template>

@@ -47,7 +47,8 @@ public record ModuleMetadata(
 
     /**
      * @return whether assets of this type can be declared in an environment; simulated assets only exist within a
-     *         simulation request, and a module not detected here takes no asset
+     *         simulation request, and a module not detected here takes no asset. The simulation sandbox holds the same
+     *         types, so a new reason here also keeps a type out of it.
      */
     @JsonProperty("creatable")
     public boolean creatable()

@@ -57,8 +57,11 @@ Endpoints check permissions, and each role grants a fixed set of them:
 | `ui.environments.manage` | ✓  |      |                 |
 | `ui.modules.read`      | ✓    | ✓   | ✓              |
 | `ui.modules.manage`    | ✓    |      |                 |
+| `ui.simulations.read`  | ✓    | ✓   | ✓              |
+| `ui.simulations.manage` | ✓   |      |                 |
 | `api.impact.read`      | ✓    | ✓   | ✓              |
 | `api.simulation.read`  | ✓    | ✓   | ✓              |
+| `api.simulation.write` | ✓    |      |                 |
 | `api.environment.read` | ✓    | ✓   | ✓              |
 | `api.environment.write`| ✓    |      |                 |
 | `api.asset.read`       | ✓    | ✓   | ✓              |
@@ -104,6 +107,8 @@ The UI is a single-page app, but its page paths are still checked on the server 
 | `/`, `/impact/*` | `ui.dashboard.read` |
 | `/users`         | `ui.users.read`     |
 | `/api-keys`      | `ui.apikeys.manage` |
+| `/simulations`, `/simulations/*` | `ui.simulations.read` |
+| `/simulations/new` | `ui.simulations.manage` |
 
 The app also hides the links and pages the user may not open, from the permissions returned by `GET /api/app`. Requests sent by the app carry `X-Requested-With: JavaScript`, so an expired session answers `499` instead of a redirect to the provider, and the app reloads the page to sign in again.
 

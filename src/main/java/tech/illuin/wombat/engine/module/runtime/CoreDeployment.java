@@ -8,6 +8,7 @@ import tech.illuin.wombat.core.source.AssetMonitor;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
  * @param modules           the module instances wired in, shared with the other deployments
  * @param missing           the requested asset-types that no module detected on this instance provides
  * @param evaluator         the evaluator the app serves, cached when the evaluator cache is enabled
- * @param uncachedEvaluator the evaluator underneath the cache, or {@code evaluator} itself when the cache is disabled
+ * @param evaluatorSupplier builds evaluators out of the same modules, see {@link #newEvaluator()}
  */
 public record CoreDeployment(
     long version,
@@ -27,13 +28,23 @@ public record CoreDeployment(
     Set<String> missing,
     AssetMonitor monitor,
     AssetEvaluator evaluator,
-    AssetEvaluator uncachedEvaluator,
+    Supplier<AssetEvaluator> evaluatorSupplier,
     Instant deployedAt
 ) {
     public CoreDeployment
     {
         modules = List.copyOf(modules);
         missing = Set.copyOf(missing);
+    }
+
+    /**
+     * Returns a new evaluator out of the deployed modules, sharing nothing else with {@link #evaluator()}: neither its
+     * cache nor its components, which it builds afresh. Meant for evaluating asset definitions that must not reach the
+     * served evaluator. The caller closes it, which leaves the modules open.
+     */
+    public AssetEvaluator newEvaluator()
+    {
+        return this.evaluatorSupplier.get();
     }
 
     public Set<AssetType> types()
@@ -50,7 +61,7 @@ public record CoreDeployment(
     void close()
     {
         this.monitor.close();
-        /* A cached evaluator closes its delegate, the uncached one */
+        /* A cached evaluator closes its delegate too */
         this.evaluator.close();
     }
 }

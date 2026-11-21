@@ -12,6 +12,9 @@ import UsersView from '@/pages/users/UsersPage.vue'
 import EnvironmentsView from '@/pages/environments/EnvironmentsPage.vue'
 import EnvironmentView from '@/pages/environments/EnvironmentPage.vue'
 import ModulesView from '@/pages/modules/ModulesPage.vue'
+import SimulationsView from '@/pages/simulations/SimulationsPage.vue'
+import NewSimulationView from '@/pages/simulations/NewSimulationPage.vue'
+import SimulationView from '@/pages/simulations/SimulationPage.vue'
 import ModuleView from '@/pages/modules/ModulePage.vue'
 
 declare module 'vue-router' {
@@ -53,6 +56,25 @@ export const routes: RouteRecordRaw[] = [
         name: 'environment',
         component: EnvironmentView,
         meta: {permission: 'ui.environments.read'},
+    },
+    {
+        path: '/simulations',
+        name: 'simulations',
+        component: SimulationsView,
+        meta: {permission: 'ui.simulations.read'},
+    },
+    {
+        // Before `simulation`: no simulation can be created with the id `new` from the UI
+        path: '/simulations/new',
+        name: 'simulation-create',
+        component: NewSimulationView,
+        meta: {permission: 'ui.simulations.manage'},
+    },
+    {
+        path: '/simulations/:id',
+        name: 'simulation',
+        component: SimulationView,
+        meta: {permission: 'ui.simulations.read'},
     },
     {
         path: '/modules',

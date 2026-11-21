@@ -26,6 +26,10 @@ import java.util.List;
 import static tech.illuin.wombat.endpoint.SimulationRequest.Scope.COST;
 import static tech.illuin.wombat.endpoint.SimulationRequest.Scope.IMPACT;
 
+/**
+ * Stateless simulations: an ad-hoc payload of activities, evaluated at once and never stored. Unrelated to the
+ * {@link SimulationSandboxController}, apart from the path.
+ */
 @Path("api/simulation")
 @EndpointDisabled(name = Feature.Keys.API_READ, stringValue = "false")
 @PermissionsAllowed(Permission.Names.API_SIMULATION_READ)

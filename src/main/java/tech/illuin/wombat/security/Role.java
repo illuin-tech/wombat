@@ -58,6 +58,7 @@ public enum Role
             UI_APIKEYS_MANAGE,
             UI_ENVIRONMENTS_READ,
             UI_MODULES_READ,
+            UI_SIMULATIONS_READ,
             API_APIKEY_MANAGE,
             API_IMPACT_READ,
             API_SIMULATION_READ,

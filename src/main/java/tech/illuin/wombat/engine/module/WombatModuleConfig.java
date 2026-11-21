@@ -50,7 +50,8 @@ import java.util.List;
 @ApplicationScoped
 public class WombatModuleConfig
 {
-    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData activity) -> new AssetCost(asset.identity(), activity.range());
+    /* Prices nothing: a cost without amount, until a module brings a cost resolver */
+    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData activity) -> new AssetCost(asset.identity(), null, List.of(), activity.range());
     private static final Logger logger = LoggerFactory.getLogger(WombatModuleConfig.class);
 
     @Produces @Singleton

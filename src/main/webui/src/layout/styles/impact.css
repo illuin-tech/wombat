@@ -266,13 +266,13 @@ thead th { background: var(--surface2); font-size: 12px; font-weight: 600; color
 tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--surface2); }
-tbody td { padding: 11px 20px; font-size: 13px; color: var(--text-muted); }
-tbody td.name { color: var(--text); font-weight: 600; font-size: 13px; }
-tbody td.metric.gwp  { color: var(--accent-green); }
-tbody td.metric.pe   { color: var(--accent-blue); }
-tbody td.metric.adp  { color: var(--accent-yellow); }
-tbody td.metric.use  { opacity: 0.6; }
-tbody td.metric.bold { font-weight: 700; }
+:is(tbody, tfoot) td { padding: 11px 20px; font-size: 13px; color: var(--text-muted); }
+:is(tbody, tfoot) td.name { color: var(--text); font-weight: 600; font-size: 13px; }
+:is(tbody, tfoot) td.metric.gwp  { color: var(--accent-green); }
+:is(tbody, tfoot) td.metric.pe   { color: var(--accent-blue); }
+:is(tbody, tfoot) td.metric.adp  { color: var(--accent-yellow); }
+:is(tbody, tfoot) td.metric.use  { opacity: 0.6; }
+:is(tbody, tfoot) td.metric.bold { font-weight: 700; }
 .badge { display: inline-block; background: var(--accent-green-soft); color: var(--accent-green); font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
 
 /* ── Params ── */

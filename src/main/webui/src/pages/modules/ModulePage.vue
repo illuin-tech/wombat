@@ -119,21 +119,21 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="main env-page">
-    <RouterLink class="env-back" :to="{ name: 'modules' }">← Modules</RouterLink>
+  <div class="main form-page">
+    <RouterLink class="back-link" :to="{ name: 'modules' }">← Modules</RouterLink>
 
     <NoticeCard v-if="loadError" title="This module could not be loaded" tone="error">{{ loadError }}</NoticeCard>
 
-    <div v-else-if="loading && !module" class="env-head env-head-loading">
+    <div v-else-if="loading && !module" class="record-head record-head-loading">
       <SkeletonBlock width="240px" height="28px" />
       <SkeletonBlock width="360px" height="14px" />
     </div>
 
     <template v-else-if="module && deployment">
-      <div class="env-head module-head" :class="{ inactive: module.missing }">
-        <div class="env-head-main">
+      <div class="record-head module-head" :class="{ inactive: module.missing }">
+        <div class="record-head-main">
           <h2 class="page-title">{{ module.type.localName }}</h2>
-          <div class="env-id-line">
+          <div class="record-id-line">
             <code class="tech-name">{{ module.type.name }}</code>
             <button class="btn-link-inline" type="button" @click="copyName">{{ copied ? 'Copied' : 'Copy' }}</button>
           </div>
@@ -147,7 +147,7 @@ onMounted(load)
           </dl>
         </div>
 
-        <div class="env-head-side module-state-block">
+        <div class="record-head-side module-state-block">
           <span class="module-states">
             <span v-for="state in moduleStates(module)" :key="state" class="module-state" :class="state">{{ STATE_LABELS[state] }}</span>
           </span>

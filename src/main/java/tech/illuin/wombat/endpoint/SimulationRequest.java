@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * A stateless simulation ({@link SimulationController}): activities given as is, for assets that are never stored.
+ */
 public record SimulationRequest(
     @JsonProperty("assets") List<@Valid @NotNull SimulatedAsset> assets,
     @JsonProperty("scopes") Set<Scope> scopes

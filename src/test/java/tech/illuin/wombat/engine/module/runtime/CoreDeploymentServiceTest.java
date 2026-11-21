@@ -227,6 +227,6 @@ class CoreDeploymentServiceTest
         List<WombatModule> deployed = known.stream().filter(module -> requested.contains(module.type().name())).toList();
         Set<String> missing = requested.stream().filter(name -> deployed.stream().noneMatch(module -> module.type().name().equals(name))).collect(Collectors.toSet());
         AssetEvaluator evaluator = mock(AssetEvaluator.class);
-        return new CoreDeployment(version, "id-" + version, deployed, missing, mock(AssetMonitor.class), evaluator, evaluator, Instant.now());
+        return new CoreDeployment(version, "id-" + version, deployed, missing, mock(AssetMonitor.class), evaluator, () -> evaluator, Instant.now());
     }
 }

@@ -1,5 +1,5 @@
 import { ref, watch, type Ref, type WatchSource } from 'vue'
-import { slugify } from '@/pages/environments/model/identifiers'
+import { slugify } from '@/domain/identifiers'
 
 export interface IdFromName {
   id: Ref<string>

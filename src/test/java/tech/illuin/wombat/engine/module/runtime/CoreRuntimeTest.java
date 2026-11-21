@@ -129,6 +129,6 @@ class CoreRuntimeTest
     static CoreDeployment deployment(long version, WombatModule... modules)
     {
         AssetEvaluator evaluator = mock(AssetEvaluator.class);
-        return new CoreDeployment(version, "id-" + version, List.of(modules), Set.of(), mock(AssetMonitor.class), evaluator, evaluator, Instant.now());
+        return new CoreDeployment(version, "id-" + version, List.of(modules), Set.of(), mock(AssetMonitor.class), evaluator, () -> evaluator, Instant.now());
     }
 }

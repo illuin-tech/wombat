@@ -1,12 +1,8 @@
 package tech.illuin.wombat.engine.context.asset;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validator;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
@@ -22,10 +18,8 @@ import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentRepo
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Manages the assets created through the API. Provisioned ones (declared by the monitored-environments file or a
@@ -38,9 +32,7 @@ public class AssetService
     private final AssetRepository repository;
     private final EnvironmentRepository environmentRepository;
     private final AssetHistoryRecorder history;
-    private final AssetValidator assetValidator;
-    private final Validator validator;
-    private final JsonMapper assetMapper;
+    private final AssetDefinitionReader reader;
     private final AssetMonitor monitor;
     private final AssetEvaluator evaluator;
 
@@ -50,18 +42,14 @@ public class AssetService
         AssetRepository repository,
         EnvironmentRepository environmentRepository,
         AssetHistoryRecorder history,
-        AssetValidator assetValidator,
-        Validator validator,
-        JsonMapper assetMapper,
+        AssetDefinitionReader reader,
         AssetMonitor monitor,
         AssetEvaluator evaluator
     ) {
         this.repository = repository;
         this.environmentRepository = environmentRepository;
         this.history = history;
-        this.assetValidator = assetValidator;
-        this.validator = validator;
-        this.assetMapper = assetMapper;
+        this.reader = reader;
         this.monitor = monitor;
         this.evaluator = evaluator;
     }
@@ -99,7 +87,7 @@ public class AssetService
         if (existing.isPresent() && existing.get().deletedAt == null)
             throw new AssetConflictException("Asset " + id + " already exists");
 
-        Asset asset = this.toAsset(id, environmentId, type, properties);
+        Asset asset = this.reader.readValid(AssetIdentity.of(id, environmentId, type), properties);
 
         AssetEntity entity = existing.orElseGet(AssetEntity::new);
         entity.id = id;
@@ -120,7 +108,7 @@ public class AssetService
     public AssetEntity update(String id, String name, String description, boolean disabled, ObjectNode properties)
     {
         AssetEntity entity = this.editable(id);
-        Asset asset = this.toAsset(entity.id, entity.environmentId, entity.type, properties);
+        Asset asset = this.reader.readValid(AssetIdentity.of(entity.id, entity.environmentId, entity.type), properties);
 
         boolean changed = !entity.name.equals(name) || !entity.properties.equals(asset);
         entity.description = description;
@@ -166,37 +154,6 @@ public class AssetService
     private EnvironmentEntity environment(String id)
     {
         return this.environmentRepository.findVisibleById(id).orElseThrow(() -> new UnknownEnvironmentException(id));
-    }
-
-    /**
-     * Reads the properties as the asset of the given type, its identity taking precedence over the one they may carry,
-     * then checks it as a declared one would be.
-     */
-    private Asset toAsset(String id, String environmentId, String type, ObjectNode properties)
-    {
-        ObjectNode node = properties.deepCopy();
-        node.put("id", id);
-        node.put("environment-id", environmentId);
-        node.put("type", type);
-
-        try {
-            Asset asset = this.assetMapper.treeToValue(node, Asset.class);
-
-            this.assetValidator.validate(asset);
-
-            Set<ConstraintViolation<Asset>> violations = this.validator.validate(asset);
-            if (!violations.isEmpty())
-            {
-                throw new InvalidAssetException("Invalid properties for asset " + id + ": " + violations.stream()
-                    .map(violation -> violation.getPropertyPath() + " " + violation.getMessage())
-                    .sorted()
-                    .collect(Collectors.joining(", ")));
-            }
-            return asset;
-        }
-        catch (JsonProcessingException e) {
-            throw new InvalidAssetException("Invalid properties for asset " + id + " of type " + type + ": " + e.getOriginalMessage());
-        }
     }
 
     private static void apply(AssetEntity entity, String name, Asset properties)

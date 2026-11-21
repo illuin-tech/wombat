@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 
-import static tech.illuin.wombat.commons.ConfigSourceFactories.BACKEND_MODE;
 import static tech.illuin.wombat.commons.ConfigSourceFactories.FEATURE_FLAG;
 
 /** Sets the {@link Feature.Keys} from the node mode, so endpoints are gated before the application starts. */

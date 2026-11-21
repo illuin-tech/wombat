@@ -34,7 +34,7 @@ Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI a
 
 API hubs include:
 * `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
-* `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary
+* `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary, and `api/simulation/sandbox` for the simulations kept by Wombat: see [simulations](doc/simulations.md)
 * `api/modules` is for listing and managing registered `WombatModules` and their asset types: see [modules](doc/modules.md)
 * `api/environments` is for getting information about active environments
 * `api/metrics` is for pushing sampled metrics from worker instances to an aggregator, see [distributed setup](doc/distributed.md)
@@ -220,6 +220,7 @@ More information on each of these modules can be found [in the `wombat-core` doc
 * [Metric compaction](doc/compaction.md): how sourced metrics are folded before being served, and the effects of tuning the compaction window
 * [Distributed setup](doc/distributed.md): the standalone, aggregator and worker modes, for workers sampling remote environments and pushing their metrics to an aggregator
 * [Modules and core deployments](doc/modules.md): enabling modules from Settings > Modules, redeploying the core, and how replicas converge on it
+* [Simulations](doc/simulations.md): what-if copies of real assets or definitions from scratch, how they are evaluated over a reference window and scaled to a period, and their permissions
 
 ## How to run
 

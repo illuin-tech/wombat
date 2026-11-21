@@ -125,6 +125,6 @@ class RuntimeProxiesTest
     private static CoreDeployment deployment()
     {
         AssetEvaluator evaluator = mock(AssetEvaluator.class);
-        return new CoreDeployment(0, "id", List.of(), Set.of(), mock(AssetMonitor.class), evaluator, evaluator, Instant.now());
+        return new CoreDeployment(0, "id", List.of(), Set.of(), mock(AssetMonitor.class), evaluator, () -> evaluator, Instant.now());
     }
 }

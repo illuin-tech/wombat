@@ -3,6 +3,7 @@ package tech.illuin.wombat.engine.context.asset.persistence;
 import jakarta.enterprise.context.ApplicationScoped;
 import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,6 +70,16 @@ public class AssetRepository extends Repository<AssetEntity, String>
             .setParameter("id", id)
             .getResultStream()
             .findFirst();
+    }
+
+    public List<AssetEntity> findVisibleByIds(Collection<String> ids)
+    {
+        if (ids.isEmpty())
+            return List.of();
+        return getEntityManager()
+            .createQuery("FROM AssetEntity WHERE id IN :ids AND deletedAt IS NULL", AssetEntity.class)
+            .setParameter("ids", ids)
+            .getResultList();
     }
 
     public Optional<AssetEntity> findVisibleByUuid(String uuid)

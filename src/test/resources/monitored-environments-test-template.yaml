@@ -21,10 +21,10 @@ environments:
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
+              request-per-year: 1000000000
+              output-token-per-request: 500
               scenarios:
                 - type: constant
-                  output-token-per-request: 500
-                  request-per-year: 1000000000
       - type: tech.illuin.wombat-module.llm-prometheus
         id: my-served-llm
         environment-id: preprod

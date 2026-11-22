@@ -21,7 +21,7 @@ environments:
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
+              request-per-year: 1000000
+              output-token-per-request: 500
               scenarios:
                 - type: constant
-                  output-token-per-request: 500
-                  request-per-year: 1000000

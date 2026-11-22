@@ -33,10 +33,10 @@ environments:
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
+              request-per-year: 1000000
+              output-token-per-request: 400
               scenarios:
                 - type: constant
-                  request-per-year: 1000000
-                  output-token-per-request: 400
 ```
 
 Each asset type is documented with its module, in the[`wombat-core` documentation](https://github.com/illuin-tech/wombat-core#core-modules).

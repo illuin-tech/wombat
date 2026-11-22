@@ -29,7 +29,7 @@ class AssetHistoryRecorderTest
         AssetConfigHistoryRepository repository = mock(AssetConfigHistoryRepository.class);
         AssetEntity entity = AssetEntity.from("e1", new LLMStaticAsset(
             AssetIdentity.of("a1", "e1", LLMStaticModule.TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000)))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, 1000, 500, List.of(new ConstantScenario()))
         ));
 
         new AssetHistoryRecorder(repository).record(AssetConfigAction.UPDATE, entity);

@@ -6,19 +6,18 @@
         "provider": "mistralai",
         "model": "mistral-large-latest",
         "location": "FRA",
+        "requestPerYear": 5000000,
+        "outputTokenPerRequest": 400,
         "scenarios": [
           {
             "type": "user_activity",
-            "requestPerYear": 5000000,
-            "outputTokenPerRequest": 400,
             "openingTime": "08:00:00",
             "closingTime": "18:00:00",
             "jitter": 0.05
           },
           {
             "type": "batch_activity",
-            "requestPerYear": 1000000,
-            "outputTokenPerRequest": 2000,
+            "level": 0.2,
             "triggerTime": "02:00:00",
             "duration": "PT2H",
             "smoothing": "linear_ramp"

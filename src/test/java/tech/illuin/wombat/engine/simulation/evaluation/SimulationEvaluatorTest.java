@@ -372,7 +372,7 @@ class SimulationEvaluatorTest
         entity.type = TYPE;
         entity.properties = new LLMStaticAsset(
             SimulationAssetService.identity(SIMULATION, id, TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000)))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, 1000, 500, List.of(new ConstantScenario()))
         );
         return entity;
     }

@@ -132,8 +132,8 @@ class AssetInfoTest
     void exposesStaticProfileWithoutConnectionFields() throws Exception
     {
         LLMStaticProfile profile = new LLMStaticProfile(
-            LLMProvider.mistralai, "m", FRANCE,
-            List.of(new ConstantScenario(500, 1000, null))
+            LLMProvider.mistralai, "m", FRANCE, 1000, 500,
+            List.of(new ConstantScenario())
         );
         AssetEntity entity = stamp(AssetEntity.from("env", new LLMStaticAsset(
             AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
@@ -223,7 +223,7 @@ class AssetInfoTest
     {
         LLMStaticAsset asset = new LLMStaticAsset(
             AssetIdentity.of("east.s", "env", LLMStaticModule.TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000, null)))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, 1000, 500, List.of(new ConstantScenario()))
         );
         AssetEntity declared = stamp(AssetEntity.from("env", asset));
         declared.owner = "east";

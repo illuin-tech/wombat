@@ -101,7 +101,7 @@ class AssetRepositoryTest
     {
         AssetEntity entity = AssetEntity.from(ENVIRONMENT, new LLMStaticAsset(
             AssetIdentity.of(id, ENVIRONMENT, LLMStaticModule.TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(new ConstantScenario(500, 1000)))
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, 1000, 500, List.of(new ConstantScenario()))
         ));
         entity.disabledAt = disabledAt;
         entity.deletedAt = deletedAt;

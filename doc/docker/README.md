@@ -112,7 +112,7 @@ environments:
               opening-time: "08:00:00"
               closing-time: "18:00:00"
               applicability:
-                daysOfWeek: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+                days-of-week: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
             - type: batch_activity
               baseline-load: 0.0
               peak-load: 0.90
@@ -126,30 +126,30 @@ environments:
         profile:
           zone-id: Europe/Paris
           models:
-            # Interactive chat assistant model with diurnal user traffic (bell curve on weekdays)
+            # Interactive chat assistant model with diurnal user traffic (bell curve on weekdays, over a light baseline)
             - provider: mistralai
               model: mistral-large-latest
               location: FRA
+              request-per-year: 1000000
+              output-token-per-request: 400
               scenarios:
+                - type: constant
+                  level: 0.01  # nights and weekends, at a hundredth of the weekday peak
                 - type: user_activity
-                  baseline-request-per-year: 50000
-                  peak-request-per-year: 5000000
-                  output-token-per-request: 400
                   opening-time: "08:00:00"
                   closing-time: "18:00:00"
                   curve: bell
                   jitter: 0.05
                   applicability:
-                    daysOfWeek: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
+                    days-of-week: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY]
             # Scheduled document/PDF batch extraction model running nocturnal processing jobs
             - provider: openai
               model: gpt-5.5-pro
               location: SWE
+              request-per-year: 100000
+              output-token-per-request: 2000
               scenarios:
                 - type: batch_activity
-                  baseline-request-per-year: 0
-                  peak-request-per-year: 1000000
-                  output-token-per-request: 2000
                   trigger-time: "02:00:00"
                   duration: PT2H
                   smoothing: linear_ramp

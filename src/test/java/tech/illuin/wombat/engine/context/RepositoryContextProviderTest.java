@@ -38,8 +38,8 @@ class RepositoryContextProviderTest
 
         LLMStaticAsset validAsset = new LLMStaticAsset(
             AssetIdentity.of("valid-1", "env-1", LLMStaticModule.TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", FRANCE, List.of(
-                new ConstantScenario(100, 200, null)
+            new LLMStaticProfile(LLMProvider.mistralai, "mistral-tiny", FRANCE, 200, 100, List.of(
+                new ConstantScenario()
             ))
         );
         AssetEntity validEntity = AssetEntity.from("env-1", validAsset);

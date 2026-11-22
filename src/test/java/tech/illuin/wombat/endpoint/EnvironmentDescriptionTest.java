@@ -38,8 +38,8 @@ class EnvironmentDescriptionTest
             ),
             new LLMStaticAsset(
                 AssetIdentity.of("llm-1", "Production", LLMStaticModule.TYPE),
-                new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, List.of(
-                    new ConstantScenario(500, 1000, null)
+                new LLMStaticProfile(LLMProvider.mistralai, "mistral-large-latest", FRANCE, 1000, 500, List.of(
+                    new ConstantScenario()
                 ))
             )
         ));

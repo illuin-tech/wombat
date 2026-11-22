@@ -52,8 +52,8 @@ class AssetConverterTest
     {
         LLMStaticAsset asset = new LLMStaticAsset(
             AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
-                new ConstantScenario(500, 1000, null)
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, 1000, 500, List.of(
+                new ConstantScenario()
             ))
         );
         assertEquals(asset, this.roundTrip(asset));
@@ -75,8 +75,8 @@ class AssetConverterTest
     {
         LLMStaticAsset asset = new LLMStaticAsset(
             AssetIdentity.of("s", "env", LLMStaticModule.TYPE),
-            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, List.of(
-                new ConstantScenario(500, 1000, null)
+            new LLMStaticProfile(LLMProvider.mistralai, "m", FRANCE, 1000, 500, List.of(
+                new ConstantScenario()
             ))
         );
 

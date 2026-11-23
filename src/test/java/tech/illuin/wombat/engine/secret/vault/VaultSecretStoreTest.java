@@ -8,7 +8,6 @@ import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.core.secret.MissingSecretException;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.engine.secret.vault.client.VaultInvalidKeyException;
 import tech.illuin.wombat.engine.secret.vault.client.VaultKvV2Client;
@@ -33,10 +32,10 @@ import static org.mockito.Mockito.when;
 class VaultSecretStoreTest
 {
     private final VaultKvV2Client vault = mock(VaultKvV2Client.class);
-    private final VaultSecretStore store = new VaultSecretStore(this.vault, properties("wombat"));
+    private final VaultSecretStore store = new VaultSecretStore(this.vault, new VaultSecretResolver(this.vault, properties("wombat")));
 
     @Test
-    void readsTheVersionObservedInMetadata()
+    void readsThroughTheResolver()
     {
         when(this.vault.readSecretMetadata("wombat/team/api-key")).thenReturn(metadata(2, Map.of(
             "1", activeVersion(),
@@ -50,79 +49,12 @@ class VaultSecretStoreTest
     }
 
     @Test
-    void returnsEmptyForAnExplicitlyMissingKey()
-    {
-        when(this.vault.readSecretMetadata("wombat/missing")).thenReturn(Optional.empty());
-
-        assertTrue(this.store.find("missing").isEmpty());
-        assertThrows(MissingSecretException.class, () -> this.store.require("missing"));
-    }
-
-
-    @Test
-    void returnsEmptyForDeletedOrDestroyedCurrentVersions()
-    {
-        when(this.vault.readSecretMetadata("wombat/deleted")).thenReturn(metadata(2, Map.of(
-            "1", activeVersion(),
-            "2", deletedVersion()
-        )));
-        when(this.vault.readSecretMetadata("wombat/destroyed")).thenReturn(metadata(3, Map.of(
-            "3", destroyedVersion()
-        )));
-
-        assertTrue(this.store.find("deleted").isEmpty());
-        assertTrue(this.store.find("destroyed").isEmpty());
-        verify(this.vault, never()).readSecret("wombat/deleted", 2);
-        verify(this.vault, never()).readSecret("wombat/destroyed", 3);
-    }
-
-    @Test
-    void treatsMetadataWithoutAnyVersionAsAnAbsentSecret()
+    void doesNotDeleteASecretWithoutAnyVersion()
     {
         when(this.vault.readSecretMetadata("wombat/empty")).thenReturn(metadata(0, Map.of()));
 
-        assertTrue(this.store.find("empty").isEmpty());
         assertFalse(this.store.deleteSecret("empty"));
         verify(this.vault, never()).readSecret(anyString(), anyInt());
-    }
-
-    @Test
-    void doesNotHideMountOrAuthorizationFailuresAsMissingKeys()
-    {
-        VaultClientException mountFailure = new VaultClientException(
-            "readSecretMetadata", "http://vault/v1/secret/metadata/wombat/missing", 404, List.of("no handler for route"), null
-        );
-        when(this.vault.readSecretMetadata("wombat/missing")).thenThrow(mountFailure);
-
-        assertThrows(VaultClientException.class, () -> this.store.find("missing"));
-    }
-
-    @Test
-    void rejectsMalformedVaultEntriesInsteadOfFallingBack()
-    {
-        when(this.vault.readSecretMetadata("wombat/missing-value")).thenReturn(metadata(1, Map.of("1", activeVersion())));
-        when(this.vault.readSecret("wombat/missing-value", 1)).thenReturn(new VaultSecretsKV2ReadSecretData().setData(Map.of()));
-        when(this.vault.readSecretMetadata("wombat/blank-value")).thenReturn(metadata(1, Map.of("1", activeVersion())));
-        when(this.vault.readSecret("wombat/blank-value", 1)).thenReturn(secret(" "));
-        when(this.vault.readSecretMetadata("wombat/non-string-value")).thenReturn(metadata(1, Map.of("1", activeVersion())));
-        when(this.vault.readSecret("wombat/non-string-value", 1)).thenReturn(
-            new VaultSecretsKV2ReadSecretData().setData(Map.of("value", 42))
-        );
-
-        assertThrows(IllegalStateException.class, () -> this.store.find("missing-value"));
-        assertThrows(IllegalStateException.class, () -> this.store.find("blank-value"));
-        assertThrows(IllegalStateException.class, () -> this.store.find("non-string-value"));
-    }
-
-    @Test
-    void propagatesNonNotFoundFailures()
-    {
-        VaultClientException permissionFailure = new VaultClientException(
-            "readSecretMetadata", "http://vault/v1/secret/metadata/wombat/key", 403, List.of("permission denied"), null
-        );
-        when(this.vault.readSecretMetadata("wombat/key")).thenThrow(permissionFailure);
-
-        assertThrows(VaultClientException.class, () -> this.store.find("key"));
     }
 
     @Test
@@ -201,7 +133,6 @@ class VaultSecretStoreTest
         assertTrue(this.store.listSecrets().isEmpty());
     }
 
-
     @Test
     void propagatesListErrorsThatAreNotAKeyNotFound()
     {
@@ -257,11 +188,6 @@ class VaultSecretStoreTest
     private static VaultSecretsKV2ReadSecretMetadataVersion deletedVersion()
     {
         return activeVersion().setDeletionTime(OffsetDateTime.now());
-    }
-
-    private static VaultSecretsKV2ReadSecretMetadataVersion destroyedVersion()
-    {
-        return activeVersion().setDestroyed(true);
     }
 
     private static VaultSecretsKV2ReadSecretData secret(String value)

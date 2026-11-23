@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +27,7 @@ class SecretPropertiesTest
         assertTrue(properties.database().activeKekId().isEmpty());
         assertTrue(properties.database().kek().isEmpty());
         assertEquals("wombat", properties.vault().pathPrefix());
+        assertFalse(properties.vault().enabled());
     }
 
     @Test
@@ -63,6 +65,13 @@ class SecretPropertiesTest
     {
         SecretProperties properties = load(Map.of("wombat.secret.vault.path-prefix", "applications/wombat"));
         assertEquals("applications/wombat", properties.vault().pathPrefix());
+    }
+
+    @Test
+    void mapsVaultEnabled()
+    {
+        SecretProperties properties = load(Map.of("wombat.secret.vault.enabled", "true"));
+        assertTrue(properties.vault().enabled());
     }
 
     private static SecretProperties load(Map<String, String> values)

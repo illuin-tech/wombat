@@ -1,14 +1,12 @@
 package tech.illuin.wombat.engine.secret.vault;
 
-import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretData;
 import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretMetadataResultData;
 import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretMetadataVersion;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
-import tech.illuin.wombat.core.secret.MissingSecretException;
 import tech.illuin.wombat.core.secret.SecretMetadata;
-import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.engine.secret.SecretStore;
+import tech.illuin.wombat.engine.secret.vault.VaultSecretResolver.ActiveVersion;
 import tech.illuin.wombat.engine.secret.vault.client.VaultKvV2Client;
 import tech.illuin.wombat.engine.secret.vault.client.VaultPath;
 
@@ -17,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.TreeMap;
 
 @ApplicationScoped
@@ -25,36 +22,26 @@ import java.util.TreeMap;
 public class VaultSecretStore implements SecretStore
 {
     private final VaultKvV2Client vault;
+    private final VaultSecretResolver resolver;
     private final String pathPrefix;
 
-    public VaultSecretStore(VaultKvV2Client vault, SecretProperties properties)
+    public VaultSecretStore(VaultKvV2Client vault, VaultSecretResolver resolver)
     {
         this.vault = vault;
-        this.pathPrefix = VaultPath.validatePrefix(properties.vault().pathPrefix());
+        this.resolver = resolver;
+        this.pathPrefix = resolver.pathPrefix();
     }
 
     @Override
     public Optional<String> find(String key)
     {
-        String path = VaultPath.keyPath(this.pathPrefix, key);
-        Optional<ActiveVersion> activeVersion = this.vault.readSecretMetadata(path)
-            .flatMap(VaultSecretStore::activeCurrentVersion);
-        if (activeVersion.isEmpty())
-            return Optional.empty();
-
-        VaultSecretsKV2ReadSecretData secret = this.vault.readSecret(path, activeVersion.orElseThrow().number());
-        Map<String, Object> values = secret == null ? null : secret.getData();
-        Object value = values == null ? null : values.get("value");
-        if (!(value instanceof String stringValue) || stringValue.isBlank())
-            throw new IllegalStateException("Vault secret is missing a non-blank string 'value' field");
-
-        return Optional.of(stringValue);
+        return this.resolver.find(key);
     }
 
     @Override
     public String require(String key)
     {
-        return find(key).orElseThrow(() -> new MissingSecretException(key));
+        return this.resolver.require(key);
     }
 
     @Override
@@ -71,8 +58,7 @@ public class VaultSecretStore implements SecretStore
     public boolean deleteSecret(String key)
     {
         String path = VaultPath.keyPath(this.pathPrefix, key);
-        Optional<ActiveVersion> activeVersion = this.vault.readSecretMetadata(path)
-            .flatMap(VaultSecretStore::activeCurrentVersion);
+        Optional<ActiveVersion> activeVersion = this.resolver.activeVersion(path);
         if (activeVersion.isEmpty())
             return false;
 
@@ -119,13 +105,13 @@ public class VaultSecretStore implements SecretStore
 
     private Optional<SecretMetadata> activeMetadata(String key, VaultSecretsKV2ReadSecretMetadataResultData metadata)
     {
-        Optional<ActiveVersion> activeVersion = activeCurrentVersion(metadata);
+        Optional<ActiveVersion> activeVersion = VaultSecretResolver.activeCurrentVersion(metadata);
         if (activeVersion.isEmpty())
             return Optional.empty();
 
         VaultSecretsKV2ReadSecretMetadataVersion version = activeVersion.orElseThrow().metadata();
         if (metadata.getCreatedTime() == null || version.getCreatedTime() == null)
-            throw malformedMetadata();
+            throw VaultSecretResolver.malformedMetadata();
 
         return Optional.of(new SecretMetadata(
             key,
@@ -134,56 +120,8 @@ public class VaultSecretStore implements SecretStore
         ));
     }
 
-    private static Optional<ActiveVersion> activeCurrentVersion(VaultSecretsKV2ReadSecretMetadataResultData metadata)
-    {
-        OptionalInt versionNumber = currentVersion(metadata);
-        if (versionNumber.isEmpty())
-            return Optional.empty();
-
-        int version = versionNumber.getAsInt();
-        VaultSecretsKV2ReadSecretMetadataVersion versionMetadata = versionMetadata(metadata, version);
-        return isDeleted(versionMetadata) ? Optional.empty() : Optional.of(new ActiveVersion(version, versionMetadata));
-    }
-
-    private static OptionalInt currentVersion(VaultSecretsKV2ReadSecretMetadataResultData metadata)
-    {
-        Integer version = metadata.getCurrentVersion();
-        if (version == null || version < 0)
-            throw malformedMetadata();
-        return version == 0 ? OptionalInt.empty() : OptionalInt.of(version);
-    }
-
-    private static VaultSecretsKV2ReadSecretMetadataVersion versionMetadata(
-        VaultSecretsKV2ReadSecretMetadataResultData metadata,
-        int version
-    ) {
-        Map<String, VaultSecretsKV2ReadSecretMetadataVersion> versions = metadata.getVersions();
-        VaultSecretsKV2ReadSecretMetadataVersion current = versions == null ? null : versions.get(Integer.toString(version));
-        if (current == null)
-            throw malformedMetadata();
-        return current;
-    }
-
-    private static boolean isDeleted(VaultSecretsKV2ReadSecretMetadataVersion version)
-    {
-        Boolean destroyed = version.isDestroyed();
-        if (destroyed == null)
-            throw malformedMetadata();
-        return destroyed || version.getDeletionTime() != null;
-    }
-
-    private static IllegalStateException malformedMetadata()
-    {
-        return new IllegalStateException("Vault returned malformed metadata for a secret path");
-    }
-
     private static IllegalStateException malformedListResponse()
     {
         return new IllegalStateException("Vault returned a malformed KV v2 list response");
     }
-
-    private record ActiveVersion(
-        int number,
-        VaultSecretsKV2ReadSecretMetadataVersion metadata
-    ) {}
 }

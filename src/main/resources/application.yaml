@@ -161,6 +161,8 @@ wombat:
   #  vault:
   #    enabled: true # Vault resolver, read-only; `write-mode: vault` makes it read-write
   #    path-prefix: wombat
+  #  cache:
+  #    ttl: 10m # how long a resolved secret is kept in memory, 0 disables the cache
 
 persistence:
   backend:

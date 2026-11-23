@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -96,9 +97,10 @@ class DatabaseSecretStoreTest
             .toList();
         assertEquals(1, electedBackends.size());
         assertSame(this.secrets, electedBackends.getFirst().resolver());
-        assertSame(this.secrets, this.writer);
+        assertSame(this.secrets, assertInstanceOf(InvalidatingSecretWriter.class, this.writer).delegate());
         assertSame(this.secrets, electedResolvers.getFirst());
-        assertEquals(electedResolvers, ((CompositeSecretResolver)this.resolver).resolvers());
+        SecretResolver composite = assertInstanceOf(CachedSecretResolver.class, this.resolver).delegate();
+        assertEquals(electedResolvers, assertInstanceOf(CompositeSecretResolver.class, composite).resolvers());
     }
 
     @AfterEach

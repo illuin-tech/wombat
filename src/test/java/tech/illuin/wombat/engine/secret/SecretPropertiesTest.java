@@ -1,10 +1,12 @@
 package tech.illuin.wombat.engine.secret;
 
+import io.quarkus.runtime.configuration.DurationConverter;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +30,7 @@ class SecretPropertiesTest
         assertTrue(properties.database().kek().isEmpty());
         assertEquals("wombat", properties.vault().pathPrefix());
         assertFalse(properties.vault().enabled());
+        assertEquals(Duration.ofMinutes(10), properties.cache().ttl());
     }
 
     @Test
@@ -74,10 +77,18 @@ class SecretPropertiesTest
         assertTrue(properties.vault().enabled());
     }
 
+    @Test
+    void mapsCacheTtl()
+    {
+        assertEquals(Duration.ofSeconds(30), load(Map.of("wombat.secret.cache.ttl", "30s")).cache().ttl());
+        assertEquals(Duration.ZERO, load(Map.of("wombat.secret.cache.ttl", "0")).cache().ttl());
+    }
+
     private static SecretProperties load(Map<String, String> values)
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
+            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(values, "test", 100))
             .build();
         return config.getConfigMapping(SecretProperties.class);

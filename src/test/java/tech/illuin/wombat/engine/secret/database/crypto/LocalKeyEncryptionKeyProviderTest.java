@@ -1,11 +1,13 @@
 package tech.illuin.wombat.engine.secret.database.crypto;
 
+import io.quarkus.runtime.configuration.DurationConverter;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -74,6 +76,7 @@ class LocalKeyEncryptionKeyProviderTest
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
+            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(values, "test", 100))
             .build();
         return config.getConfigMapping(SecretProperties.class);

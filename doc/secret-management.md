@@ -50,6 +50,22 @@ The arrows indicate trying the next source when a key is missing, not when a res
 - **Directory:** Optional; configure `wombat.secret.directory.path` to a directory containing one UTF-8 file per secret, named with the requested key. An absent or blank path disables this resolver. A missing file or blank file content is treated as a missing key.
 - **Environment:** Resolves from the process environment and requires no provider-specific `wombat.secret.*` configuration.
 
+### Caching
+
+The whole chain sits behind an in-memory cache, so a secret fetched on every poll does not query the database or Vault each time. A resolved value is kept for `wombat.secret.cache.ttl` (default `10m`) after it was read, then read again from the chain.
+
+```yaml
+wombat:
+  secret:
+    cache:
+      ttl: 10m  # optional (default: 10m) - 0 disables the cache
+```
+
+- Only values are cached. A missing key is looked up again on every call, so a newly provisioned secret is seen at once. Errors, such as an unreachable Vault, are not cached either.
+- A write or delete through `/api/secrets` drops the key from the cache of the instance that served it, so the change applies at once there. Other replicas see it within the TTL.
+- A change made outside Wombat (Vault tooling, a rotated file in the directory or keystore) is seen within the TTL.
+- Cached values stay in memory, in plaintext, for up to the TTL. Set the TTL to `0` to keep them only for as long as a client needs them.
+
 ## Secret administration
 
 The secret-management API uses the selected `SecretWriter`. These operations affect that writable backend only; they do not update every configured resolver or make read-only sources such as Vault in read-only mode, the environment, directory, or keystore manageable through the API.

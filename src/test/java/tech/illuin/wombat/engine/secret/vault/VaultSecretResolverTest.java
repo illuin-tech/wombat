@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.secret.vault;
 
+import io.quarkus.runtime.configuration.DurationConverter;
 import io.quarkus.vault.client.VaultClientException;
 import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretData;
 import io.quarkus.vault.client.api.secrets.kv2.VaultSecretsKV2ReadSecretMetadataResultData;
@@ -14,6 +15,7 @@ import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.engine.secret.vault.client.VaultInvalidKeyException;
 import tech.illuin.wombat.engine.secret.vault.client.VaultKvV2Client;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -155,6 +157,7 @@ class VaultSecretResolverTest
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
+            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(Map.of(
                 "wombat.secret.vault.path-prefix", prefix
             ), "test", 100))

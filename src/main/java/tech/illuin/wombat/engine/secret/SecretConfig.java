@@ -5,34 +5,50 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.secret.SecretWriter;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 @ApplicationScoped
 public class SecretConfig
 {
+    private static final Logger logger = LoggerFactory.getLogger(SecretConfig.class);
+
     @Produces @Singleton
-    public SecretResolver provideSecretResolver(@All List<SecretResolverCandidate> resolvers)
+    public SecretResolver provideSecretResolver(@All List<SecretResolverCandidate> resolvers, SecretProperties properties)
     {
-        return SecretResolver.composite(resolvers.stream()
+        SecretResolver composite = SecretResolver.composite(resolvers.stream()
             .filter(SecretResolverCandidate::isElected)
             .map(SecretResolverCandidate::resolver)
             .toList()
         );
+
+        Duration ttl = properties.cache().ttl();
+        if (!ttl.isPositive())
+            return composite;
+
+        logger.info("Secret cache enabled, ttl {}", ttl);
+        return new CachedSecretResolver(composite, ttl);
     }
 
     @Produces @Singleton
-    public SecretWriter provideSecretWriter(@WritableBackend @All List<SecretResolverCandidate> resolvers)
+    public SecretWriter provideSecretWriter(@WritableBackend @All List<SecretResolverCandidate> resolvers, SecretResolver resolver)
     {
-        return resolvers.stream()
+        SecretWriter writer = resolvers.stream()
             .filter(SecretResolverCandidate::isElected)
             .filter(c -> c.resolver() instanceof SecretWriter)
             .map(c -> (SecretWriter) c.resolver())
             .findFirst()
             .orElseThrow(() -> new IllegalStateException("No secret writer is selected"));
+
+        if (resolver instanceof CachedSecretResolver cached)
+            return new InvalidatingSecretWriter(writer, cached);
+        return writer;
     }
 
     @Produces @Singleton @Priority(30)

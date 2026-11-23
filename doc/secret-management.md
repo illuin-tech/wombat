@@ -7,9 +7,9 @@ For this purpose, Wombat uses a `SecretResolver` abstraction for providing crede
 
 ## Secret Resolver Chain
 
-The `SecretResolver` is a composite structure that checks the elected providers in priority order. The first provider that returns a value for a key supplies it; a missing key falls through to the next provider. In `database` or `vault` write-mode, the selected writable resolver is first, followed by the configured keystore, the configured directory, and the environment.
+The `SecretResolver` is a composite structure that checks the elected providers in priority order. The first provider that returns a value for a key supplies it; a missing key falls through to the next provider. In `database` or `vault` write-mode, the selected writable resolver is first. It is followed by Vault in read-only mode when it is enabled, then the configured keystore, the configured directory, and the environment.
 
-Only the selected writable resolver is included; both are omitted in `disabled` mode. Changing write mode requires a restart.
+Only the selected writable resolver is included; both are omitted in `disabled` mode. Vault is consulted only when `wombat.secret.vault.enabled` is `true`, and once, in one role: read-write when it is the write mode, read-only otherwise. Changing write mode requires a restart.
 
 ```mermaid
 graph LR
@@ -24,31 +24,35 @@ graph LR
     subgraph READ_ONLY[Read-only SecretResolver]
         direction LR
         
+        VAULT_READ[Vault - optional]
         KEYSTORE[Keystore - optional]
         DIRECTORY[Directory - optional]
         ENVIRONMENT[Environment]
         
+        VAULT_READ --> KEYSTORE
         KEYSTORE --> DIRECTORY
         DIRECTORY --> ENVIRONMENT
     end
     
     REQUEST -.-> DATABASE
     REQUEST -.-> VAULT
-    DATABASE -.-> KEYSTORE
+    REQUEST -.-> VAULT_READ
+    DATABASE -.-> VAULT_READ
     VAULT -.-> KEYSTORE
 ```
 
 The arrows indicate trying the next source when a key is missing, not when a resolver fails. Database and Vault errors (such as an unavailable service, denied access, malformed entries, or a secret-integrity error) propagate; they do not silently fall back to another source.
 
 - **Database:** Included only when `wombat.secret.write-mode` is `database`. It has the highest lookup priority.
-- **Vault:** Included only when `wombat.secret.write-mode` is `vault`. It has the highest lookup priority.
+- **Vault (read-write):** Included only when `wombat.secret.vault.enabled` is `true` and `wombat.secret.write-mode` is `vault`. It has the highest lookup priority.
+- **Vault (read-only):** Included when `wombat.secret.vault.enabled` is `true` and the write mode is not `vault`. It comes after the writable resolver, if any, and before the keystore.
 - **Keystore:** Optional; configure `wombat.secret.keystore.path`. The optional `wombat.secret.keystore.password` is used to load the keystore and as the default key password. `wombat.secret.keystore.type` selects the Java keystore type and defaults to `PKCS12`. An absent or blank path disables this resolver. Entry support depends on the selected keystore type and provider; not every type supports secret-key entries.
 - **Directory:** Optional; configure `wombat.secret.directory.path` to a directory containing one UTF-8 file per secret, named with the requested key. An absent or blank path disables this resolver. A missing file or blank file content is treated as a missing key.
 - **Environment:** Resolves from the process environment and requires no provider-specific `wombat.secret.*` configuration.
 
 ## Secret administration
 
-The secret-management API uses the selected `SecretWriter`. These operations affect that writable backend only; they do not update every configured resolver or make read-only sources such as the environment, directory, or keystore manageable through the API.
+The secret-management API uses the selected `SecretWriter`. These operations affect that writable backend only; they do not update every configured resolver or make read-only sources such as Vault in read-only mode, the environment, directory, or keystore manageable through the API.
 
 | Method and path | Operation |
 |---|---|
@@ -118,7 +122,7 @@ When database mode is enabled, `wombat.secret.database.active-kek-id` (default: 
 ```yaml
 wombat:
   secret:
-    write-mode: database # optional (default: DISABLED) - set to `database` to enable database-backed writes and resolution.
+    write-mode: database # optional (default: disabled) - set to `database` to enable database-backed writes and resolution.
     database:
       active-kek-id: "new" # required in `database` mode - must match one of the configured KEK IDs.
       kek:
@@ -141,15 +145,25 @@ Rewrapping changes only the wrapped data key, its wrapping nonce, KEK identifier
 
 ## Vault-backed `SecretResolver`
 
-Set `wombat.secret.write-mode: vault` to select HashiCorp Vault KV v2 as the writer and the highest-priority resolver. Required secrets are validated after persistence setup and before environment reconciliation. A missing or soft-deleted current version falls through to the read-only resolvers; authentication, permission, recognizable invalid-route, malformed-response, and transport failures do not. Some Vault 404 responses, including an empty error list, cannot distinguish a missing key from every possible mount or route problem and are treated as missing; verify the mount independently. Existing database secrets are not migrated automatically.
+HashiCorp Vault KV v2 is used once `wombat.secret.vault.enabled` is `true` (default: `false`), in one of two modes:
+
+- **Read-only**, the default: with any other write mode. Vault only resolves keys that are provisioned with Vault tooling, and the management API does not see it. It works with any write mode, e.g. next to the `database` writer, which then takes precedence for keys present in both.
+- **Read-write**: also set `wombat.secret.write-mode: vault`. Vault is then the writer behind the management API and the highest-priority resolver. Without `enabled`, Vault is not used at all and no writer is selected, so calls to the management API fail.
+
+The startup logs say which mode is in use. Both modes share the path prefix, the paths format and the Quarkus Vault client configuration below.
+
+### Read-write mode
+
+Set `wombat.secret.vault.enabled: true` and `wombat.secret.write-mode: vault` to select HashiCorp Vault KV v2 as the writer and the highest-priority resolver. Required secrets are validated after persistence setup and before environment reconciliation. A missing or soft-deleted current version falls through to the read-only resolvers; authentication, permission, recognizable invalid-route, malformed-response, and transport failures do not. Some Vault 404 responses, including an empty error list, cannot distinguish a missing key from every possible mount or route problem and are treated as missing; verify the mount independently. Existing database secrets are not migrated automatically.
 
 Configure the Vault URL, KV v2 mount and application authentication through the [Quarkiverse Vault extension](https://docs.quarkiverse.io/quarkus-vault/dev/index.html).
 
 ```yaml
 wombat:
   secret:
-    write-mode: vault
+    write-mode: vault # read-write mode. Leave it out for read-only mode.
     vault:
+      enabled: true # required to use Vault (default: false) - read-only unless `write-mode: vault`.
       path-prefix: wombat
 
 # This configuration is for demonstration purposes only;
@@ -177,9 +191,26 @@ vault kv put -mount=secret wombat/team/service value=@/run/secrets/service-token
 
 The prefix, mount path, and key must be relative paths made of nonempty segments containing only ASCII letters, digits, `.`, `_`, `~`, and `-`, separated by single `/` characters. Segments `.` and `..`, leading or trailing slashes, repeated slashes, control characters, backslashes, and URI metacharacters are rejected. Key names are visible in Vault paths and metadata and must not contain secret material. Invalid Vault keys submitted to the management API return a client error.
 
+### Read-only mode
+
+Set `wombat.secret.vault.enabled: true` and keep another write mode (`disabled` or `database`). Wombat reads keys under the prefix and never writes, deletes, or lists them. Lookups behave as in read-write mode: a missing or soft-deleted current version falls through to the next resolver, and Vault failures propagate. Required secrets are checked at the time the write mode sets: early with `disabled`, after persistence setup with `database`.
+
+The application identity only needs to read data and metadata. For a `secret` KV v2 mount and the `wombat` prefix:
+
+```hcl
+path "secret/data/wombat/*" {
+  capabilities = ["read"]
+}
+path "secret/metadata/wombat/*" {
+  capabilities = ["read"]
+}
+```
+
+Wombat reads the metadata first so that a soft-deleted current version counts as missing, instead of resolving an older version.
+
 ### Scoped Vault policy
 
-For a `secret` KV v2 mount and the `wombat` prefix, an application identity needs data-path read/create/update, version-specific delete, and metadata read/list capabilities.
+In read-write mode, for a `secret` KV v2 mount and the `wombat` prefix, an application identity needs data-path read/create/update, version-specific delete, and metadata read/list capabilities.
 Adjust the paths to match the configured mount and prefix:
 
 ```hcl

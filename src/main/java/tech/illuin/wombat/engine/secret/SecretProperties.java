@@ -3,7 +3,6 @@ package tech.illuin.wombat.engine.secret;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
-import org.eclipse.microprofile.config.spi.Converter;
 
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +46,10 @@ public interface SecretProperties
 
     interface Vault
     {
+        /** Adds Vault as a read-only resolver, or a read-write one with {@link WriteMode#vault}. */
+        @WithDefault("false")
+        boolean enabled();
+
         @WithName("path-prefix")
         @WithDefault("wombat")
         String pathPrefix();
@@ -57,14 +60,5 @@ public interface SecretProperties
         disabled,
         database,
         vault
-    }
-
-    class WriteModeConverter implements Converter<WriteMode>
-    {
-        @Override
-        public WriteMode convert(String value)
-        {
-            return WriteMode.valueOf(value);
-        }
     }
 }

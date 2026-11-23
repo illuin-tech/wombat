@@ -6,6 +6,7 @@ import io.smallrye.config.ConfigSourceFactory;
 import io.smallrye.config.PropertiesConfigSource;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 import tech.illuin.wombat.commons.NodeMode;
+import tech.illuin.wombat.engine.secret.SecretProperties;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +20,6 @@ import static tech.illuin.wombat.commons.ConfigSourceFactories.FEATURE_FLAG;
 public class FeatureConfigSourceFactory implements ConfigSourceFactory
 {
     static final String SECRET_WRITE_MODE = "wombat.secret.write-mode";
-    private static final String SECRET_WRITE_DISABLED = "DISABLED";
 
     @Override
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context)
@@ -31,8 +31,7 @@ public class FeatureConfigSourceFactory implements ConfigSourceFactory
         for (Feature feature : Feature.values())
             properties.put(feature.configKey(), String.valueOf(feature.enabledIn(mode)));
 
-        String writeMode = context.getValue(SECRET_WRITE_MODE).getValue();
-        boolean secretsWritable = writeMode != null && !writeMode.equals(SECRET_WRITE_DISABLED);
+        boolean secretsWritable = isSecretWritable(context.getValue(SECRET_WRITE_MODE).getValue());
         properties.put(Feature.Keys.ADMIN_SECRETS, String.valueOf(Feature.ADMIN.enabledIn(mode) && secretsWritable));
 
         return List.of(new PropertiesConfigSource(
@@ -40,6 +39,13 @@ public class FeatureConfigSourceFactory implements ConfigSourceFactory
             FeatureConfigSourceFactory.class.getSimpleName(),
             FEATURE_FLAG.priority()
         ));
+    }
+
+    private static boolean isSecretWritable(String writeMode)
+    {
+        return writeMode != null
+            && !writeMode.isBlank()
+            && !writeMode.strip().equalsIgnoreCase(SecretProperties.WriteMode.disabled.name());
     }
 
     @Override

@@ -152,15 +152,18 @@ class VaultSecretManagementIntegrationTest
         assertEquals(1, selected.size());
         assertSame(this.store, selected.getFirst().resolver());
         assertSame(this.store, this.writer);
-        assertSame(this.store, assertInstanceOf(CompositeSecretResolver.class, this.resolver).resolvers().getFirst());
+        List<SecretResolver> resolvers = assertInstanceOf(CompositeSecretResolver.class, this.resolver).resolvers();
+        assertSame(this.store, resolvers.getFirst());
+        assertTrue(resolvers.stream().noneMatch(VaultSecretResolver.class::isInstance));
     }
 
     @Test
     void missingMountAndOutOfScopePathsFailInsteadOfFallingBack()
     {
+        VaultKvV2ClientAdapter wrongMountClient = new VaultKvV2ClientAdapter(this.client, "not-mounted");
         VaultSecretStore wrongMount = new VaultSecretStore(
-            new VaultKvV2ClientAdapter(this.client, "not-mounted"),
-            this.properties
+            wrongMountClient,
+            new VaultSecretResolver(wrongMountClient, this.properties)
         );
 
         assertThrows(VaultClientException.class, () -> wrongMount.find("missing"));
@@ -186,7 +189,7 @@ class VaultSecretManagementIntegrationTest
             assertTrue(keys.contains(branch + "/child"));
 
             SecretProperties emptyPrefix = properties(VaultTestResource.PATH_PREFIX + "/empty-" + UUID.randomUUID());
-            assertTrue(new VaultSecretStore(this.vault, emptyPrefix).listSecrets().isEmpty());
+            assertTrue(new VaultSecretStore(this.vault, new VaultSecretResolver(this.vault, emptyPrefix)).listSecrets().isEmpty());
         }
         finally
         {
@@ -239,7 +242,7 @@ class VaultSecretManagementIntegrationTest
 
         try
         {
-            assertTrue(new VaultSecretStore(concurrentClient, this.properties).deleteSecret(key));
+            assertTrue(new VaultSecretStore(concurrentClient, new VaultSecretResolver(concurrentClient, this.properties)).deleteSecret(key));
             assertEquals("newer", this.resolver.require(key));
             VaultSecretsKV2ReadSecretMetadataResultData metadata = this.vault.readSecretMetadata(path).orElseThrow();
             assertNotNull(metadata.getVersions().get("1").getDeletionTime());
@@ -267,6 +270,7 @@ class VaultSecretManagementIntegrationTest
         {
             Map<String, String> values = new HashMap<>(super.getConfigOverrides());
             values.put("wombat.secret.write-mode", SecretProperties.WriteMode.vault.name());
+            values.put("wombat.secret.vault.enabled", "true");
             values.put("wombat.secret.vault.path-prefix", VaultTestResource.PATH_PREFIX);
             return values;
         }

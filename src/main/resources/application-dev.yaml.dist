@@ -27,6 +27,8 @@ wombat:
   #secret:
   #  directory:
   #    path: /secrets
+  #  vault:
+  #    enabled: true # read-only Vault resolver, with the Vault dev service above
 
 persistence:
   #backend:

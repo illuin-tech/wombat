@@ -19,6 +19,8 @@ import java.util.Map;
 public class VaultTestResource implements QuarkusTestResourceLifecycleManager
 {
     public static final String PATH_PREFIX = "wombat-integration";
+    /** Init arg that scopes the application token to the read-only policy documented in {@code secret-management.md} */
+    public static final String READ_ONLY = "read-only";
 
     private static final String ROOT_TOKEN = "wombat-integration-root";
     private static final String POLICY_NAME = "wombat-integration";
@@ -27,6 +29,13 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
 
     private GenericContainer<?> vault;
     private Path resolverDirectory;
+    private boolean readOnly;
+
+    @Override
+    public void init(Map<String, String> initArgs)
+    {
+        this.readOnly = Boolean.parseBoolean(initArgs.get(READ_ONLY));
+    }
 
     @Override
     public Map<String, String> start()
@@ -41,7 +50,7 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
         this.vault.start();
 
         String vaultUrl = "http://%s:%d".formatted(this.vault.getHost(), this.vault.getMappedPort(8200));
-        String scopedToken = createScopedToken(vaultUrl);
+        String scopedToken = createScopedToken(vaultUrl, this.readOnly ? readOnlyPolicy() : readWritePolicy());
         provisionManualSecret(vaultUrl);
         createLowerPriorityResolverSources();
 
@@ -66,6 +75,7 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
             {
                 Files.deleteIfExists(this.resolverDirectory.resolve("priority"));
                 Files.deleteIfExists(this.resolverDirectory.resolve("fallback-only"));
+                Files.deleteIfExists(this.resolverDirectory.resolve("shared"));
                 Files.deleteIfExists(this.resolverDirectory);
             }
             catch (Exception exception)
@@ -82,6 +92,7 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
             this.resolverDirectory = Files.createTempDirectory(Path.of("target"), "vault-secret-resolver-");
             Files.writeString(this.resolverDirectory.resolve("priority"), "directory-priority");
             Files.writeString(this.resolverDirectory.resolve("fallback-only"), "directory-fallback");
+            Files.writeString(this.resolverDirectory.resolve("shared"), "directory-shared");
         }
         catch (Exception exception)
         {
@@ -89,24 +100,40 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
         }
     }
 
-    private static String createScopedToken(String vaultUrl)
+    private static String readWritePolicy()
+    {
+        return """
+            path "secret/data/%s/*" {
+              capabilities = ["create", "update", "read"]
+            }
+            path "secret/delete/%s/*" {
+              capabilities = ["update"]
+            }
+            path "secret/metadata/%s" {
+              capabilities = ["list"]
+            }
+            path "secret/metadata/%s/*" {
+              capabilities = ["list", "read"]
+            }
+            """.formatted(PATH_PREFIX, PATH_PREFIX, PATH_PREFIX, PATH_PREFIX);
+    }
+
+    private static String readOnlyPolicy()
+    {
+        return """
+            path "secret/data/%s/*" {
+              capabilities = ["read"]
+            }
+            path "secret/metadata/%s/*" {
+              capabilities = ["read"]
+            }
+            """.formatted(PATH_PREFIX, PATH_PREFIX);
+    }
+
+    private static String createScopedToken(String vaultUrl, String policy)
     {
         try
         {
-            String policy = """
-                path "secret/data/%s/*" {
-                  capabilities = ["create", "update", "read"]
-                }
-                path "secret/delete/%s/*" {
-                  capabilities = ["update"]
-                }
-                path "secret/metadata/%s" {
-                  capabilities = ["list"]
-                }
-                path "secret/metadata/%s/*" {
-                  capabilities = ["list", "read"]
-                }
-                """.formatted(PATH_PREFIX, PATH_PREFIX, PATH_PREFIX, PATH_PREFIX);
             request(vaultUrl, "PUT", "sys/policies/acl/" + POLICY_NAME, Map.of("policy", policy), ROOT_TOKEN);
 
             String response = request(vaultUrl, "POST", "auth/token/create", Map.of(
@@ -131,6 +158,9 @@ public class VaultTestResource implements QuarkusTestResourceLifecycleManager
         {
             request(vaultUrl, "POST", "secret/data/" + PATH_PREFIX + "/manual/seed", Map.of(
                 "data", Map.of("value", "manually-provisioned")
+            ), ROOT_TOKEN);
+            request(vaultUrl, "POST", "secret/data/" + PATH_PREFIX + "/shared", Map.of(
+                "data", Map.of("value", "vault-shared")
             ), ROOT_TOKEN);
         }
         catch (Exception exception)

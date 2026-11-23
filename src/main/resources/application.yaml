@@ -158,6 +158,9 @@ wombat:
   #    active-kek-id: "current"
   #    kek:
   #      current: "${WOMBAT_SECRET_DATABASE_KEK_CURRENT}"
+  #  vault:
+  #    enabled: true # Vault resolver, read-only; `write-mode: vault` makes it read-write
+  #    path-prefix: wombat
 
 persistence:
   backend:

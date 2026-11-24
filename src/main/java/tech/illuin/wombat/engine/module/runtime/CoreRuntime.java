@@ -1,18 +1,12 @@
 package tech.illuin.wombat.engine.module.runtime;
 
-import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.asset.type.ModuleType;
 
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -21,25 +15,18 @@ import java.util.stream.Collectors;
  * <p>
  * The app's {@code AssetMonitor} and {@code AssetEvaluator} beans read {@link #current()} on every call, see
  * {@link RuntimeAssetMonitor} and {@link RuntimeAssetEvaluator}, so they follow a swap at once. The replaced deployment
- * is closed after a grace delay, leaving the calls that already hold it time to complete.
+ * is closed through {@code retiredCloser}, which the app delays to leave the calls that already hold it time to
+ * complete.
  */
-@ApplicationScoped
 public class CoreRuntime
 {
     private final CoreDeploymentFactory factory;
     private final Executor retiredCloser;
     private volatile CoreDeployment current;
 
-    private static final Duration CLOSE_GRACE_DELAY = Duration.ofSeconds(60);
     private static final Logger logger = LoggerFactory.getLogger(CoreRuntime.class);
 
-    @Inject
-    public CoreRuntime(CoreDeploymentFactory factory)
-    {
-        this(factory, CompletableFuture.delayedExecutor(CLOSE_GRACE_DELAY.toSeconds(), TimeUnit.SECONDS));
-    }
-
-    CoreRuntime(CoreDeploymentFactory factory, Executor retiredCloser)
+    public CoreRuntime(CoreDeploymentFactory factory, Executor retiredCloser)
     {
         this.factory = factory;
         this.retiredCloser = retiredCloser;
@@ -82,8 +69,7 @@ public class CoreRuntime
     }
 
     /* Synchronized with deploy, so that a deployment swapped in during shutdown is the one closed */
-    @PreDestroy
-    synchronized void close()
+    public synchronized void close()
     {
         CoreDeployment deployment = this.current;
         if (deployment != null)

@@ -8,7 +8,7 @@ import tech.illuin.wombat.core.module.ModuleSettings;
 import tech.illuin.wombat.module.ecologits.EcologitsSettings;
 
 /**
- * The settings of the Ecologits module, still read from {@code wombat.connector.ecologits} which deployments set.
+ * The settings of the Ecologits module, read from {@code wombat.connector.ecologits}.
  */
 @ApplicationScoped
 public class EcologitsConfig

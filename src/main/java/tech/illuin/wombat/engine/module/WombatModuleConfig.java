@@ -42,7 +42,7 @@ public class WombatModuleConfig
     @Produces @Singleton
     public static ExtensionLoader provideWombatExtensionLoader(WombatProperties wombat)
     {
-        /* Family modules are tried in this order among those of a family: the core's, then the extensions' */
+        /* Family modules are tried in this order */
         return new CompositeExtensionLoader(
             new CoreExtensionLoader(),
             new AppExtensionLoader(),
@@ -115,9 +115,9 @@ public class WombatModuleConfig
     }
 
     /**
-     * Every detected module is registered, disabled ones too, so their assets are still read as such rather than as
-     * unrecognized ones; so are the settings of those having some. Taken from the detected modules rather than the registry, which reads the database: the YAML
-     * mapper is needed at startup, before the migrations run.
+     * Every detected module is registered with its settings, disabled ones too, so their assets are still read as such
+     * rather than as unrecognized ones. Taken from the detected modules rather than the registry, which reads the
+     * database: the YAML mapper is needed at startup, before the migrations run.
      */
     private static <O extends ObjectMapper> void registerSubTypes(List<WombatModule> modules, O mapper)
     {

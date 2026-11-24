@@ -169,7 +169,7 @@ class SimulationControllerTest
     {
         String body = "{\"scopes\": [\"COST\"], \"assets\": [" + LLM_ASSET_JSON + "]}";
 
-        /* No module provides a cost-resolver: there is no cost evaluation, rather than one without amount */
+        /* No module provides a cost-resolver: there is no cost evaluation */
         given()
             .contentType("application/json").body(body)
             .when().post("/api/simulation")

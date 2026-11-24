@@ -1,19 +1,10 @@
 package tech.illuin.wombat.engine.module.runtime;
 
-import io.quarkus.arc.All;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.WombatCore;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
-import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
-import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
-import tech.illuin.wombat.core.module.MetricResolvers;
-import tech.illuin.wombat.core.module.ModuleSettings;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.module.WombatServices;
-import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
@@ -30,7 +21,6 @@ import java.util.Set;
  * settings), the persister sourced metrics are written through, and the requested modules among those detected on this
  * instance.
  */
-@ApplicationScoped
 public class CoreDeploymentFactory
 {
     private final WombatContextProvider contextProvider;
@@ -39,27 +29,7 @@ public class CoreDeploymentFactory
     private final List<WombatModule> modules;
     private final CachedAssetEvaluatorProperties cacheProperties;
 
-    @Inject
     public CoreDeploymentFactory(
-        WombatContextProvider contextProvider,
-        SecretResolver secrets,
-        KubernetesMetricResolver kubernetesMetrics,
-        LLMMetricResolver llmMetrics,
-        @All List<ModuleSettings> settings,
-        WombatMetricPersister persister,
-        List<WombatModule> modules,
-        WombatProperties wombat
-    ) {
-        this(
-            contextProvider,
-            new WombatServices(secrets, new MetricResolvers(kubernetesMetrics, llmMetrics), settings),
-            persister,
-            modules,
-            wombat.evaluator().cache()
-        );
-    }
-
-    CoreDeploymentFactory(
         WombatContextProvider contextProvider,
         WombatServices services,
         WombatMetricPersister persister,

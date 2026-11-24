@@ -6,8 +6,7 @@ import tech.illuin.wombat.module.CoreModules;
 import java.util.List;
 
 /**
- * The modules of {@code wombat-core-module}, its family modules last in the order they are tried in among those of a
- * family.
+ * The modules of {@code wombat-core-module}.
  */
 public class CoreExtensionLoader implements ExtensionLoader
 {

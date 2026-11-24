@@ -14,9 +14,9 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The Boavizta and Ecologits modules read their endpoints from the settings the core is handed, which the app still
- * takes from {@code wombat.connector.*}. The other tests run both modules on mocked clients ({@link ConnectorClientMocks}),
- * so this one pins that wiring: broken, the modules would quietly fall back to the public APIs.
+ * The other tests run the Boavizta and Ecologits modules on mocked clients ({@link ConnectorClientMocks}): this one
+ * checks that {@code wombat.connector.*} reaches their settings, without which they would quietly fall back to the
+ * public APIs.
  */
 @QuarkusTest
 class ConnectorSettingsTest

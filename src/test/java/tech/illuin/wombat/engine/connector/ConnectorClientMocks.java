@@ -25,14 +25,11 @@ import java.util.Optional;
 
 /**
  * Supplies the connector clients as Mockito mocks for {@code @QuarkusTest}, and the Boavizta and Ecologits modules
- * built on them rather than on their settings.
+ * built on them.
  * <p>
- * The modules build their own clients, out of the settings in their services: the detected modules are therefore
- * swapped for subclasses whose resolvers take the mocks, so that tests keep stubbing the clients they inject.
- * <p>
- * The clients are no longer beans of the app, so {@code @InjectMock} has nothing to replace: these globally-enabled
- * alternatives produce them as {@code @Singleton} mocks instead, which also guarantees no test ever reaches a real
- * endpoint. The settings the real modules would read are checked by {@link ConnectorSettingsTest}.
+ * The modules build their own clients out of their settings: the detected ones are swapped for subclasses taking these
+ * mocks, which tests inject to stub them. Being globally-enabled alternatives, they also guarantee no test ever reaches
+ * a real endpoint. The settings the real modules read are checked by {@link ConnectorSettingsTest}.
  */
 @ApplicationScoped
 public class ConnectorClientMocks

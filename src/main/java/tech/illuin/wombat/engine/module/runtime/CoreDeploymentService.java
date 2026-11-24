@@ -202,8 +202,8 @@ public class CoreDeploymentService
 
     /**
      * Records a deployment adding the modules registered for the first time at this startup: a module with no row is
-     * enabled, so a new one runs without waiting for a redeploy, e.g. a module the app now ships. Another instance
-     * recording a deployment at the same time may win that race, its deployment is then the one taken.
+     * enabled, so a new one runs without waiting for a redeploy. Another instance may record one at the same time: its
+     * deployment is then the one taken.
      */
     private CoreDeploymentEntity join(CoreDeploymentEntity latest, Set<String> joining)
     {

@@ -8,7 +8,7 @@ import tech.illuin.wombat.core.module.ModuleSettings;
 import tech.illuin.wombat.module.boavizta.BoaviztaSettings;
 
 /**
- * The settings of the Boavizta module, still read from {@code wombat.connector.boavizta} which deployments set.
+ * The settings of the Boavizta module, read from {@code wombat.connector.boavizta}.
  */
 @ApplicationScoped
 public class BoaviztaConfig

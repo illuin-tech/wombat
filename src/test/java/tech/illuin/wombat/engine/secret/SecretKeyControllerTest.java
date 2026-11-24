@@ -12,7 +12,7 @@ import tech.illuin.wombat.ui.AuthenticationEnabledTest;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
-/** Runs with the secret write mode disabled: keys still resolve through the environment resolver. */
+/** Runs with the secret write mode disabled: keys still resolve through the read-only resolvers. */
 @QuarkusTest
 @TestProfile(AuthenticationEnabledTest.AuthenticationEnabledProfile.class)
 class SecretKeyControllerTest
@@ -22,12 +22,19 @@ class SecretKeyControllerTest
     @OidcSecurity(claims = @Claim(key = "email", value = "boss@example.com"))
     void check_tellsWhetherKeyResolves()
     {
+        given().queryParam("key", "test-kubeconfig")
+            .when().get("/api/secret-keys/check")
+            .then()
+            .statusCode(200)
+            .body("payload.key", is("test-kubeconfig"))
+            .body("payload.exists", is(true));
+
+        /* The environment resolver only reads prefixed variables: the process's own stay out of reach */
         given().queryParam("key", "PATH")
             .when().get("/api/secret-keys/check")
             .then()
             .statusCode(200)
-            .body("payload.key", is("PATH"))
-            .body("payload.exists", is(true));
+            .body("payload.exists", is(false));
 
         given().queryParam("key", "WOMBAT_UNKNOWN_SECRET_KEY")
             .when().get("/api/secret-keys/check")

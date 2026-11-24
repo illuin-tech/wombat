@@ -48,7 +48,7 @@ The arrows indicate trying the next source when a key is missing, not when a res
 - **Vault (read-only):** Included when `wombat.secret.vault.enabled` is `true` and the write mode is not `vault`. It comes after the writable resolver, if any, and before the keystore.
 - **Keystore:** Optional; configure `wombat.secret.keystore.path`. The optional `wombat.secret.keystore.password` is used to load the keystore and as the default key password. `wombat.secret.keystore.type` selects the Java keystore type and defaults to `PKCS12`. An absent or blank path disables this resolver. Entry support depends on the selected keystore type and provider; not every type supports secret-key entries.
 - **Directory:** Optional; configure `wombat.secret.directory.path` to a directory containing one UTF-8 file per secret, named with the requested key. An absent or blank path disables this resolver. A missing file or blank file content is treated as a missing key.
-- **Environment:** Resolves from the process environment and requires no provider-specific `wombat.secret.*` configuration.
+- **Environment:** Resolves from the process variables prefixed with `WOMBAT_ASSET_SECRET_`, and requires no provider-specific `wombat.secret.*` configuration.
 
 ## Secret administration
 
@@ -73,7 +73,7 @@ Quarkus does not support runtime changes to `@EndpointDisabled` in native builds
 
 ## Environment-backed `SecretResolver`
 
-The process environment is enabled automatically and requires no Wombat resolver property. The environment variable name corresponds to the requested secret key.
+The process environment is enabled automatically and requires no Wombat resolver property. It only reads variables prefixed with `WOMBAT_ASSET_SECRET_`: the key `PROM_PASSWORD` reads `WOMBAT_ASSET_SECRET_PROM_PASSWORD`. Asset configuration names its keys, so the prefix keeps an asset from reading the other variables of the process, such as the database credentials.
 
 The environment resolver is consulted when no earlier enabled provider supplies the requested secret.
 

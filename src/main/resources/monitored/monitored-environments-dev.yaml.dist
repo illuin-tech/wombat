@@ -85,11 +85,12 @@ environments:
 #        name: My served LLM (preprod)
 #        prometheus-url: http://prometheus.my-namespace:9090/
 #        period: 30s
-#        # Basic auth is optional. `password-key` names the environment variable holding the password — never the
-#        # password itself, which would end up in the assets table and in the config-history snapshots. The app
-#        # refuses to start when a declared variable is unset or empty (see RequiredSecretsCheck).
+#        # Basic auth is optional. `password-key` names the secret holding the password, e.g. the environment variable
+#        # WOMBAT_ASSET_SECRET_PROMETHEUS_PASSWORD — never the password itself, which would end up in the assets table
+#        # and in the config-history snapshots. The app refuses to start when a declared secret is unset or empty
+#        # (see RequiredSecretsCheck).
 #        username: prometheus
-#        password-key: WOMBAT_PROMETHEUS_PASSWORD
+#        password-key: PROMETHEUS_PASSWORD
 #        profile:
 #          provider: mistralai
 #          model: mistral-large-latest

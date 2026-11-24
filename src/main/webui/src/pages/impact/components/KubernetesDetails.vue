@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {KubernetesPanel} from '@/pages/impact/model/aggregate'
 import {asDecimal} from '@/services/format/formatters'
+import AssetTypeParam from '@/pages/impact/components/AssetTypeParam.vue'
 
 defineProps<{panel: KubernetesPanel}>()
 </script>
@@ -36,6 +37,6 @@ defineProps<{panel: KubernetesPanel}>()
     <div class="asset-load-note">Load values are computed across all services of this asset and are not affected by the service filter above.</div>
   </div>
   <div class="params-inline">
-    <div class="param-item"><span class="param-key">Asset type</span><span class="param-val">{{ panel.type.localName }}</span></div>
+    <AssetTypeParam :type="panel.type" />
   </div>
 </template>

@@ -6,7 +6,7 @@ import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
-import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPICloudProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
@@ -20,6 +20,7 @@ import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -33,8 +34,8 @@ class EnvironmentDescriptionTest
         Environment environment = new Environment("Production", List.of(
             new KubernetesAPIAsset(
                 AssetIdentity.of("cluster-1", "Production", KubernetesAPIModule.TYPE),
-                new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO,
-                new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
+                new SecretKey("kubeconfig"), Set.of("ns"), Optional.empty(), Optional.empty(), Period.ZERO,
+                new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
             ),
             new LLMStaticAsset(
                 AssetIdentity.of("llm-1", "Production", LLMStaticModule.TYPE),

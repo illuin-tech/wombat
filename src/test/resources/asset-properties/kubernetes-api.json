@@ -1,6 +1,6 @@
 {
   "kubeconfigKey": "kubeconfig-my-cluster",
-  "namespace": "my-namespace",
+  "namespaces": ["my-namespace"],
   "readTimeout": "PT30S",
   "period": "2s",
   "profile": {

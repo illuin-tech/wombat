@@ -8,7 +8,8 @@ environments:
         id: east-cluster
         environment-id: east
         kubeconfig-key: kubeconfig-east
-        namespace: default
+        namespaces:
+          - default
         profile:
           provider: aws
           instance-type: c5.xlarge

@@ -15,7 +15,7 @@ import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.WombatModuleConfig;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
-import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPICloudProfile;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
@@ -27,6 +27,7 @@ import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
@@ -40,8 +41,8 @@ class AssetConverterTest
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
-            new SecretKey("kubeconfig"), "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
+            new SecretKey("kubeconfig"), Set.of("ns"), Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
+            new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
 
         assertEquals(asset, this.roundTrip(asset));

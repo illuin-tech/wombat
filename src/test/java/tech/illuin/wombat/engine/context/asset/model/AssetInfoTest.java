@@ -24,7 +24,7 @@ import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
-import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPICloudProfile;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusAsset;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticAsset;
@@ -35,6 +35,7 @@ import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -65,10 +66,10 @@ class AssetInfoTest
     @Test
     void exposesKubernetesConnectionProfileAndTimestamps() throws Exception
     {
-        KubernetesAPIServerProfile profile = new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5));
+        KubernetesAPICloudProfile profile = new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5));
         AssetEntity entity = stamp(AssetEntity.from("env", new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
-            new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO, profile
+            new SecretKey("kubeconfig"), Set.of("ns"), Optional.empty(), Optional.empty(), Period.ZERO, profile
         )));
 
         entity.name = "K";
@@ -78,7 +79,7 @@ class AssetInfoTest
         assertInstanceOf(KubernetesAPIAsset.class, info.properties());
         KubernetesAPIAsset k8s = (KubernetesAPIAsset) info.properties();
         assertEquals("k", k8s.identity().id());
-        assertEquals("ns", k8s.namespace());
+        assertEquals(Set.of("ns"), k8s.namespaces());
         assertEquals(profile, k8s.profile());
         assertEquals("uuid", info.uuid());
         assertEquals(Instant.ofEpochMilli(1), info.createdAt());
@@ -91,7 +92,7 @@ class AssetInfoTest
         assertEquals("K", json.get("name").asText());
         assertEquals(KubernetesAPIModule.TYPE.name(), json.get("type").asText());
         assertEquals("kubeconfig", json.get("kubeconfigKey").asText());
-        assertEquals("ns", json.get("namespace").asText());
+        assertEquals("ns", json.get("namespaces").get(0).asText());
         assertEquals("c5.large", json.get("profile").get("instanceType").asText());
         assertFalse(json.has("environment-id"));
         assertFalse(json.get("profile").has("instance-type"));

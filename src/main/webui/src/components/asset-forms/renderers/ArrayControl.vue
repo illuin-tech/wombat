@@ -111,7 +111,7 @@ import {
 import { DispatchRenderer, rendererProps, useJsonFormsArrayControl, type RendererProps } from '@jsonforms/vue'
 import { computed, defineComponent, inject, nextTick, ref } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { defaultProperties } from '../model/schema'
+import { defaultProperties, discriminatorOf } from '../model/schema'
 
 type Item = Record<string, unknown>
 
@@ -121,12 +121,6 @@ function singularOf(label: string): string {
   if (lower.endsWith('ies')) return `${lower.slice(0, -3)}y`
   if (lower.endsWith('s')) return lower.slice(0, -1)
   return lower || 'item'
-}
-
-/** The property holding a distinct `const` in every variant, e.g. a scenario's `type`. */
-function discriminatorOf(variants: JsonSchema[]): string | null {
-  const first = variants[0]?.properties ?? {}
-  return Object.keys(first).find(name => variants.every(variant => variant.properties?.[name]?.const !== undefined)) ?? null
 }
 
 /** Arrays as lists anyone can read at a glance: toggles for options, fields for values, cards for objects. */

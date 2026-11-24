@@ -30,6 +30,12 @@ export function inlineDefinitions(schema: Schema): Schema {
   return JSON.stringify(inlined).includes('"$ref":"#/$defs/') ? { ...inlined, $defs } : inlined
 }
 
+/** The property holding a distinct `const` in every variant of a union, e.g. a scenario's `type`. */
+export function discriminatorOf(variants: readonly { properties?: Record<string, { const?: unknown }> }[]): string | null {
+  const first = variants[0]?.properties ?? {}
+  return Object.keys(first).find(name => variants.every(variant => variant.properties?.[name]?.const !== undefined)) ?? null
+}
+
 /**
  * The properties a new asset starts with: every default of the schema, within the objects it requires, so that an
  * object whose properties all have defaults, e.g. a profile, is valid without being edited.

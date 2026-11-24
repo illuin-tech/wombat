@@ -49,3 +49,17 @@ export function computeTimeRange(from: string | null | undefined, to: string | n
     start = ceilToDay(new Date(end.getTime() - maxSpanMs))
   return { start, end }
 }
+
+/** Calendar length of a day-aligned range, counted back from its end like `minusMonths`: "3 months", "1 year 2 months 5 days". */
+export function formatRangeLength({ start, end }: TimeRange): string {
+  let months = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + end.getUTCMonth() - start.getUTCMonth()
+  while (months > 0 && minusMonths(end, months).getTime() < start.getTime())
+    months--
+  const days = Math.round((minusMonths(end, months).getTime() - start.getTime()) / DAY_MS)
+  const parts: [number, string][] = [[Math.floor(months / 12), 'year'], [months % 12, 'month'], [days, 'day']]
+  const label = parts
+    .filter(([count]) => count > 0)
+    .map(([count, unit]) => `${count} ${unit}${count > 1 ? 's' : ''}`)
+    .join(' ')
+  return label || '0 days'
+}

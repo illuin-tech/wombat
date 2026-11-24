@@ -35,4 +35,7 @@ defineProps<{panel: KubernetesPanel}>()
     </div>
     <div class="asset-load-note">Load values are computed across all services of this asset and are not affected by the service filter above.</div>
   </div>
+  <div class="params-inline">
+    <div class="param-item"><span class="param-key">Asset type</span><span class="param-val">{{ panel.type.localName }}</span></div>
+  </div>
 </template>

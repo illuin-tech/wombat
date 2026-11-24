@@ -53,6 +53,7 @@ onBeforeUnmount(release)
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 1L15.5 14H0.5L8 1Z" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-linejoin="round"/><path d="M8 5.5V9.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.75" r="0.75" fill="#ffffff"/></svg>
           </span>
           <span :id="titleId" class="asset-modal-title">{{ title }}</span>
+          <slot name="head"/>
           <button ref="closeButton" class="asset-modal-close" type="button" title="Close" aria-label="Close" @click="emit('close')">✕</button>
         </div>
         <div class="asset-modal-body"><slot/></div>

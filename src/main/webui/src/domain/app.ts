@@ -1,6 +1,7 @@
 export interface AppUser {
   authenticated: boolean
   name: string | null
+  picture?: string | null
   roles: string[]
   permissions: string[]
 }

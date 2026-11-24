@@ -63,6 +63,7 @@ class GoogleOidcTest
         given().cookies(session).when().get("/api/app").then()
             .statusCode(200)
             .body("payload.user.name", is("alice@example.com"))
+            .body("payload.user.picture", is("https://lh3.googleusercontent.com/a/photo"))
             .body("payload.user.roles", hasItems("user"));
 
         UserEntity user = MockProvider.awaitUser(this.users, ISSUER, subject);

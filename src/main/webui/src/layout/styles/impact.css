@@ -79,12 +79,16 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .header-user-trigger { display: inline-flex; align-items: center; gap: 8px; max-width: 320px; font: inherit; font-size: 12px; color: var(--text-dim); background: var(--surface2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
 .header-user-trigger:hover, .header-user.open .header-user-trigger { color: var(--text-muted); border-color: var(--accent-green); }
 .header-user-trigger:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(22,163,74,0.18); }
+.header-user-avatar { flex-shrink: 0; width: 20px; height: 20px; margin: -2px 0 -2px -6px; border-radius: 50%; object-fit: cover; background: var(--border); }
+.header-user-avatar.large { width: 36px; height: 36px; margin: 0; }
 .header-user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-user-chevron { flex-shrink: 0; transition: transform 0.15s; }
 .header-user.open .header-user-chevron { transform: rotate(180deg); }
 .header-user-menu { display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 100; width: max-content; min-width: 220px; max-width: min(320px, calc(100vw - 32px)); background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 6px; flex-direction: column; }
 .header-user.open .header-user-menu { display: flex; }
 .header-user-identity, .header-user-roles { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; }
+.header-user-identity.with-avatar { flex-direction: row; align-items: center; gap: 10px; }
+.header-user-identity-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .header-user-roles { border-bottom: 1px solid var(--border); margin-bottom: 4px; padding-bottom: 10px; }
 .header-user-label { font-size: 11px; font-weight: 600; color: var(--text-dim); }
 .header-user-full-name { font-size: 13px; color: var(--text); overflow-wrap: anywhere; }

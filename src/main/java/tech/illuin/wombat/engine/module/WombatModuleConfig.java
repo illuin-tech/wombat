@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAssetProblemHandler;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.engine.module.extension.AppExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
@@ -41,8 +42,10 @@ public class WombatModuleConfig
     @Produces @Singleton
     public static ExtensionLoader provideWombatExtensionLoader(WombatProperties wombat)
     {
+        /* Family modules are tried in this order among those of a family: the core's, then the extensions' */
         return new CompositeExtensionLoader(
             new CoreExtensionLoader(),
+            new AppExtensionLoader(),
             new DynamicExtensionLoader(wombat.module().extension().path())
         );
     }

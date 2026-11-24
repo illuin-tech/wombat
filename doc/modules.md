@@ -34,15 +34,17 @@ Each instance detects its modules once, at startup: the core modules, and those 
 `wombat.module.extension.path`. A jar added or removed later is only seen after a restart.
 
 Every detected module is **registered** in the database, enabled, along with the type it advertises: an asset type, or
-the family a family module serves. A family module defines no asset, so it is never offered in the asset pickers, and
-has no schema. Disabling one leaves its family without what it provided: e.g. with `kubernetes-metrics` disabled, the
-sourced Kubernetes assets get no activity, and are not evaluated. Its state is then the registry's, shared by every instance:
+the family a family module serves. Its state is then the registry's, shared by every instance:
 
 | State        | Meaning                                                                                                                  |
 |--------------|--------------------------------------------------------------------------------------------------------------------------|
 | **Enabled**  | Offered in the asset pickers, and held by the next core deployed.                                                       |
 | **Disabled** | Hidden from the asset pickers, and left out of the next core deployed. Its assets are kept, and still accepted.         |
 | **Missing**  | Registered, but no live instance detects it any more, e.g. its jar was removed. It keeps its state, but is unusable. |
+
+A family module defines no asset, so it is never offered in the asset pickers, and has no schema. Disabling one leaves
+its family without what it provided: e.g. with `kubernetes-metrics` disabled, the sourced Kubernetes assets get no
+activity, and are not evaluated.
 
 A missing module comes back as it was when its jar does. It can also be deleted, in which case Wombat will forget its state: should its jar come back, it is registered once again, and enabled. A detected module cannot be deleted.
 
@@ -60,7 +62,9 @@ A module detected by another instance, but not by the one serving a page, is not
 Only a redeploy applies toggles to the core, **even across restarts**: a restarted instance runs the latest
 deployment, not the registry. The one exception is a module registered for the first time, e.g. one a new version of
 Wombat ships: being enabled, it is added to the deployment at that startup, which records a new version the other
-instances converge on. Settings > Modules tells the changes not deployed yet, and which core each instance runs.
+instances converge on. The modules of a new extension jar do the same, unless `wombat.module.extension.auto-deploy` is
+`false`: they then wait for a redeploy, like a toggle. The modules Wombat ships always go live, so that an upgrade
+leaves no asset unserved. Settings > Modules tells the changes not deployed yet, and which core each instance runs.
 
 ## Core deployments
 

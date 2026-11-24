@@ -136,6 +136,9 @@ wombat:
     # Modules are enabled or disabled from Settings > Modules
     extension:
       path: "extensions"
+      # Whether the modules of an extension jar seen for the first time go live at that startup, or wait for a redeploy;
+      # the modules Wombat ships always go live
+      auto-deploy: true
     deployment:
       # How often an instance deploys the latest core redeploy, and writes its heartbeat; an instance missing 3 is gone
       poll-interval: 30s

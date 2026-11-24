@@ -6,12 +6,10 @@ import tech.illuin.wombat.module.boavizta.BoaviztaModule;
 import tech.illuin.wombat.module.ecologits.EcologitsModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
-import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
 import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
 import tech.illuin.wombat.module.llm_metrics.LLMMetricsModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
-import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
@@ -26,9 +24,7 @@ class CoreExtensionLoaderTest
     {
         List<WombatModule> modules = new CoreExtensionLoader().load();
 
-        assertEquals(12, modules.size());
-        assertTrue(modules.stream().anyMatch(KubernetesSimulatedModule.class::isInstance));
-        assertTrue(modules.stream().anyMatch(LLMSimulatedModule.class::isInstance));
+        assertEquals(10, modules.size());
         assertTrue(modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
         assertTrue(modules.stream().anyMatch(LLMPrometheusModule.class::isInstance));
         assertTrue(modules.stream().anyMatch(LLMStaticModule.class::isInstance));

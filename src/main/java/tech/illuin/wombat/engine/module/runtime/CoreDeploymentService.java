@@ -43,6 +43,7 @@ public class CoreDeploymentService
     private final String instanceId;
     private final Duration pollInterval;
     private final boolean heartbeat;
+    private final boolean autoDeployExtensions;
     /* The latest version that failed to build here: the poll does not retry it, a newer one is needed */
     private volatile Failure failure;
 
@@ -68,7 +69,8 @@ public class CoreDeploymentService
             wombat.module().deployment().instanceId(),
             wombat.module().deployment().pollInterval(),
             /* A worker has no API nor UI to show its heartbeat, nor replicas to converge with */
-            wombat.mode() != NodeMode.worker
+            wombat.mode() != NodeMode.worker,
+            wombat.module().extension().autoDeploy()
         );
     }
 
@@ -80,7 +82,8 @@ public class CoreDeploymentService
         List<WombatModule> modules,
         String instanceId,
         Duration pollInterval,
-        boolean heartbeat
+        boolean heartbeat,
+        boolean autoDeployExtensions
     ) {
         this.runtime = runtime;
         this.registry = registry;
@@ -90,6 +93,7 @@ public class CoreDeploymentService
         this.instanceId = instanceId;
         this.pollInterval = pollInterval;
         this.heartbeat = heartbeat;
+        this.autoDeployExtensions = autoDeployExtensions;
     }
 
     /**
@@ -99,7 +103,7 @@ public class CoreDeploymentService
     void onStart(@Observes @Priority(STARTUP_PRIORITY_DEPLOY) StartupEvent event)
     {
         CoreDeploymentEntity latest = this.deployments.findLatest().orElseGet(this::bootstrap);
-        Set<String> joining = difference(this.registry.newlyRegistered(), latest.enabledModules);
+        Set<String> joining = difference(this.newModulesGoingLive(), latest.enabledModules);
         if (!joining.isEmpty())
             latest = this.join(latest, joining);
         this.runtime.deploy(latest.version, latest.id, latest.enabledModules);
@@ -179,6 +183,21 @@ public class CoreDeploymentService
         catch (PersistenceException e) {
             return this.deployments.findLatest().orElseThrow(() -> e);
         }
+    }
+
+    /**
+     * The modules registered for the first time at this startup that go live at once: those the app ships always do,
+     * those of extension jars unless {@code wombat.module.extension.auto-deploy} is off. The others wait for a redeploy,
+     * as a toggle does.
+     */
+    private Set<String> newModulesGoingLive()
+    {
+        return this.registry.newlyRegistered().stream()
+            .filter(name -> this.autoDeployExtensions || this.registry.getModule(name)
+                .map(module -> module.source() != ModuleMetadata.Source.extension)
+                .orElse(true)
+            )
+            .collect(Collectors.toSet());
     }
 
     /**

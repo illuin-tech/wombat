@@ -14,6 +14,8 @@ import tech.illuin.wombat.engine.module.persistence.CoreDeploymentRepository;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.registry.InMemoryModuleRegistry;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Source;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -89,7 +91,7 @@ class CoreDeploymentServiceTest
     @Test
     void aStartupDeploysTheModulesRegisteredForTheFirstTime()
     {
-        this.registry = newlyRegistering(LLM);
+        this.registry = newlyRegistering(Source.extension, LLM);
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)));
         when(this.deployments.insertNext(Set.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
 
@@ -102,7 +104,7 @@ class CoreDeploymentServiceTest
     @Test
     void aStartupRecordsNothingWhenTheNewModulesAreDeployedAlready()
     {
-        this.registry = newlyRegistering(LLM);
+        this.registry = newlyRegistering(Source.core, LLM);
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S, LLM)));
 
         this.service(true).onStart(null);
@@ -114,11 +116,35 @@ class CoreDeploymentServiceTest
     @Test
     void aStartupAddingNewModulesWhileAnotherDoesTakesTheDeploymentItRecorded()
     {
-        this.registry = newlyRegistering(LLM);
+        this.registry = newlyRegistering(Source.core, LLM);
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)), Optional.of(recorded(5, K8S, LLM)));
         when(this.deployments.insertNext(any(), isNull())).thenThrow(new PersistenceException("duplicate version"));
 
         this.service(true).onStart(null);
+
+        assertEquals(5, this.runtime.current().version());
+    }
+
+    @Test
+    void aStartupLeavesTheNewExtensionModulesToARedeploy_whenAutoDeployIsOff()
+    {
+        this.registry = newlyRegistering(Source.extension, LLM);
+        when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)));
+
+        this.service(true, false).onStart(null);
+
+        assertEquals(4, this.runtime.current().version());
+        verify(this.deployments, never()).insertNext(any(), any());
+    }
+
+    @Test
+    void aStartupDeploysTheNewModulesTheAppShips_evenWhenAutoDeployIsOff()
+    {
+        this.registry = newlyRegistering(Source.core, LLM);
+        when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)));
+        when(this.deployments.insertNext(Set.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
+
+        this.service(true, false).onStart(null);
 
         assertEquals(5, this.runtime.current().version());
     }
@@ -241,12 +267,20 @@ class CoreDeploymentServiceTest
 
     private CoreDeploymentService service(boolean heartbeat)
     {
-        List<WombatModule> modules = List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule());
-        return new CoreDeploymentService(this.runtime, this.registry, this.deployments, this.instances, modules, "instance-a", Duration.ofSeconds(30), heartbeat);
+        return this.service(heartbeat, true);
     }
 
-    /** Stands for the registry of an instance which registered {@code names} for the first time at its startup. */
-    private static InMemoryModuleRegistry newlyRegistering(String... names)
+    private CoreDeploymentService service(boolean heartbeat, boolean autoDeployExtensions)
+    {
+        List<WombatModule> modules = List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule());
+        return new CoreDeploymentService(this.runtime, this.registry, this.deployments, this.instances, modules, "instance-a", Duration.ofSeconds(30), heartbeat, autoDeployExtensions);
+    }
+
+    /**
+     * Stands for the registry of an instance which registered {@code names} for the first time at its startup, its
+     * modules all coming from {@code source}.
+     */
+    private static InMemoryModuleRegistry newlyRegistering(Source source, String... names)
     {
         InMemoryModuleRegistry registry = new InMemoryModuleRegistry()
         {
@@ -254,6 +288,13 @@ class CoreDeploymentServiceTest
             public Set<String> newlyRegistered()
             {
                 return Set.of(names);
+            }
+
+            @Override
+            public Optional<ModuleMetadata> getModule(String module)
+            {
+                return super.getModule(module)
+                    .map(found -> new ModuleMetadata(found.type(), found.assetClass(), found.enabled(), found.missing(), source));
             }
         };
         registry.registerModule(new KubernetesSimulatedModule(), true);

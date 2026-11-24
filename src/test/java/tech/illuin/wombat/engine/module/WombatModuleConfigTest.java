@@ -190,7 +190,14 @@ class WombatModuleConfigTest
                 return new WombatModuleProperties()
                 {
                     @Override
-                    public WombatModuleProperties.ExtensionProperties extension() { return () -> Path.of("extensions"); }
+                    public WombatModuleProperties.ExtensionProperties extension()
+                    {
+                        return new WombatModuleProperties.ExtensionProperties()
+                        {
+                            @Override public Path path() { return Path.of("extensions"); }
+                            @Override public boolean autoDeploy() { return true; }
+                        };
+                    }
                     @Override public WombatModuleProperties.DeploymentProperties deployment() { return null; }
                 };
             }

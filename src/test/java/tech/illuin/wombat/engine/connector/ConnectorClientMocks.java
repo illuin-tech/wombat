@@ -30,10 +30,9 @@ import java.util.Optional;
  * The modules build their own clients, out of the settings in their services: the detected modules are therefore
  * swapped for subclasses whose resolvers take the mocks, so that tests keep stubbing the clients they inject.
  * <p>
- * They used to be MicroProfile rest-clients — normal-scoped, so {@code @InjectMock} could proxy them. They are now
- * {@code @Singleton} Feign beans produced by BoaviztaConfig/EcologitsConfig, and {@code @InjectMock} rejects
- * pseudo-scopes. A globally-enabled alternative replaces them for tests instead, which keeps the project's
- * {@code @Singleton} producer convention in main code and guarantees no test ever reaches a real endpoint.
+ * The clients are no longer beans of the app, so {@code @InjectMock} has nothing to replace: these globally-enabled
+ * alternatives produce them as {@code @Singleton} mocks instead, which also guarantees no test ever reaches a real
+ * endpoint. The settings the real modules would read are checked by {@link ConnectorSettingsTest}.
  */
 @ApplicationScoped
 public class ConnectorClientMocks

@@ -21,7 +21,7 @@ import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIAsset;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
-import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPICloudProfile;
 
 import java.util.List;
 import java.util.Map;
@@ -83,7 +83,7 @@ class WorkerControllerDisabledModuleTest
         return new KubernetesAPIAsset(
             AssetIdentity.of(id, environment, KubernetesAPIModule.TYPE),
             new SecretKey("kubeconfig-" + environment), "default", Optional.empty(), Optional.empty(), Period.ZERO,
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
+            new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
     }
 }

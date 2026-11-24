@@ -8,7 +8,7 @@ import tech.illuin.wombat.core.source.Period;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusProfile;
-import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIServerProfile;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPICloudProfile;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticProfile;
 import tech.illuin.wombat.core.asset.profile.ServerProvider;
@@ -33,7 +33,7 @@ class AssetEntityTest
         KubernetesAPIAsset props = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
             new SecretKey("kubeconfig"), "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
-            new KubernetesAPIServerProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
+            new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
 
         AssetEntity entity = AssetEntity.from("env", props);

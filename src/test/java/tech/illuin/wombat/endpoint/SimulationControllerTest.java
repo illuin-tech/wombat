@@ -116,6 +116,41 @@ class SimulationControllerTest
     }
 
     @Test
+    void simulateAll_withKubernetesBareServerAsset_evaluatesItsConfiguration()
+    {
+        Mockito.when(boaviztaClient.getServerImpact(anyBoolean(), anyInt(), any(), any())).thenReturn(BoaviztaTestData.fakeImpactResponse());
+        String asset = """
+            {
+              "type": "KUBERNETES",
+              "activity": {
+                "range": {"start": "2024-02-01T00:00:00Z", "end": "2024-02-02T00:00:00Z"},
+                "cpuUsage": 100.0,
+                "containerShares": {"api": 1.0}
+              },
+              "profile": {
+                "type": "server",
+                "location": "FRA",
+                "lifespan": 43800,
+                "cpu": {"units": 2, "coreUnits": 24},
+                "ram": {"units": 8, "capacity": 32}
+              }
+            }
+            """;
+        String body = "{\"scopes\": [\"IMPACT\"], \"assets\": [" + asset + "]}";
+
+        given()
+            .contentType("application/json").body(body)
+            .when().post("/api/simulation")
+            .then()
+            .statusCode(200)
+            .body("payload[0].provider", is("BOAVIZTA"))
+            .body("payload[0].serviceImpacts[0].profile.cpu.coreUnits", is(24))
+            .body("payload[0].serviceImpacts[0].serverSpecification.vcpu", is(96));
+
+        Mockito.verify(boaviztaClient, Mockito.never()).getInstanceConfig(any(), any());
+    }
+
+    @Test
     void simulateAll_withMultipleAssets_returnsAllEvaluations()
     {
         String body = "{\"scopes\": [\"IMPACT\"], \"assets\": [" + LLM_ASSET_JSON + ", " + KUBERNETES_ASSET_JSON + "]}";

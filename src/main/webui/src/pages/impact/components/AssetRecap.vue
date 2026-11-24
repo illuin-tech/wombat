@@ -4,6 +4,8 @@ import type {AssetPanel, DashboardModel, KubernetesPanel as KubernetesPanelType,
 import type {AssetInfo} from '@/domain/environment'
 import KubernetesPanel from '@/pages/impact/components/KubernetesPanel.vue'
 import LlmPanel from '@/pages/impact/components/LlmPanel.vue'
+import AssetTypeTag from '@/components/AssetTypeTag.vue'
+import RegimePill from '@/components/RegimePill.vue'
 import Modal from '@/components/Modal.vue'
 import UnrecognizedAssetsModal from '@/pages/impact/components/UnrecognizedAssetsModal.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
@@ -78,6 +80,10 @@ function llm(panel: AssetPanel): panel is LlmPanelType {
     </div>
   </div>
   <Modal :open="selected !== undefined" :title="selected?.name ?? ''" @close="expanded = null">
+    <template v-if="selected" #head>
+      <AssetTypeTag :family="selected.type.family" />
+      <RegimePill :regime="selected.regime" />
+    </template>
     <KubernetesPanel v-if="selected && kubernetes(selected)" :panel="selected" modal />
     <LlmPanel v-else-if="selected && llm(selected)" :panel="selected" modal />
   </Modal>

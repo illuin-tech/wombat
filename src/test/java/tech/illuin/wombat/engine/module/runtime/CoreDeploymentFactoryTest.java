@@ -1,6 +1,10 @@
 package tech.illuin.wombat.engine.module.runtime;
 
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.module.WombatServices;
+import tech.illuin.wombat.core.module.MetricResolvers;
+import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
+import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.activity.WombatActivityException;
 import tech.illuin.wombat.core.activity.WombatActivityResolver;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
@@ -33,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class CoreDeploymentFactoryTest
 {
@@ -131,10 +136,9 @@ class CoreDeploymentFactoryTest
     {
         return new CoreDeploymentFactory(
             () -> new ResolvedContext(List.of()),
-            SecretResolver.standard(),
+            new WombatServices(SecretResolver.standard(), new MetricResolvers(mock(KubernetesMetricResolver.class), mock(LLMMetricResolver.class)), List.of()),
             (identity, type, metrics) -> {},
             modules,
-            List.of(),
             new CacheProperties(cache, 1000L, Duration.ofMinutes(10), List.of())
         );
     }
@@ -161,9 +165,9 @@ class CoreDeploymentFactoryTest
         }
 
         @Override
-        public Class<? extends Asset> assetClass()
+        public Optional<Class<? extends Asset>> assetClass()
         {
-            return CountedAsset.class;
+            return Optional.of(CountedAsset.class);
         }
 
         @Override

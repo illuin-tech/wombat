@@ -315,7 +315,7 @@ class DistributedSetupTest
 
     private AssetType type(String name)
     {
-        return this.modules.stream().map(WombatModule::type).filter(type -> type.name().equals(name)).findFirst().orElseThrow();
+        return this.modules.stream().map(WombatModule::type).filter(type -> type.name().equals(name)).map(AssetType.class::cast).findFirst().orElseThrow();
     }
 
     private String issueWorkerKey()

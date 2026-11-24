@@ -1,7 +1,7 @@
 package tech.illuin.wombat.engine.connector.boavizta;
 
-import tech.illuin.wombat.core.connector.boavizta.connector.model.BoaviztaInstanceConfigResponse;
-import tech.illuin.wombat.core.connector.boavizta.connector.model.BoaviztaImpactResponse;
+import tech.illuin.wombat.module.boavizta.connector.model.BoaviztaInstanceConfigResponse;
+import tech.illuin.wombat.module.boavizta.connector.model.BoaviztaImpactResponse;
 
 import java.util.List;
 import java.util.Map;

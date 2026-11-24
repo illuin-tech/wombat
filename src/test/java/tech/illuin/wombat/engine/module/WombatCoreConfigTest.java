@@ -1,11 +1,11 @@
 package tech.illuin.wombat.engine.module;
 
-import io.quarkus.arc.All;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
+import tech.illuin.wombat.core.asset.type.FamilyType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -16,10 +16,14 @@ import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
 import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
 import tech.illuin.wombat.engine.module.runtime.RuntimeAssetEvaluator;
 import tech.illuin.wombat.engine.module.runtime.RuntimeAssetMonitor;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
+import tech.illuin.wombat.module.ecologits.EcologitsModule;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
+import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.module.kubernetes_static.KubernetesStaticModule;
 import tech.illuin.wombat.module.llm_anthropic.LLMAnthropicModule;
+import tech.illuin.wombat.module.llm_metrics.LLMMetricsModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.llm_static.LLMStaticModule;
@@ -27,7 +31,6 @@ import tech.illuin.wombat.module.llm_vertexai.LLMVertexAIModule;
 
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -52,7 +55,6 @@ class WombatCoreConfigTest
     @Inject Instance<AssetEvaluator> calculator;
     @Inject Instance<AssetMonitor> monitor;
     @Inject List<WombatModule> modules;
-    @Inject @All List<WombatModuleConfig.DefaultHandlers> defaultHandlers;
 
     @Test
     void theContextFreeEntryPointsAreWired()
@@ -63,23 +65,23 @@ class WombatCoreConfigTest
     }
 
     @Test
-    void bothServiceFamiliesGetTheirDefaultHandlers()
+    void bothServiceFamiliesAreServedByFamilyModules()
     {
-        assertEquals(
-            Set.of(ServiceFamily.KUBERNETES_CONTAINER, ServiceFamily.LLM),
-            this.defaultHandlers.stream().map(WombatModuleConfig.DefaultHandlers::family).collect(Collectors.toSet())
-        );
+        for (ServiceFamily family : Set.of(ServiceFamily.KUBERNETES_CONTAINER, ServiceFamily.LLM))
+        {
+            List<WombatModule> serving = this.modules.stream()
+                .filter(module -> module.type() instanceof FamilyType type && type.family() == family)
+                .toList();
 
-        this.defaultHandlers.forEach(handlers -> {
-            assertNotNull(handlers.activityResolver(), handlers.family().name());
-            assertNotNull(handlers.impactResolver(), handlers.family().name());
-        });
+            assertTrue(serving.stream().anyMatch(module -> module.activityResolver().isPresent()), family.name());
+            assertTrue(serving.stream().anyMatch(module -> module.impactResolver().isPresent()), family.name());
+        }
     }
 
     @Test
     void everyModuleIsWiredWhenNoToggleIsSet()
     {
-        assertEquals(8, this.modules.size());
+        assertEquals(12, this.modules.size());
         assertTrue(this.modules.stream().anyMatch(KubernetesAPIModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(KubernetesSimulatedModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(KubernetesStaticModule.class::isInstance));
@@ -88,6 +90,10 @@ class WombatCoreConfigTest
         assertTrue(this.modules.stream().anyMatch(LLMStaticModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(LLMAnthropicModule.class::isInstance));
         assertTrue(this.modules.stream().anyMatch(LLMVertexAIModule.class::isInstance));
+        assertTrue(this.modules.stream().anyMatch(KubernetesMetricsModule.class::isInstance));
+        assertTrue(this.modules.stream().anyMatch(LLMMetricsModule.class::isInstance));
+        assertTrue(this.modules.stream().anyMatch(BoaviztaModule.class::isInstance));
+        assertTrue(this.modules.stream().anyMatch(EcologitsModule.class::isInstance));
     }
 
     @Test

@@ -23,6 +23,7 @@ const READER = ['ui.modules.read']
 const MANAGER = ['ui.modules.read', 'ui.modules.manage', 'api.module.manage']
 
 const anthropic: ModuleInfo = {
+  kind: 'asset',
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-anthropic', name: 'tech.illuin.wombat-module.llm-anthropic', regime: 'MEASURED', family: 'LLM' },
   assetClass: 'tech.illuin.LLMAnthropicAsset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core', assetCount: 3,
 }

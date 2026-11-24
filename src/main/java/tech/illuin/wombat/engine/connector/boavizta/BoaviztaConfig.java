@@ -2,25 +2,21 @@ package tech.illuin.wombat.engine.connector.boavizta;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Singleton;
-import jakarta.ws.rs.Produces;
+import jakarta.enterprise.inject.Produces;
 import tech.illuin.wombat.commons.WombatProperties;
-import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
-import tech.illuin.wombat.core.connector.boavizta.impact.BoaviztaEvaluationResolver;
-import tech.illuin.wombat.module.connector.boavizta.BoaviztaClientConfig;
+import tech.illuin.wombat.core.module.ModuleSettings;
+import tech.illuin.wombat.module.boavizta.BoaviztaSettings;
 
+/**
+ * The settings of the Boavizta module, still read from {@code wombat.connector.boavizta} which deployments set.
+ */
 @ApplicationScoped
 public class BoaviztaConfig
 {
     @Produces @Singleton
-    public BoaviztaClient provideBoaviztaClient(WombatProperties wombat)
+    public ModuleSettings provideBoaviztaSettings(WombatProperties wombat)
     {
         BoaviztaProperties properties = wombat.connector().boavizta();
-        return BoaviztaClientConfig.create(properties.uri(), properties.proxyUrl().orElse(null));
-    }
-
-    @Produces @Singleton
-    public BoaviztaEvaluationResolver provideBoaviztaLoadImpactResolver(BoaviztaClient boaviztaClient)
-    {
-        return new BoaviztaEvaluationResolver(boaviztaClient);
+        return new BoaviztaSettings(properties.uri(), properties.proxyUrl().orElse(null));
     }
 }

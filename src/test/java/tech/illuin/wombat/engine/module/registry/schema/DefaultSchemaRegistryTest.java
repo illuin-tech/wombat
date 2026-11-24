@@ -83,6 +83,12 @@ class DefaultSchemaRegistryTest
 
         for (ModuleMetadata module : moduleRegistry.listModules())
         {
+            /* A family module defines no asset, hence no schema */
+            if (module.kind() == ModuleMetadata.Kind.family)
+            {
+                assertTrue(schemaRegistry.getSchema(module.type()).isEmpty(), module.type().name());
+                continue;
+            }
             List<String> names = propertyNames(schemaRegistry.getSchema(module.type()).orElseThrow());
             if (names.contains("profile"))
                 assertEquals("profile", names.getLast(), module.type().name());

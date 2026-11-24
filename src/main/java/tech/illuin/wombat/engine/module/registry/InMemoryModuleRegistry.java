@@ -21,7 +21,7 @@ public class InMemoryModuleRegistry implements ModuleRegistry
 
     public void registerModule(WombatModule module, boolean enabled)
     {
-        this.modules.put(module.type().name(), ModuleMetadata.core(module.type(), module.assetClass(), enabled));
+        this.modules.put(module.type().name(), ModuleMetadata.core(module.type(), module.assetClass().orElse(null), enabled));
     }
 
     @Override

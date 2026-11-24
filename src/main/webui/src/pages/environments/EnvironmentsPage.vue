@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { assetTypesByName } from '@/domain/module'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { byDisplayName, displayName, type AssetType, type EnvironmentInfo } from '@/domain/environment'
@@ -33,7 +34,7 @@ async function loadListing(): Promise<EnvironmentListing> {
   ])
   return {
     environments: [...environments].sort(byDisplayName),
-    typesByName: new Map(modules.map(module => [module.type.name, module.type])),
+    typesByName: assetTypesByName(modules),
     liveIds: new Set(live.map(environment => environment.id)),
   }
 }

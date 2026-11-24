@@ -1,9 +1,10 @@
 package tech.illuin.wombat.engine.module.registry;
 
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ModuleRegistry
 {
@@ -17,9 +18,18 @@ public interface ModuleRegistry
      */
     Optional<ModuleMetadata> getModule(String module);
 
-    default Optional<ModuleMetadata> getModule(AssetType type)
+    default Optional<ModuleMetadata> getModule(ModuleType type)
     {
         return this.getModule(type.name());
+    }
+
+    /**
+     * @return the modules registered for the first time when this instance started, enabled as every new module is;
+     *         empty for a registry with no startup registration
+     */
+    default Set<String> newlyRegistered()
+    {
+        return Set.of();
     }
 
     /**

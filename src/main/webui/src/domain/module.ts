@@ -1,9 +1,15 @@
-import type { AssetType } from '@/domain/environment'
+import type { AssetType, ServiceFamily } from '@/domain/environment'
 
-/** GET /api/modules: an asset type the server knows. */
-export interface ModuleMetadata {
-  type: AssetType
-  /** Null when the serving instance does not detect the module. */
+/** The type of a module serving every asset of its family, e.g. an impact methodology: it defines no asset. */
+export interface FamilyType {
+  namespace: string
+  localName: string
+  name: string
+  family: ServiceFamily
+}
+
+interface ModuleState {
+  /** Null when the serving instance does not detect the module, and for a family module. */
   assetClass: string | null
   /** Disabled modules accept assets, but their metrics are skipped. */
   enabled: boolean
@@ -11,10 +17,26 @@ export interface ModuleMetadata {
   creatable: boolean
 }
 
+/** GET /api/modules: a module the server knows, which defines an asset type or serves a whole family. */
+export type ModuleMetadata =
+  | (ModuleState & { kind: 'asset'; type: AssetType })
+  | (ModuleState & { kind: 'family'; type: FamilyType })
+
+export type AssetModuleMetadata = Extract<ModuleMetadata, { kind: 'asset' }>
+
+export function isAssetModule(module: ModuleMetadata): module is AssetModuleMetadata {
+  return module.kind === 'asset'
+}
+
+/** The asset types of the modules defining one, by name: family modules define none. */
+export function assetTypesByName(modules: ModuleMetadata[]): Map<string, AssetType> {
+  return new Map(modules.filter(isAssetModule).map(module => [module.type.name, module.type]))
+}
+
 export type ModuleSource = 'core' | 'extension'
 
 /** A module as Settings > Modules shows it: its registry state, and whether the running core holds it. */
-export interface ModuleInfo extends ModuleMetadata {
+export type ModuleInfo = ModuleMetadata & {
   /** Whether the core running on the serving instance holds it. */
   deployed: boolean
   /** Whether the latest core deployment does not hold its registry state yet. */

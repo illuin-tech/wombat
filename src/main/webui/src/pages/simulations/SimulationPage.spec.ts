@@ -42,6 +42,7 @@ const MANAGER = ['ui.simulations.read', 'ui.simulations.manage', 'api.simulation
 const READER = ['ui.simulations.read']
 
 const llmStatic: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'n', localName: 'llm-static', name: 'n.llm-static', regime: 'MODELED', family: 'LLM' },
   assetClass: 'LLMStaticAsset', enabled: true, creatable: true,
 }

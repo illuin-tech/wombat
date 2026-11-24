@@ -99,6 +99,9 @@ public class CoreDeploymentService
     void onStart(@Observes @Priority(STARTUP_PRIORITY_DEPLOY) StartupEvent event)
     {
         CoreDeploymentEntity latest = this.deployments.findLatest().orElseGet(this::bootstrap);
+        Set<String> joining = difference(this.registry.newlyRegistered(), latest.enabledModules);
+        if (!joining.isEmpty())
+            latest = this.join(latest, joining);
         this.runtime.deploy(latest.version, latest.id, latest.enabledModules);
         this.writeHeartbeat();
     }
@@ -172,6 +175,24 @@ public class CoreDeploymentService
     {
         try {
             return this.deployments.insertNext(this.enabledModules(), null);
+        }
+        catch (PersistenceException e) {
+            return this.deployments.findLatest().orElseThrow(() -> e);
+        }
+    }
+
+    /**
+     * Records a deployment adding the modules registered for the first time at this startup: a module with no row is
+     * enabled, so a new one runs without waiting for a redeploy, e.g. a module the app now ships. Another instance
+     * recording a deployment at the same time may win that race, its deployment is then the one taken.
+     */
+    private CoreDeploymentEntity join(CoreDeploymentEntity latest, Set<String> joining)
+    {
+        logger.info("Deploying {} newly registered module(s) along with wombat core {}: {}", joining.size(), CoreRuntime.shortId(latest.id), joining);
+        Set<String> modules = new HashSet<>(latest.enabledModules);
+        modules.addAll(joining);
+        try {
+            return this.deployments.insertNext(modules, null);
         }
         catch (PersistenceException e) {
             return this.deployments.findLatest().orElseThrow(() -> e);

@@ -10,7 +10,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.commons.WombatProperties;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
@@ -43,6 +43,7 @@ public class DbModuleRegistry implements ModuleRegistry
     private final CoreInstanceRepository instances;
     private final Path extensionPath;
     private final Duration pollInterval;
+    private volatile Set<String> newlyRegistered;
 
     /* After the persistence setup, and before the environments are reconciled and the core deployed */
     static final int STARTUP_PRIORITY_REGISTER = 1900;
@@ -61,6 +62,7 @@ public class DbModuleRegistry implements ModuleRegistry
         this.instances = instances;
         this.extensionPath = extensionPath.toAbsolutePath().normalize();
         this.pollInterval = pollInterval;
+        this.newlyRegistered = Set.of();
     }
 
     /**
@@ -68,18 +70,25 @@ public class DbModuleRegistry implements ModuleRegistry
      */
     void onStart(@Observes @Priority(STARTUP_PRIORITY_REGISTER) StartupEvent event)
     {
-        List<AssetType> types = this.detected.values().stream()
+        List<ModuleType> types = this.detected.values().stream()
             .map(WombatModule::type)
             .toList();
         try {
             Set<String> registered = this.repository.register(types);
             if (!registered.isEmpty())
                 logger.info("Registered {} new module(s): {}", registered.size(), registered);
+            this.newlyRegistered = Set.copyOf(registered);
         }
         catch (PersistenceException e) {
             /* Most likely another instance registering the same modules at once: a module with no row is enabled anyway */
             logger.warn("Could not register the detected modules, they are enabled until registered: {}", e.getMessage(), e);
         }
+    }
+
+    @Override
+    public Set<String> newlyRegistered()
+    {
+        return this.newlyRegistered;
     }
 
     /**
@@ -150,7 +159,7 @@ public class DbModuleRegistry implements ModuleRegistry
     {
         return new ModuleMetadata(
             module.type(),
-            module.assetClass(),
+            module.assetClass().orElse(null),
             entity == null || entity.enabled,
             false,
             this.isExtension(module.getClass()) ? Source.extension : Source.core

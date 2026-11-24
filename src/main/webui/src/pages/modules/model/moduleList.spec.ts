@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { ModuleInfo } from '@/domain/module'
 import { filterModules, moduleStates, sortModules } from './moduleList'
 
-function module(localName: string, family: ModuleInfo['type']['family'], overrides: Partial<ModuleInfo> = {}): ModuleInfo {
+function module(localName: string, family: ModuleInfo['type']['family'], overrides: Partial<Omit<ModuleInfo, 'kind' | 'type'>> = {}): ModuleInfo {
   return {
+    kind: 'asset',
     type: { namespace: 'tech.illuin', localName, name: `tech.illuin.${localName}`, regime: 'MEASURED', family },
     assetClass: 'Asset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core', assetCount: 0,
     ...overrides,

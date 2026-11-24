@@ -45,14 +45,17 @@ const ADMIN = ['ui.environments.read', 'ui.environments.manage', 'api.environmen
 const READER = ['ui.environments.read']
 
 const anthropic: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-anthropic', name: 'tech.illuin.wombat-module.llm-anthropic', regime: 'MEASURED', family: 'LLM' },
   assetClass: 'LLMAnthropicAsset', enabled: true, creatable: true,
 }
 const disabled: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-vertexai', name: 'tech.illuin.wombat-module.llm-vertexai', regime: 'MEASURED', family: 'LLM' },
   assetClass: 'LLMVertexAIAsset', enabled: false, creatable: true,
 }
 const simulated: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-simulated', name: 'tech.illuin.wombat-module.llm-simulated', regime: 'MODELED', family: 'LLM' },
   assetClass: 'LLMSimulatedAsset', enabled: true, creatable: false,
 }

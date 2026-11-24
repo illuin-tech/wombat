@@ -170,7 +170,7 @@ class ModuleServiceTest
 
     private static ModuleMetadata detected(WombatModule module, boolean enabled)
     {
-        return ModuleMetadata.core(module.type(), module.assetClass(), enabled);
+        return ModuleMetadata.core(module.type(), module.assetClass().orElse(null), enabled);
     }
 
     private static ModuleMetadata missing(AssetType type)

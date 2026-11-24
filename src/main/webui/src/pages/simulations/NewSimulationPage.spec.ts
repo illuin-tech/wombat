@@ -14,10 +14,12 @@ vi.mock('@/services/api/modules', () => ({ fetchModules: vi.fn() }))
 vi.mock('@/services/api/simulations', () => ({ createSimulation: vi.fn() }))
 
 const llmStatic: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'n', localName: 'llm-static', name: 'n.llm-static', regime: 'MODELED', family: 'LLM' },
   assetClass: 'LLMStaticAsset', enabled: true, creatable: true,
 }
 const vertex: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'n', localName: 'llm-vertexai', name: 'n.llm-vertexai', regime: 'MEASURED', family: 'LLM' },
   assetClass: 'LLMVertexAIAsset', enabled: false, creatable: true,
 }

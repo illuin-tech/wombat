@@ -21,6 +21,7 @@ vi.mock('@/services/api/environments', () => ({ fetchEnvironments: vi.fn(), fetc
 vi.mock('@/services/api/modules', () => ({ fetchModules: vi.fn() }))
 
 const llm: ModuleMetadata = {
+  kind: 'asset',
   type: { namespace: 'n', localName: 'llm-static', name: 'n.llm-static', regime: 'MODELED', family: 'LLM' },
   assetClass: 'LLMStaticAsset', enabled: true, creatable: true,
 }

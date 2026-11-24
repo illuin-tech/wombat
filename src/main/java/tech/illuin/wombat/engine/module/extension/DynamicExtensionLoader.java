@@ -73,10 +73,10 @@ public class DynamicExtensionLoader implements ExtensionLoader
 
                 String typeName = module.type().name();
                 if (!seenTypes.add(typeName))
-                    throw new IllegalArgumentException("Duplicate extension module registered for asset-type: " + typeName);
+                    throw new IllegalArgumentException("Duplicate extension module registered under " + typeName);
 
                 modules.add(module);
-                logger.info("Discovered extension module {} for asset-type {}", module.getClass().getName(), typeName);
+                logger.info("Discovered extension module {} under {}", module.getClass().getName(), typeName);
             }
 
             return this.setAndGet(Collections.unmodifiableList(modules));

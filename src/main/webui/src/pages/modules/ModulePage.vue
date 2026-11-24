@@ -141,7 +141,7 @@ onMounted(load)
             <dt>Namespace</dt><dd><code class="tech-name">{{ module.type.namespace }}</code></dd>
             <dt>Asset class</dt><dd><code v-if="module.assetClass" class="tech-name">{{ module.assetClass }}</code><template v-else>—</template></dd>
             <dt>Family</dt><dd><AssetTypeTag :family="module.type.family" /></dd>
-            <dt>Regime</dt><dd><RegimePill :regime="module.type.regime" /></dd>
+            <dt>Regime</dt><dd><RegimePill v-if="module.kind === 'asset'" :regime="module.type.regime" /><template v-else>— (serves every asset of its family)</template></dd>
             <dt>Source</dt><dd><SourcePill v-if="module.source" :source="module.source" /><template v-else>Unknown</template></dd>
             <dt>Assets</dt><dd>{{ module.assetCount }}</dd>
           </dl>
@@ -184,7 +184,8 @@ onMounted(load)
           </button>
         </div>
         <div class="module-schema-body">
-          <p v-if="!module.assetClass" class="form-hint">This instance does not detect the module: its schema is not available here.</p>
+          <p v-if="module.kind === 'family'" class="form-hint">A family module defines no asset: it serves every asset of its family.</p>
+          <p v-else-if="!module.assetClass" class="form-hint">This instance does not detect the module: its schema is not available here.</p>
           <span v-else-if="schemaError" class="form-error" role="alert">{{ schemaError }}</span>
           <SkeletonBlock v-else-if="!schema" width="320px" height="14px" />
           <pre v-else-if="showRawSchema" class="schema-raw">{{ rawSchema }}</pre>

@@ -2,7 +2,7 @@ package tech.illuin.wombat.engine.module;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
 import tech.illuin.wombat.engine.module.persistence.CoreDeploymentEntity;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
@@ -45,7 +45,7 @@ public class ModuleService
     public List<ModuleInfo> list()
     {
         Map<String, Long> counts = this.assets.countVisibleByType();
-        Set<AssetType> deployed = this.runtime.current().types();
+        Set<ModuleType> deployed = this.runtime.current().types();
         Set<String> latest = this.latest().enabledModules;
         return this.registry.listModules().stream()
             .map(module -> info(module, deployed, latest, counts))
@@ -140,10 +140,11 @@ public class ModuleService
         return !module.missing() && module.enabled() != latest.contains(module.type().name());
     }
 
-    private static ModuleInfo info(ModuleMetadata module, Set<AssetType> deployedTypes, Set<String> latest, Map<String, Long> counts)
+    private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, Set<String> latest, Map<String, Long> counts)
     {
         return new ModuleInfo(
             module.type(),
+            module.kind(),
             module.assetClass(),
             module.enabled(),
             module.creatable(),

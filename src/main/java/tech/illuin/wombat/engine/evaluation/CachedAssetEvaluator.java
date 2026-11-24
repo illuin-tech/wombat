@@ -10,7 +10,7 @@ import tech.illuin.wombat.core.activity.commons.AssetFilter;
 import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.AssetIdentity;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
@@ -97,7 +97,7 @@ public class CachedAssetEvaluator extends AssetEvaluator
     }
 
     @Override
-    public AssetEvaluator registerActivityResolver(AssetType type, ProcessorFactory<WombatActivityResolver> factory)
+    public AssetEvaluator registerActivityResolver(ModuleType type, ProcessorFactory<WombatActivityResolver> factory)
     {
         this.hasModuleCache(type).ifPresentOrElse(
             cache -> this.delegate.registerActivityResolver(type, (services, asset) -> new CachedActivityResolver(factory.create(services, asset), cache)),
@@ -107,14 +107,14 @@ public class CachedAssetEvaluator extends AssetEvaluator
     }
 
     @Override
-    public AssetEvaluator registerCostResolver(AssetType type, ProcessorFactory<WombatEvaluationResolver> factory)
+    public AssetEvaluator registerCostResolver(ModuleType type, ProcessorFactory<WombatEvaluationResolver> factory)
     {
         this.delegate.registerCostResolver(type, factory);
         return this;
     }
 
     @Override
-    public AssetEvaluator registerImpactResolver(AssetType type, ProcessorFactory<WombatEvaluationResolver> factory)
+    public AssetEvaluator registerImpactResolver(ModuleType type, ProcessorFactory<WombatEvaluationResolver> factory)
     {
         this.delegate.registerImpactResolver(type, factory);
         return this;
@@ -131,7 +131,7 @@ public class CachedAssetEvaluator extends AssetEvaluator
         this.evaluateCache.invalidateAll();
     }
 
-    private Optional<ResolverCacheProperties> hasModuleCache(AssetType type)
+    private Optional<ResolverCacheProperties> hasModuleCache(ModuleType type)
     {
         return this.properties.activityResolverCaches().stream()
             .filter(cache -> cache.module().equals(type.name()))

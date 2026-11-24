@@ -9,8 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.illuin.wombat.core.asset.AssetIdentity;
-import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
-import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
+import tech.illuin.wombat.module.boavizta.connector.BoaviztaClient;
+import tech.illuin.wombat.module.ecologits.connector.EcologitsClient;
 import tech.illuin.wombat.core.source.data.KubernetesData;
 import tech.illuin.wombat.engine.connector.boavizta.BoaviztaTestData;
 import tech.illuin.wombat.engine.connector.ecologits.EcologitsTestData;
@@ -94,7 +94,8 @@ class SimulationSandboxEvaluationControllerTest
             /* One day of thirty; JSON numbers are read as floats */
             .body("payload.assets[0].coverage", is((float) (1.0 / 30)))
             .body("payload.assets[0].result[0].provider", is("BOAVIZTA"))
-            .body("payload.assets[0].result.type", is(List.of("IMPACT", "COST")))
+            /* No module provides a cost-resolver: there is no cost evaluation */
+            .body("payload.assets[0].result.type", is(List.of("IMPACT")))
             .body("payload.assets[0].result[0]", not(hasKey("assetIdentity")))
             .body("payload.assets[0].scaled.YEAR.impact.gwp", notNullValue())
             /* Evaluated, but priced by no module yet */

@@ -12,6 +12,7 @@ import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -76,6 +77,41 @@ class DbModuleRegistryTest
         when(this.repository.register(any())).thenThrow(new PersistenceException("unique constraint violated"));
 
         assertDoesNotThrow(() -> this.registry.onStart(null));
+        assertEquals(Set.of(), this.registry.newlyRegistered());
+    }
+
+    @Test
+    void startupTellsTheModulesItRegisteredForTheFirstTime()
+    {
+        when(this.repository.register(any())).thenReturn(Set.of(LLM));
+
+        this.registry.onStart(null);
+
+        assertEquals(Set.of(LLM), this.registry.newlyRegistered());
+    }
+
+    @Test
+    void aFamilyModuleIsDetected_butOffersNoAssetType()
+    {
+        DbModuleRegistry registry = new DbModuleRegistry(List.of(new BoaviztaModule()), this.repository, this.instances, Path.of("extensions"), Duration.ofSeconds(30));
+
+        ModuleMetadata boavizta = registry.getModule(BoaviztaModule.TYPE).orElseThrow();
+
+        assertEquals(ModuleMetadata.Kind.family, boavizta.kind());
+        assertTrue(boavizta.active());
+        assertNull(boavizta.assetClass());
+        assertFalse(boavizta.creatable());
+    }
+
+    @Test
+    void aFamilyModuleRowKeepsItsType_withoutRegime()
+    {
+        ModuleEntity entity = ModuleEntity.registered(BoaviztaModule.TYPE);
+
+        assertEquals(ModuleMetadata.Kind.family, entity.kind);
+        assertNull(entity.regime);
+        assertEquals(BoaviztaModule.TYPE, entity.type());
+        assertEquals(KubernetesSimulatedModule.TYPE, ModuleEntity.registered(KubernetesSimulatedModule.TYPE).type());
     }
 
     @Test

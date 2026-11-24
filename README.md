@@ -196,7 +196,7 @@ flowchart LR
     class FINOPS_RESULT finopsStyle
 ```
 
-Here is a list of the current integrations shipped as core-modules or defaults:
+Here is a list of the current integrations shipped as core modules. Asset-type modules each define a kind of asset, family modules serve every asset of their family:
 
 | Module                                            | Family        | Description                                                                                                                                   |
 |---------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
@@ -206,10 +206,10 @@ Here is a list of the current integrations shipped as core-modules or defaults:
 | `tech.illuin.wombat-module.llm-static`            | LLM Service   | Models static LLM workloads from a yearly request volume per model, shaped by temporal scenarios.                                             |
 | `tech.illuin.wombat-module.llm-anthropic`         | LLM Service   | Queries the Anthropic Admin usage report for per-model token usage over the evaluated time range.                                             |
 | `tech.illuin.wombat-module.llm-vertexai`          | LLM Service   | Queries the VertexAI metrics API for per-model token usage over the evaluated time range.                                                     |
-| Default component: BoaviztAPI impact resolver     | K8S Container | Estimates multi-criteria environmental impacts (GHG emissions, primary energy, abiotic depletion) for server workloads using the Boavizta API |
-| Default component: Ecologits impact resolver      | LLM Service   | Estimates multi-criteria environmental footprints for AI/LLM inferences using EcoLogits                                                       |
-| Default component: Store-backed Activity Resolver | K8S Container | Aggregates container and node activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                           |
-| Default component: Store-backed Activity Resolver | LLM Service   | Aggregates LLM service activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                                  |
+| `tech.illuin.wombat-module.boavizta` (family)     | K8S Container | Estimates multi-criteria environmental impacts (GHG emissions, primary energy, abiotic depletion) for server workloads using the Boavizta API |
+| `tech.illuin.wombat-module.ecologits` (family)    | LLM Service   | Estimates multi-criteria environmental footprints for AI/LLM inferences using EcoLogits                                                       |
+| `tech.illuin.wombat-module.kubernetes-metrics` (family) | K8S Container | Aggregates the container and node activity metrics sourced into the metric store (SQLite, Postgres, Micrometer..)                       |
+| `tech.illuin.wombat-module.llm-metrics` (family)  | LLM Service   | Aggregates the LLM service activity metrics sourced into the metric store (SQLite, Postgres, Micrometer..)                                    |
 
 More information on each of these modules can be found [in the `wombat-core` documentation](https://github.com/illuin-tech/wombat-core#core-modules).
 

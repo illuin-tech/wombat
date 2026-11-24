@@ -124,7 +124,8 @@ onMounted(() => listing.run())
               <td>
                 <span class="module-states">
                   <AssetTypeTag :family="module.type.family" />
-                  <RegimePill :regime="module.type.regime" />
+                  <RegimePill v-if="module.kind === 'asset'" :regime="module.type.regime" />
+                  <span v-else class="icon-pill" title="Serves every asset of its family, and defines none">Family</span>
                 </span>
               </td>
               <td class="module-source"><SourcePill v-if="module.source" :source="module.source" /><template v-else>—</template></td>

@@ -1,6 +1,8 @@
 # Modules and core deployments
 
-A **module** provides an asset type: how its assets are described, sampled and evaluated. Wombat ships with core
+A **module** either provides an asset type, how its assets are described, sampled and evaluated, or serves every asset
+of a family as a **family module**, e.g. the Boavizta and Ecologits impact estimations. For each part of an asset's
+evaluation, the module of its asset type comes first, then the family modules of its family. Wombat ships with core
 modules, and loads [custom ones](../README.md#custom-extensions) from the jars of its extension folder. The **core** is
 what monitors and evaluates assets: it is built out of the enabled modules, and rebuilt on each **redeploy**.
 
@@ -31,7 +33,10 @@ sequenceDiagram
 Each instance detects its modules once, at startup: the core modules, and those of the jars found in
 `wombat.module.extension.path`. A jar added or removed later is only seen after a restart.
 
-Every detected module is **registered** in the database, enabled, along with the asset type it advertises. Its state is then the registry's, shared by every instance:
+Every detected module is **registered** in the database, enabled, along with the type it advertises: an asset type, or
+the family a family module serves. A family module defines no asset, so it is never offered in the asset pickers, and
+has no schema. Disabling one leaves its family without what it provided: e.g. with `kubernetes-metrics` disabled, the
+sourced Kubernetes assets get no activity, and are not evaluated. Its state is then the registry's, shared by every instance:
 
 | State        | Meaning                                                                                                                  |
 |--------------|--------------------------------------------------------------------------------------------------------------------------|
@@ -53,7 +58,9 @@ A module detected by another instance, but not by the one serving a page, is not
 | Monitoring (sampling) and evaluation (Impact / Cost estimation) | After a core redeploy, on every instance                                |
 
 Only a redeploy applies toggles to the core, **even across restarts**: a restarted instance runs the latest
-deployment, not the registry. Settings > Modules tells the changes not deployed yet, and which core each instance runs.
+deployment, not the registry. The one exception is a module registered for the first time, e.g. one a new version of
+Wombat ships: being enabled, it is added to the deployment at that startup, which records a new version the other
+instances converge on. Settings > Modules tells the changes not deployed yet, and which core each instance runs.
 
 ## Core deployments
 

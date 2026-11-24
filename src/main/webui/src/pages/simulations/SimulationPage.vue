@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { byDisplayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
+import { byDisplayName, type AssetInfo, type EnvironmentInfo } from '@/domain/environment'
 import { DESCRIPTION_MAX_LENGTH, descriptionError, NAME_MAX_LENGTH, nameError, NOTES_MAX_LENGTH, notesError } from '@/domain/identifiers'
-import type { ModuleMetadata } from '@/domain/module'
+import { assetTypesByName, type ModuleMetadata } from '@/domain/module'
 import {
   SIMULATION_ASSET_RECORD_FIELDS,
   sourceEnvironmentRemoved,
@@ -77,7 +77,7 @@ const costShown = ref(true)
 
 const user = computed(() => appInfo.value?.user)
 const canEdit = computed(() => can(user.value, 'ui.simulations.manage') && can(user.value, 'api.simulation.write'))
-const typesByName = computed(() => new Map<string, AssetType>(modules.value.map(module => [module.type.name, module.type])))
+const typesByName = computed(() => assetTypesByName(modules.value))
 const nameProblem = computed(() => nameError(form.name))
 const descriptionProblem = computed(() => descriptionError(form.description))
 const notesProblem = computed(() => notesError(form.notes))

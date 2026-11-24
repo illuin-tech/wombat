@@ -87,6 +87,43 @@ class CoreDeploymentServiceTest
     }
 
     @Test
+    void aStartupDeploysTheModulesRegisteredForTheFirstTime()
+    {
+        this.registry = newlyRegistering(LLM);
+        when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)));
+        when(this.deployments.insertNext(Set.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
+
+        this.service(true).onStart(null);
+
+        assertEquals(5, this.runtime.current().version());
+        assertEquals(Set.of(K8S, LLM), CoreRuntime.names(this.runtime.current().types()));
+    }
+
+    @Test
+    void aStartupRecordsNothingWhenTheNewModulesAreDeployedAlready()
+    {
+        this.registry = newlyRegistering(LLM);
+        when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S, LLM)));
+
+        this.service(true).onStart(null);
+
+        assertEquals(4, this.runtime.current().version());
+        verify(this.deployments, never()).insertNext(any(), any());
+    }
+
+    @Test
+    void aStartupAddingNewModulesWhileAnotherDoesTakesTheDeploymentItRecorded()
+    {
+        this.registry = newlyRegistering(LLM);
+        when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)), Optional.of(recorded(5, K8S, LLM)));
+        when(this.deployments.insertNext(any(), isNull())).thenThrow(new PersistenceException("duplicate version"));
+
+        this.service(true).onStart(null);
+
+        assertEquals(5, this.runtime.current().version());
+    }
+
+    @Test
     void aStartupRacingAnotherTakesTheDeploymentItRecorded()
     {
         when(this.deployments.findLatest()).thenReturn(Optional.empty(), Optional.of(recorded(1, K8S, LLM)));
@@ -206,6 +243,22 @@ class CoreDeploymentServiceTest
     {
         List<WombatModule> modules = List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule());
         return new CoreDeploymentService(this.runtime, this.registry, this.deployments, this.instances, modules, "instance-a", Duration.ofSeconds(30), heartbeat);
+    }
+
+    /** Stands for the registry of an instance which registered {@code names} for the first time at its startup. */
+    private static InMemoryModuleRegistry newlyRegistering(String... names)
+    {
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry()
+        {
+            @Override
+            public Set<String> newlyRegistered()
+            {
+                return Set.of(names);
+            }
+        };
+        registry.registerModule(new KubernetesSimulatedModule(), true);
+        registry.registerModule(new LLMSimulatedModule(), true);
+        return registry;
     }
 
     private CoreInstanceEntity lastHeartbeat()

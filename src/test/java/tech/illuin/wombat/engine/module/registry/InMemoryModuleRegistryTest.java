@@ -5,6 +5,7 @@ import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesS
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 
 import java.util.Set;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,7 +22,7 @@ class InMemoryModuleRegistryTest
 
         registry.registerModule(module, false);
 
-        ModuleMetadata expected = ModuleMetadata.core(module.type(), module.assetClass(), false);
+        ModuleMetadata expected = ModuleMetadata.core(module.type(), module.assetClass().orElse(null), false);
         assertEquals(Set.of(expected), Set.copyOf(registry.listModules()));
         assertEquals(expected, registry.getModule(module.type().name()).orElseThrow());
         assertEquals(expected, registry.getModule(module.type()).orElseThrow());

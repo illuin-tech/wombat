@@ -22,8 +22,9 @@ vi.mock('@/services/api/modules', () => ({
 const READER = ['ui.modules.read']
 const MANAGER = ['ui.modules.read', 'ui.modules.manage', 'api.module.manage']
 
-function module(localName: string, overrides: Partial<ModuleInfo> = {}): ModuleInfo {
+function module(localName: string, overrides: Partial<Omit<ModuleInfo, 'kind' | 'type'>> = {}): ModuleInfo {
   return {
+    kind: 'asset',
     type: { namespace: 'tech.illuin', localName, name: `tech.illuin.${localName}`, regime: 'MEASURED', family: 'LLM' },
     assetClass: 'Asset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core', assetCount: 2,
     ...overrides,
@@ -83,6 +84,20 @@ describe('ModulesPage', () => {
     expect(rows[1].findAll('.module-state').map(state => state.text())).toEqual(['Disabled', 'Not deployed'])
     expect(rows[2].classes()).toContain('inactive')
     expect(rows[2].find('.module-state').text()).toBe('Missing')
+  })
+
+  it('tells a family module apart, as it has no regime', async () => {
+    const boavizta: ModuleInfo = {
+      kind: 'family',
+      type: { namespace: 'tech.illuin', localName: 'boavizta', name: 'tech.illuin.boavizta', family: 'KUBERNETES_CONTAINER' },
+      assetClass: null, enabled: true, creatable: false, deployed: true, pending: false, missing: false, source: 'core', assetCount: 0,
+    }
+    vi.mocked(fetchModuleInfos).mockResolvedValue([anthropic, boavizta])
+    await render(READER)
+
+    const row = (name: string) => wrapper.findAll('.module-row').find(candidate => candidate.find('.tech-name').text() === name)!
+    expect(row('tech.illuin.boavizta').find('.module-states').text()).toContain('Family')
+    expect(row(anthropic.type.name).find('.module-states').text()).not.toContain('Family')
   })
 
   it('shows the running core by its short id, and the changes not deployed', async () => {

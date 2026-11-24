@@ -14,10 +14,9 @@ import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidatio
 import com.github.victools.jsonschema.module.jakarta.validation.JakartaValidationOption;
 import tech.illuin.wombat.core.activity.commons.Country;
 import tech.illuin.wombat.core.asset.profile.Lifetime;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.secret.SecretKey;
 import tech.illuin.wombat.core.source.Period;
-import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.time.ZoneId;
@@ -49,7 +48,7 @@ public class DefaultSchemaRegistry implements AssetSchemaRegistry
 
     private final ModuleRegistry moduleRegistry;
     private final SchemaGenerator schemaGenerator;
-    private final Map<AssetType, JsonNode> cache;
+    private final Map<ModuleType, JsonNode> cache;
 
     public DefaultSchemaRegistry(ModuleRegistry moduleRegistry, ObjectMapper objectMapper)
     {
@@ -59,11 +58,11 @@ public class DefaultSchemaRegistry implements AssetSchemaRegistry
     }
 
     @Override
-    public Optional<JsonNode> getSchema(AssetType type)
+    public Optional<JsonNode> getSchema(ModuleType type)
     {
         JsonNode node = this.cache.computeIfAbsent(type, k -> this.moduleRegistry.getModule(k)
-            /* A module not detected here has no class to describe */
-            .filter(ModuleMetadata::detectedHere)
+            /* A module not detected here has no class to describe, and a family module defines no asset */
+            .filter(mm -> mm.assetClass() != null)
             .map(mm -> withoutIdentity(this.schemaGenerator.generateSchema(mm.assetClass())))
             .orElse(null)
         );

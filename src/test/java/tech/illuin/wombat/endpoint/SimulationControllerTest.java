@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import tech.illuin.wombat.engine.connector.boavizta.BoaviztaTestData;
 import tech.illuin.wombat.engine.connector.ecologits.EcologitsTestData;
-import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
-import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
+import tech.illuin.wombat.module.boavizta.connector.BoaviztaClient;
+import tech.illuin.wombat.module.ecologits.connector.EcologitsClient;
 
 import java.util.List;
 
@@ -165,22 +165,21 @@ class SimulationControllerTest
     }
 
     @Test
-    void simulateAll_withCostScopeOnly_returnsCostEvaluations()
+    void simulateAll_withCostScopeOnly_returnsNoEvaluationWhileNoModulePrices()
     {
         String body = "{\"scopes\": [\"COST\"], \"assets\": [" + LLM_ASSET_JSON + "]}";
 
+        /* No module provides a cost-resolver: there is no cost evaluation, rather than one without amount */
         given()
             .contentType("application/json").body(body)
             .when().post("/api/simulation")
             .then()
             .statusCode(200)
-            .body("payload.size()", is(1))
-            .body("payload[0].assetIdentity.environmentId", is("simulated-environment"))
-            .body("payload[0].assetIdentity.id", is("simulated-asset"));
+            .body("payload.size()", is(0));
     }
 
     @Test
-    void simulateAll_withImpactAndCostScopes_returnsBothEvaluations()
+    void simulateAll_withImpactAndCostScopes_returnsTheImpactWhileNoModulePrices()
     {
         String body = "{\"scopes\": [\"IMPACT\", \"COST\"], \"assets\": [" + LLM_ASSET_JSON + "]}";
 
@@ -189,10 +188,8 @@ class SimulationControllerTest
             .when().post("/api/simulation")
             .then()
             .statusCode(200)
-            .body("payload.size()", is(2))
-            .body("payload[0].provider", is("ECOLOGITS"))
-            .body("payload[1].assetIdentity.environmentId", is("simulated-environment"))
-            .body("payload[1].assetIdentity.id", is("simulated-asset"));
+            .body("payload.size()", is(1))
+            .body("payload[0].provider", is("ECOLOGITS"));
     }
 
     @Test

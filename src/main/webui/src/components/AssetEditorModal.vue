@@ -25,7 +25,7 @@ export interface AssetEditorAdapter<T extends AssetInfo = AssetInfo> {
 import { computed, provide, ref, shallowRef, watch } from 'vue'
 import { FAMILIES, FAMILY_ORDER } from '@/domain/assetTypeDisplay'
 import { assetTypeName, displayName } from '@/domain/environment'
-import type { JsonSchema, ModuleMetadata } from '@/domain/module'
+import { isAssetModule, type JsonSchema, type ModuleMetadata } from '@/domain/module'
 import { errorText } from '@/services/api/client'
 import { fetchModuleSchema } from '@/services/api/modules'
 import { checkSecretKey } from '@/services/api/secrets'
@@ -92,7 +92,7 @@ const deleteError = ref<string | null>(null)
 const readonly = computed(() => !props.canEdit)
 const creatableModules = computed(() => {
   /* A disabled module accepts assets, but is not offered for new ones */
-  const creatable = props.modules.filter(candidate => candidate.creatable && candidate.enabled)
+  const creatable = props.modules.filter(isAssetModule).filter(candidate => candidate.creatable && candidate.enabled)
   return FAMILY_ORDER
     .map(family => ({
       family,

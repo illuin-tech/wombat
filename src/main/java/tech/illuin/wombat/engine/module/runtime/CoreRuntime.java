@@ -5,7 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -102,13 +102,13 @@ public class CoreRuntime
 
         logger.info("Deployed wombat core {} (#{}) with {} module(s), added {}, removed {}", shortId(next.id()), next.version(), after.size(), added, removed);
         if (!next.missing().isEmpty())
-            logger.warn("Requested asset-types with no module on this instance: {}", next.missing());
+            logger.warn("Requested modules not detected on this instance: {}", next.missing());
     }
 
-    static Set<String> names(Set<AssetType> types)
+    static Set<String> names(Set<ModuleType> types)
     {
         return types.stream()
-            .map(AssetType::name)
+            .map(ModuleType::name)
             .collect(Collectors.toSet());
     }
 

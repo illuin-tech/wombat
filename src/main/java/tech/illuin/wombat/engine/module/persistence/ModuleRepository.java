@@ -2,7 +2,7 @@ package tech.illuin.wombat.engine.module.persistence;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
 import java.util.Collection;
@@ -28,13 +28,13 @@ public class ModuleRepository extends Repository<ModuleEntity, String>
      * @throws jakarta.persistence.PersistenceException if another instance registered one of them in the meantime
      */
     @Transactional
-    public Set<String> register(Collection<AssetType> types)
+    public Set<String> register(Collection<ModuleType> types)
     {
         Map<String, ModuleEntity> existing = this.listAll().stream()
             .collect(Collectors.toMap(entity -> entity.typeName, Function.identity()));
 
         Set<String> registered = new HashSet<>();
-        for (AssetType type : types)
+        for (ModuleType type : types)
         {
             ModuleEntity entity = existing.get(type.name());
             if (entity == null)

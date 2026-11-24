@@ -34,4 +34,7 @@ defineProps<{panel: LLMPanel}>()
       {{ panel.regime === 'MODELED' ? 'Computed with EcoLogits from modeled behaviour and prorated over the selected period.' : 'Computed with EcoLogits from output tokens measured over the selected period; not affected by the service filter above.' }}
     </div>
   </div>
+  <div class="params-inline">
+    <div class="param-item"><span class="param-key">Asset type</span><span class="param-val">{{ panel.type.localName }}</span></div>
+  </div>
 </template>

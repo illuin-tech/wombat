@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -65,6 +66,7 @@ class KeycloakOidcTest
         given().cookies(session).when().get("/api/app").then()
             .statusCode(200)
             .body("payload.user.name", is("alice@example.com"))
+            .body("payload.user.picture", nullValue())
             .body("payload.user.roles", hasItems("user"));
 
         UserEntity user = MockProvider.awaitUser(this.users, ISSUER, subject);

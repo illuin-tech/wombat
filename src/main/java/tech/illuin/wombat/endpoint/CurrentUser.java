@@ -13,11 +13,13 @@ import java.util.Optional;
 public record CurrentUser(
     boolean authenticated,
     String name,
+    /** URL of the identity provider's {@code picture} claim, when it sends one. */
+    String picture,
     List<String> roles,
     List<String> permissions
 )
 {
-    static final CurrentUser ANONYMOUS = new CurrentUser(false, null, List.of(), List.of());
+    static final CurrentUser ANONYMOUS = new CurrentUser(false, null, null, List.of(), List.of());
 
     public static CurrentUser from(SecurityIdentity identity, AuthProperties properties)
     {
@@ -28,6 +30,7 @@ public record CurrentUser(
         return new CurrentUser(
             authenticated,
             authenticated ? name(identity, properties.displayNameClaims()) : null,
+            authenticated ? IdentityClaims.string(identity, "picture").orElse(null) : null,
             Caller.roles(identity).stream().sorted().map(Role::value).toList(),
             Caller.permissions(identity).stream().map(Permission::value).sorted().toList()
         );

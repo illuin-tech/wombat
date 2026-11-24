@@ -20,6 +20,7 @@ import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -33,7 +34,7 @@ class EnvironmentDescriptionTest
         Environment environment = new Environment("Production", List.of(
             new KubernetesAPIAsset(
                 AssetIdentity.of("cluster-1", "Production", KubernetesAPIModule.TYPE),
-                new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO,
+                new SecretKey("kubeconfig"), Set.of("ns"), Optional.empty(), Optional.empty(), Period.ZERO,
                 new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
             ),
             new LLMStaticAsset(

@@ -51,7 +51,7 @@ class EnvironmentControllerTest
             .body("payload.find { it.id == 'test' }.'disabledAt'", nullValue())
             .body("payload.find { it.id == 'test' }.assets.id", hasItem("test-cluster"))
             .body("payload.find { it.id == 'test' }.assets.id", hasItem("test-llm"))
-            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.namespace", is("test-ns"))
+            .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.namespaces", hasItem("test-ns"))
             .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.environmentId", is("test"))
             .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.profile.'instanceType'", is("c5.large"))
             .body("payload.find { it.id == 'test' }.assets.find { it.id == 'test-cluster' }.provisioned", is(true))

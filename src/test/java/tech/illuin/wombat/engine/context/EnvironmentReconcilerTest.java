@@ -28,6 +28,7 @@ import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -424,7 +425,7 @@ class EnvironmentReconcilerTest
     {
         return new KubernetesAPIAsset(
             AssetIdentity.of(id, "e1", KubernetesAPIModule.TYPE),
-            new SecretKey("kubeconfig"), "ns", Optional.empty(), Optional.empty(), Period.ZERO,
+            new SecretKey("kubeconfig"), Set.of("ns"), Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, lifespan)
         );
     }

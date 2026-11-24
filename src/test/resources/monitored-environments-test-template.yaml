@@ -5,7 +5,8 @@ environments:
       - type: tech.illuin.wombat-module.kubernetes-api
         id: my-cluster
         environment-id: preprod
-        namespace: my-namespace
+        namespaces:
+          - my-namespace
         kubeconfig-key: kubeconfig-my-cluster
         heartbeat-skip: 1
         profile:

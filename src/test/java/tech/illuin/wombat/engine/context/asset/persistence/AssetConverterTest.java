@@ -27,6 +27,7 @@ import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
@@ -40,7 +41,7 @@ class AssetConverterTest
     {
         KubernetesAPIAsset asset = new KubernetesAPIAsset(
             AssetIdentity.of("k", "env", KubernetesAPIModule.TYPE),
-            new SecretKey("kubeconfig"), "ns", Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
+            new SecretKey("kubeconfig"), Set.of("ns"), Optional.of("ctx"), Optional.of(Duration.ofSeconds(5)), Period.ofSeconds(3),
             new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
 

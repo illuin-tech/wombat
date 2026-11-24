@@ -266,7 +266,7 @@ class DistributedSetupTest
     {
         return new KubernetesAPIAsset(
             AssetIdentity.of(id, environment, KubernetesAPIModule.TYPE),
-            new SecretKey("kubeconfig-" + environment), "default", Optional.empty(), Optional.empty(), Period.ZERO,
+            new SecretKey("kubeconfig-" + environment), Set.of("default"), Optional.empty(), Optional.empty(), Period.ZERO,
             new KubernetesAPICloudProfile(ServerProvider.aws, "c5.large", FRANCE, Lifetime.ofYears(5))
         );
     }

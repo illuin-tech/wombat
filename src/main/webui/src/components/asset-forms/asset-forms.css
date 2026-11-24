@@ -24,6 +24,9 @@
 /* Nested objects, e.g. a profile, as a titled group */
 .asset-form .group { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; background: var(--surface); }
 .asset-form .group-label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+/* One of several kinds, e.g. a cloud or a bare server profile: a group whose first field is the kind */
+.asset-form .af-union { margin: 0; min-width: 0; }
+.asset-form .af-union > .group-label .asterisk { color: var(--accent-orange); margin-left: 2px; }
 
 /* Lists: toggles for options, a field per value, a card per object */
 .asset-form .af-array { border: none; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }

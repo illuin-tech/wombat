@@ -58,6 +58,36 @@ const llmAnthropic = {
   required: ['adminKey', 'profile'],
 }
 
+const lifespan = { type: 'string', pattern: '^\\d+\\s*[dmyhDMYH]?$' }
+const kubernetesApi = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  type: 'object',
+  properties: {
+    profile: {
+      oneOf: [
+        {
+          type: 'object',
+          title: 'Cloud',
+          properties: { type: { const: 'cloud', default: 'cloud' }, provider: { type: 'string', enum: ['aws', 'scaleway'] }, instanceType: { type: 'string', minLength: 1 }, lifespan },
+          required: ['provider', 'instanceType', 'lifespan'],
+        },
+        {
+          type: 'object',
+          title: 'Server',
+          properties: {
+            type: { const: 'server', default: 'server' },
+            lifespan,
+            cpu: { type: 'object', properties: { units: { type: 'integer' }, threadsPerCore: { type: 'integer', default: 2 } }, required: ['units'] },
+          },
+          required: ['lifespan', 'cpu', 'type'],
+        },
+      ],
+      default: { type: 'cloud' },
+    },
+  },
+  required: ['profile'],
+}
+
 const anthropicProperties = {
   adminKey: 'ANTHROPIC_ADMIN_KEY',
   profile: { location: 'USA', outputTokensPerRequest: 500, workspaceIds: ['wrkspc_01'] },
@@ -180,6 +210,60 @@ describe('AssetForm', () => {
     await flushPromises()
     expect(dialog()).toBeNull()
     expect(scenarios()[1]).toEqual({ type: 'batch_activity' })
+  })
+
+  it('shows a profile of several kinds as its kind, then the fields of that kind', async () => {
+    const { wrapper, validity } = render(kubernetesApi, { profile: { type: 'server', lifespan: '5y', cpu: { units: 2, threadsPerCore: 2 } } })
+    await flushPromises()
+
+    const kind = wrapper.find('.af-union select')
+    expect(kind.findAll('option').map(option => option.text())).toEqual(['Cloud', 'Server'])
+    expect((kind.element as HTMLSelectElement).value).toBe('1')
+    const labels = wrapper.findAll('.af-union .control > .label').map(label => label.text())
+    expect(labels).toEqual(expect.arrayContaining([expect.stringContaining('Units'), expect.stringContaining('Lifespan')]))
+    expect(labels).not.toEqual(expect.arrayContaining([expect.stringContaining('Provider')]))
+    expect(validity.value).toEqual({ valid: true, errors: [] })
+  })
+
+  it('shows a profile without its kind as the first kind', async () => {
+    const { wrapper } = render(kubernetesApi, { profile: { provider: 'aws', instanceType: 'm5.large', lifespan: '5y' } })
+    await flushPromises()
+
+    expect((wrapper.find('.af-union select').element as HTMLSelectElement).value).toBe('0')
+    expect(wrapper.findAll('.af-union .control > .label').map(label => label.text())).toEqual(expect.arrayContaining([expect.stringContaining('Provider')]))
+  })
+
+  it('switches the kind of a profile, keeping the settings both kinds have', async () => {
+    const { wrapper, model } = render(kubernetesApi, { profile: { type: 'cloud', lifespan: '5y' } })
+    await flushPromises()
+    const dialog = () => [...document.querySelectorAll<HTMLElement>('.asset-modal-overlay')].find(overlay => !overlay.hidden) ?? null
+
+    await wrapper.find('.af-union select').setValue('1')
+    await flushPromises()
+    expect(dialog()).toBeNull()
+    expect(model.value.profile).toEqual({ type: 'server', lifespan: '5y', cpu: { threadsPerCore: 2 } })
+    expect(wrapper.findAll('.af-union .control > .label').map(label => label.text())).toEqual(expect.arrayContaining([expect.stringContaining('Units')]))
+  })
+
+  it('confirms a switch of kind that would lose settings', async () => {
+    const { wrapper, model } = render(kubernetesApi, { profile: { type: 'cloud', provider: 'aws', lifespan: '5y' } })
+    await flushPromises()
+    const dialog = () => [...document.querySelectorAll<HTMLElement>('.asset-modal-overlay')].find(overlay => !overlay.hidden) ?? null
+    const kind = () => wrapper.find('.af-union select').element as HTMLSelectElement
+
+    await wrapper.find('.af-union select').setValue('1')
+    expect(dialog()).not.toBeNull()
+    expect(kind().value).toBe('0')
+    dialog()!.querySelector<HTMLButtonElement>('.confirm-dialog-cancel')!.click()
+    await flushPromises()
+    expect(model.value.profile).toEqual({ type: 'cloud', provider: 'aws', lifespan: '5y' })
+
+    await wrapper.find('.af-union select').setValue('1')
+    dialog()!.querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flushPromises()
+    expect(dialog()).toBeNull()
+    expect(model.value.profile).toEqual({ type: 'server', lifespan: '5y', cpu: { threadsPerCore: 2 } })
+    expect(kind().value).toBe('1')
   })
 
   it('reorders and removes scenarios', async () => {

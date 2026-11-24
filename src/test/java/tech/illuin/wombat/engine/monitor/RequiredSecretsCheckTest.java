@@ -51,7 +51,7 @@ class RequiredSecretsCheckTest
     void startsWhenEveryDeclaredVariableIsSet()
     {
         RequiredSecretsCheck check = check(
-            Map.of("PROM_PASSWORD", "s3cret"),
+            Map.of(EnvironmentSecretResolver.PREFIX + "PROM_PASSWORD", "s3cret"),
             prometheusAsset("p", "user", "PROM_PASSWORD"));
 
         assertDoesNotThrow(() -> check.onStartEarly(new StartupEvent()));
@@ -105,7 +105,16 @@ class RequiredSecretsCheckTest
     @Test
     void refusesToStartWhenADeclaredVariableIsExportedEmpty()
     {
-        RequiredSecretsCheck check = check(Map.of("PROM_PASSWORD", ""), prometheusAsset("p", "user", "PROM_PASSWORD"));
+        RequiredSecretsCheck check = check(Map.of(EnvironmentSecretResolver.PREFIX + "PROM_PASSWORD", ""), prometheusAsset("p", "user", "PROM_PASSWORD"));
+
+        assertThrows(IllegalStateException.class, () -> check.onStartEarly(new StartupEvent()));
+    }
+
+    @Test
+    void refusesToStartWhenADeclaredVariableLacksThePrefix()
+    {
+        // Assets name their keys, so an unprefixed variable stays out of their reach, e.g. one set before 0.27
+        RequiredSecretsCheck check = check(Map.of("PROM_PASSWORD", "s3cret"), prometheusAsset("p", "user", "PROM_PASSWORD"));
 
         assertThrows(IllegalStateException.class, () -> check.onStartEarly(new StartupEvent()));
     }
@@ -115,7 +124,7 @@ class RequiredSecretsCheckTest
     {
         // One restart per missing credential is a slow way to fix a deployment, so the check collects them all.
         RequiredSecretsCheck check = check(
-            Map.of("SECOND_PASSWORD", "s3cret"),
+            Map.of(EnvironmentSecretResolver.PREFIX + "SECOND_PASSWORD", "s3cret"),
             prometheusAsset("first", "user", "FIRST_PASSWORD"),
             prometheusAsset("second", "user", "SECOND_PASSWORD"),
             prometheusAsset("third", "user", "THIRD_PASSWORD"));

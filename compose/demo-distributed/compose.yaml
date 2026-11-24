@@ -17,8 +17,8 @@ services:
       PERSISTENCE_COMPACTION_DELAY: 30s
       WOMBAT_CONNECTOR_BOAVIZTA_URI: "http://boavizta:5000/v1/"
       WOMBAT_CONNECTOR_ECOLOGITS_URI: "http://ecologits:80/"
-      # Secret of the Anthropic asset of aggregator/monitored-environments.yaml, which is evaluated here
-      ANTHROPIC_ADMIN_KEY: "${ANTHROPIC_ADMIN_KEY:-}"
+      # Secret ANTHROPIC_ADMIN_KEY of the Anthropic asset of aggregator/monitored-environments.yaml, which is evaluated here
+      WOMBAT_ASSET_SECRET_ANTHROPIC_ADMIN_KEY: "${ANTHROPIC_ADMIN_KEY:-}"
     volumes:
       # Only what no worker declares, such as the Anthropic asset, which has no source. The aggregator samples nothing.
       - ./aggregator/monitored-environments.yaml:/deployments/monitored/monitored-environments.yaml:ro

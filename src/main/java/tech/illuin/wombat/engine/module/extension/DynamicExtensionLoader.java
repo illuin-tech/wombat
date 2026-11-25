@@ -100,6 +100,9 @@ public class DynamicExtensionLoader implements ExtensionLoader
             return stream
                 .filter(Files::isRegularFile)
                 .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
+                /* By file name rather than the filesystem's order, which may differ between replicas: the order of the
+                   jars is that of their family modules */
+                .sorted()
                 .map(Path::toUri)
                 .map(DynamicExtensionLoader::convertToURL)
                 .filter(Objects::nonNull)

@@ -92,6 +92,22 @@ class DynamicExtensionLoaderTest
     }
 
     @Test
+    void loadExtensions_loadsJarsByFileName(@TempDir Path tempDir) throws Exception
+    {
+        /* Created in reverse, so that the creation order is not the one expected */
+        createTestModuleJar(tempDir.resolve("b-module.jar"), CustomLLMTestModule.class, CustomLLMTestAsset.class, CustomLLMTestProfile.class);
+        createTestModuleJar(tempDir.resolve("a-module.jar"), CustomTestModule.class, CustomTestAsset.class);
+
+        try (DynamicExtensionLoader loader = new DynamicExtensionLoader(tempDir))
+        {
+            List<String> names = loader.load().stream()
+                .map(module -> module.type().name())
+                .toList();
+            assertEquals(List.of(CustomTestModule.TYPE.name(), CustomLLMTestModule.TYPE.name()), names);
+        }
+    }
+
+    @Test
     void loadExtensions_castsProfileToCoreInterfaceSafely(@TempDir Path tempDir) throws Exception
     {
         testProfileCasting(tempDir, false);

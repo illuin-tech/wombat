@@ -113,6 +113,7 @@ describe('EnvironmentPage', () => {
     expect(wrapper.find('.record-delete').exists()).toBe(false)
     expect(wrapper.find('.asset-card-add').exists()).toBe(false)
     expect(wrapper.findAll('.asset-card')).toHaveLength(1)
+    expect(wrapper.find('.asset-card .tech-name').text()).toBe('tech.illuin.wombat-module.llm-anthropic')
   })
 
   it('locks provisioned environments, even for admins', async () => {

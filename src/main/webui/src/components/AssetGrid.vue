@@ -20,11 +20,6 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ open: [asset: T]; add: [] }>()
 defineSlots<{ badges?: (props: { asset: T }) => unknown }>()
 
-function typeLabel(asset: AssetInfo): string {
-  const name = assetTypeName(asset)
-  return (name && props.typesByName.get(name)?.localName) ?? name ?? 'Unknown type'
-}
-
 /** Left out when the regime is not known */
 function knownRegime(asset: AssetInfo): ActivityRegime | null {
   const name = assetTypeName(asset)
@@ -54,7 +49,8 @@ function knownRegime(asset: AssetInfo): ActivityRegime | null {
         <span v-if="asset.disabledAt" class="status-chip">Disabled</span>
         <slot name="badges" :asset="asset" />
       </span>
-      <span class="asset-card-type">{{ typeLabel(asset) }}</span>
+      <code v-if="assetTypeName(asset)" class="tech-name">{{ assetTypeName(asset) }}</code>
+      <span v-else class="asset-card-type">Unknown type</span>
       <TimestampInfo class="asset-card-time" :updated-at="asset.updatedAt" />
     </button>
     <button v-if="canAdd" class="asset-card asset-card-add" type="button" @click="emit('add')">

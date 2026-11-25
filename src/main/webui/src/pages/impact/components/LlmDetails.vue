@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {LLMPanel} from '@/pages/impact/model/aggregate'
 import {asDecimal} from '@/services/format/formatters'
+import AssetTypeParam from '@/pages/impact/components/AssetTypeParam.vue'
 
 defineProps<{panel: LLMPanel}>()
 </script>
@@ -35,6 +36,6 @@ defineProps<{panel: LLMPanel}>()
     </div>
   </div>
   <div class="params-inline">
-    <div class="param-item"><span class="param-key">Asset type</span><span class="param-val">{{ panel.type.localName }}</span></div>
+    <AssetTypeParam :type="panel.type" />
   </div>
 </template>

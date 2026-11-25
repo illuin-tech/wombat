@@ -7,8 +7,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.FamilyType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Kind;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
+import tech.illuin.wombat.module.ecologits.EcologitsModule;
+import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
 
 import java.util.List;
 import java.util.Set;
@@ -24,6 +29,8 @@ class ModuleRepositoryTest
     private static final String DETECTED = KubernetesSimulatedModule.TYPE.name();
     private static final AssetType NEW_TYPE = AssetType.of("acme", "new-extension", ActivityRegime.MEASURED, ServiceFamily.LLM);
     private static final String NEW = NEW_TYPE.name();
+    private static final FamilyType NEW_FAMILY_TYPE = FamilyType.of("acme", "new-estimator", ServiceFamily.LLM);
+    private static final String NEW_FAMILY = NEW_FAMILY_TYPE.name();
 
     @Inject
     ModuleRepository repository;
@@ -36,6 +43,7 @@ class ModuleRepositoryTest
             detected.enabled = true;
             detected.advertise(KubernetesSimulatedModule.TYPE);
             this.repository.deleteById(NEW);
+            this.repository.deleteById(NEW_FAMILY);
         });
     }
 
@@ -70,5 +78,46 @@ class ModuleRepositoryTest
 
         this.repository.register(List.of(KubernetesSimulatedModule.TYPE));
         assertEquals(KubernetesSimulatedModule.TYPE, this.repository.findById(DETECTED).type());
+    }
+
+    @Test
+    void theFamilyModulesAreOrderedAtStartup_inDetectionOrder()
+    {
+        assertEquals(1, this.repository.findById(KubernetesMetricsModule.TYPE.name()).ordering);
+        assertEquals(2, this.repository.findById(BoaviztaModule.TYPE.name()).ordering);
+        assertNull(this.repository.findById(DETECTED).ordering);
+    }
+
+    @Test
+    void register_placesANewFamilyModuleLastInItsFamily()
+    {
+        int last = this.lastOrdering(ServiceFamily.LLM);
+
+        this.repository.register(List.of(NEW_FAMILY_TYPE));
+
+        assertEquals(last + 1, this.repository.findById(NEW_FAMILY).ordering);
+    }
+
+    @Test
+    void register_placesAFamilyModuleWithoutOrdering_andLeavesTheOthers()
+    {
+        this.repository.register(List.of(NEW_FAMILY_TYPE));
+        QuarkusTransaction.requiringNew().run(() -> this.repository.findById(NEW_FAMILY).ordering = null);
+        int last = this.lastOrdering(ServiceFamily.LLM);
+        Integer ecologits = this.repository.findById(EcologitsModule.TYPE.name()).ordering;
+
+        this.repository.register(List.of(EcologitsModule.TYPE, NEW_FAMILY_TYPE));
+
+        assertEquals(last + 1, this.repository.findById(NEW_FAMILY).ordering);
+        assertEquals(ecologits, this.repository.findById(EcologitsModule.TYPE.name()).ordering);
+    }
+
+    private int lastOrdering(ServiceFamily family)
+    {
+        return this.repository.listAll().stream()
+            .filter(row -> row.kind == Kind.family && row.family == family && row.ordering != null)
+            .mapToInt(row -> row.ordering)
+            .max()
+            .orElse(0);
     }
 }

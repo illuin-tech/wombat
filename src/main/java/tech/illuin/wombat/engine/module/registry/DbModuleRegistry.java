@@ -11,10 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.asset.type.ModuleType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Kind;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Source;
 
 import java.net.URISyntaxException;
@@ -25,6 +28,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -154,6 +158,34 @@ public class DbModuleRegistry implements ModuleRegistry
 
     @Override
     @Transactional
+    public void setFamilyOrder(ServiceFamily family, List<String> modules, String user)
+    {
+        List<String> members = this.listModules().stream()
+            .filter(module -> module.kind() == Kind.family && module.type().family() == family)
+            .map(module -> module.type().name())
+            .toList();
+        ModuleOrderException.check(family, members, modules);
+
+        for (int index = 0; index < modules.size(); index++)
+        {
+            String name = modules.get(index);
+            ModuleEntity entity = this.repository.findById(name);
+            /* Registered at startup, unless that failed */
+            if (entity == null)
+            {
+                entity = ModuleEntity.registered(this.detected.get(name).type());
+                this.repository.persist(entity);
+            }
+            if (!Objects.equals(entity.ordering, index + 1))
+            {
+                entity.ordering = index + 1;
+                entity.updatedBy = user;
+            }
+        }
+    }
+
+    @Override
+    @Transactional
     public void remove(String module)
     {
         ModuleEntity entity = this.repository.findByIdOptional(module)
@@ -171,7 +203,9 @@ public class DbModuleRegistry implements ModuleRegistry
             module.assetClass().orElse(null),
             entity == null || entity.enabled,
             false,
-            this.isExtension(module.getClass()) ? Source.extension : Source.core
+            this.isExtension(module.getClass()) ? Source.extension : Source.core,
+            entity == null ? null : entity.ordering,
+            Feature.of(module)
         );
     }
 
@@ -182,7 +216,7 @@ public class DbModuleRegistry implements ModuleRegistry
 
     private static ModuleMetadata notDetectedHere(ModuleEntity entity, boolean missing)
     {
-        return new ModuleMetadata(entity.type(), null, entity.enabled, missing, null);
+        return new ModuleMetadata(entity.type(), null, entity.enabled, missing, null, entity.ordering, Set.of());
     }
 
     private Set<String> detectedByLiveInstances()

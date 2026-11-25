@@ -351,7 +351,7 @@ class ModuleControllerTest
         KubernetesSimulatedModule module = new KubernetesSimulatedModule();
         ModuleRegistry registry = mock(ModuleRegistry.class);
         AssetSchemaRegistry schemaRegistry = mock(AssetSchemaRegistry.class);
-        when(registry.getModule(MODULE_ID)).thenReturn(Optional.of(ModuleMetadata.core(module.type(), module.assetClass().orElse(null), true)));
+        when(registry.getModule(MODULE_ID)).thenReturn(Optional.of(ModuleMetadata.core(module, true, null)));
         when(schemaRegistry.getSchema(module.type())).thenReturn(Optional.empty());
         ModuleController controller = new ModuleController(mock(ModuleService.class), registry, schemaRegistry, mock(SecurityIdentity.class));
 

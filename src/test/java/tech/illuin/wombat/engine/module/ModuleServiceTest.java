@@ -170,12 +170,12 @@ class ModuleServiceTest
 
     private static ModuleMetadata detected(WombatModule module, boolean enabled)
     {
-        return ModuleMetadata.core(module.type(), module.assetClass().orElse(null), enabled);
+        return ModuleMetadata.core(module, enabled, null);
     }
 
     private static ModuleMetadata missing(AssetType type)
     {
-        return new ModuleMetadata(type, null, true, true, null);
+        return new ModuleMetadata(type, null, true, true, null, null, Set.of());
     }
 
     private static Map<String, ModuleInfo> byName(List<ModuleInfo> modules)

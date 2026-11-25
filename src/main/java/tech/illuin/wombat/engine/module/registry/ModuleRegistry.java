@@ -1,6 +1,7 @@
 package tech.illuin.wombat.engine.module.registry;
 
 import tech.illuin.wombat.core.asset.type.ModuleType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,16 @@ public interface ModuleRegistry
      * @throws ModuleConflictException if the module is missing
      */
     ModuleMetadata setEnabled(String module, boolean enabled, String user);
+
+    /**
+     * Sets the order the family modules of {@code family} are tried in; the core follows it once redeployed.
+     *
+     * @param modules every family module registered for {@code family}, disabled and missing ones included, the first
+     *                one tried first
+     * @param user    who reorders them, null when authentication is disabled
+     * @throws ModuleOrderException if {@code modules} does not list each of them exactly once
+     */
+    void setFamilyOrder(ServiceFamily family, List<String> modules, String user);
 
     /**
      * Forgets a missing module. Should it be detected again, it is registered afresh, enabled.

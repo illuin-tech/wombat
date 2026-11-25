@@ -179,24 +179,26 @@ class CoreDeploymentServiceTest
     }
 
     @Test
-    void aRedeployRecordsTheAssetTypeModulesByFamily_thenTheFamilyModulesInTheRegistryOrder()
+    void aRedeployRecordsTheAssetTypeModulesByFamily_thenTheFamilyModulesByOrdering()
     {
         this.registry = new InMemoryModuleRegistry();
         this.registry.registerModule(new LLMSimulatedModule(), true);
         this.registry.registerModule(ZETA, true);
         this.registry.registerModule(new KubernetesSimulatedModule(), true);
         this.registry.registerModule(ALPHA, true);
+        this.registry.setFamilyOrder(ServiceFamily.LLM, List.of(ALPHA.type().name(), ZETA.type().name()), "alice");
         CoreDeploymentService service = this.started(recorded(1, K8S));
         when(this.deployments.insertNext(any(), any())).thenReturn(recorded(2, K8S));
 
         service.redeploy("alice");
 
-        verify(this.deployments).insertNext(List.of(K8S, LLM, ZETA.type().name(), ALPHA.type().name()), "alice");
+        verify(this.deployments).insertNext(List.of(K8S, LLM, ALPHA.type().name(), ZETA.type().name()), "alice");
     }
 
     @Test
     void aStartupAppendsTheNewModulesToTheLatestDeployment_leavingTheRegistryOrderToARedeploy()
     {
+        /* Ordered zeta, alpha, then gamma in the registry, while the latest deployment holds alpha before zeta */
         FamilyModule gamma = FamilyModule.of("gamma");
         this.registry = newlyRegistering(Source.core, List.of(new KubernetesSimulatedModule(), ZETA, ALPHA, gamma), gamma.type().name());
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S, ALPHA.type().name(), ZETA.type().name())));
@@ -332,7 +334,7 @@ class CoreDeploymentServiceTest
             public List<ModuleMetadata> listModules()
             {
                 return super.listModules().stream()
-                    .map(found -> new ModuleMetadata(found.type(), found.assetClass(), found.enabled(), found.missing(), source))
+                    .map(found -> new ModuleMetadata(found.type(), found.assetClass(), found.enabled(), found.missing(), source, found.ordering(), found.provides()))
                     .toList();
             }
         };

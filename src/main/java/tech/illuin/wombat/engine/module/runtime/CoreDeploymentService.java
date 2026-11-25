@@ -51,10 +51,11 @@ public class CoreDeploymentService
 
     /* After the modules are registered and the environments reconciled, before the monitor is scheduled */
     static final int STARTUP_PRIORITY_DEPLOY = 2100;
-    /* A stable sort, so that the family modules of a family keep the registry's order */
+    /* An asset-type module has no ordering: those go by name. A family module with none yet goes last */
     private static final Comparator<ModuleMetadata> DEPLOYMENT_ORDER = Comparator.comparing(ModuleMetadata::kind)
         .thenComparing(module -> module.type().family())
-        .thenComparing(module -> module.kind() == ModuleMetadata.Kind.asset ? module.type().name() : "");
+        .thenComparing(ModuleMetadata::ordering, Comparator.nullsLast(Comparator.naturalOrder()))
+        .thenComparing(module -> module.type().name());
     private static final Logger logger = LoggerFactory.getLogger(CoreDeploymentService.class);
 
     @Inject
@@ -193,9 +194,9 @@ public class CoreDeploymentService
     }
 
     /**
-     * The modules registered for the first time at this startup that go live at once, in the registry's order: those the
-     * app ships always do, those of extension jars unless {@code wombat.module.extension.auto-deploy} is off. The others
-     * wait for a redeploy, as a toggle does.
+     * The modules registered for the first time at this startup that go live at once, in the registry's order: those
+     * the app ships always do, those of extension jars unless {@code wombat.module.extension.auto-deploy} is off. The
+     * others wait for a redeploy, as a toggle does.
      */
     private List<String> newModulesGoingLive()
     {
@@ -267,7 +268,7 @@ public class CoreDeploymentService
 
     /**
      * The modules the registry enables, as a deployment lists them: the asset-type modules first, whose order means
-     * nothing, by family and name; then the family modules, by family, in the registry's order.
+     * nothing, by family and name; then the family modules, by family and ordering.
      */
     private List<String> enabledModules()
     {

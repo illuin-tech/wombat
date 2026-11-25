@@ -52,6 +52,14 @@ public class ModuleEntity
     @Column(nullable = false, columnDefinition = "TEXT")
     public ServiceFamily family;
 
+    /**
+     * The place of the module among those it competes with, from 1 for the one tried first. Only the family modules of
+     * a family compete: null for an asset-type module, and for a family module until it is detected, which places it
+     * last, see {@link ModuleRepository#register}.
+     */
+    @Column(name = "ordering", columnDefinition = "INTEGER")
+    public Integer ordering;
+
     @Convert(converter = BooleanFlagConverter.class)
     @Column(nullable = false, columnDefinition = "INTEGER")
     public boolean enabled;
@@ -59,7 +67,7 @@ public class ModuleEntity
     @Column(name = "updated_at", nullable = false, columnDefinition = "INTEGER")
     public Instant updatedAt;
 
-    /** Who last toggled the module; null for a registration, or when authentication is disabled. */
+    /** Who last toggled or reordered the module; null for a registration, or when authentication is disabled. */
     @Column(name = "updated_by")
     public String updatedBy;
 
@@ -86,6 +94,9 @@ public class ModuleEntity
      */
     public void advertise(ModuleType type)
     {
+        /* An ordering only holds among the family modules of the family it was given in */
+        if (this.kind != Kind.of(type) || this.family != type.family())
+            this.ordering = null;
         this.kind = Kind.of(type);
         this.namespace = type.namespace();
         this.localName = type.localName();

@@ -6,6 +6,11 @@ import tech.illuin.wombat.core.asset.SimulatedAsset;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.FamilyType;
 import tech.illuin.wombat.core.asset.type.ModuleType;
+import tech.illuin.wombat.core.module.WombatModule;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * A registered module, as the registry knows it.
@@ -15,20 +20,26 @@ import tech.illuin.wombat.core.asset.type.ModuleType;
  * @param enabled    the registry state, shared by every instance
  * @param missing    whether no live instance detects the module any more, e.g. its extension jar was removed
  * @param source     whether it comes from the extension folder; null when this instance does not detect the module
+ * @param ordering   the place of the module among those it competes with, from 1 for the one tried first, which the
+ *                   next core deployed follows. Only the family modules of a family compete: null for an asset-type
+ *                   module, and for a family module not placed yet
+ * @param provides   empty when this instance does not detect the module
  */
 public record ModuleMetadata(
     ModuleType type,
     Class<? extends Asset> assetClass,
     boolean enabled,
     boolean missing,
-    Source source
+    Source source,
+    Integer ordering,
+    Set<Feature> provides
 ) {
     /**
      * A module detected on this instance, not from the extension folder.
      */
-    public static ModuleMetadata core(ModuleType type, Class<? extends Asset> assetClass, boolean enabled)
+    public static ModuleMetadata core(WombatModule module, boolean enabled, Integer ordering)
     {
-        return new ModuleMetadata(type, assetClass, enabled, false, Source.core);
+        return new ModuleMetadata(module.type(), module.assetClass().orElse(null), enabled, false, Source.core, ordering, Feature.of(module));
     }
 
     /**
@@ -87,5 +98,32 @@ public record ModuleMetadata(
     {
         core,
         extension,
+    }
+
+    /**
+     * What a module provides for its assets, or those of its family: sampling them, or resolving their activity,
+     * impacts or cost. Two family modules of a family only compete for what they both provide.
+     */
+    public enum Feature
+    {
+        source,
+        activity,
+        impact,
+        cost,
+        ;
+
+        public static Set<Feature> of(WombatModule module)
+        {
+            Set<Feature> features = EnumSet.noneOf(Feature.class);
+            if (module.source().isPresent())
+                features.add(source);
+            if (module.activityResolver().isPresent())
+                features.add(activity);
+            if (module.impactResolver().isPresent())
+                features.add(impact);
+            if (module.costResolver().isPresent())
+                features.add(cost);
+            return Collections.unmodifiableSet(features);
+        }
     }
 }

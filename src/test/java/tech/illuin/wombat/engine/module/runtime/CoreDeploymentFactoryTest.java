@@ -13,6 +13,7 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.FamilyType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.context.ResolvedContext;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
@@ -47,7 +48,7 @@ class CoreDeploymentFactoryTest
     @Test
     void onlyTheRequestedModulesAreDeployed()
     {
-        CoreDeployment deployment = factory(true).create(1, "id", Set.of(LLM));
+        CoreDeployment deployment = factory(true).create(1, "id", List.of(LLM));
 
         assertEquals(Set.of(LLMSimulatedModule.TYPE), deployment.types());
         assertTrue(deployment.missing().isEmpty());
@@ -57,7 +58,7 @@ class CoreDeploymentFactoryTest
     @Test
     void aRequestedTypeWithNoDetectedModuleIsReportedMissing()
     {
-        CoreDeployment deployment = factory(true).create(1, "id", Set.of(K8S, "acme.unknown"));
+        CoreDeployment deployment = factory(true).create(1, "id", List.of(K8S, "acme.unknown"));
 
         assertEquals(Set.of(KubernetesSimulatedModule.TYPE), deployment.types());
         assertEquals(Set.of("acme.unknown"), deployment.missing());
@@ -65,9 +66,27 @@ class CoreDeploymentFactoryTest
     }
 
     @Test
+    void theFamilyModulesAreTriedInTheRequestedOrder_notTheDetectionOrder() throws WombatActivityException
+    {
+        FamilyModule first = new FamilyModule("first");
+        FamilyModule second = new FamilyModule("second");
+        List<WombatModule> detected = List.of(new BareModule(), first, second);
+        BareAsset asset = new BareAsset(AssetIdentity.of("a1", "e1", BareModule.TYPE), null);
+        TimeRange range = TimeRange.between(Instant.EPOCH, Instant.EPOCH.plus(Duration.ofHours(1)));
+
+        CoreDeployment deployment = factory(false, detected).create(1, "id", List.of(BareModule.TYPE.name(), second.type().name(), first.type().name()));
+        deployment.evaluator().computeActivity(asset, range, null);
+
+        assertEquals(0, first.builds.get());
+        assertEquals(1, second.builds.get());
+        assertEquals(List.of(BareModule.TYPE.name(), second.type().name(), first.type().name()), deployment.modules().stream().map(module -> module.type().name()).toList());
+        deployment.close();
+    }
+
+    @Test
     void theServedEvaluatorIsCachedWhenTheCacheIsEnabled()
     {
-        CoreDeployment deployment = factory(true).create(1, "id", Set.of(K8S, LLM));
+        CoreDeployment deployment = factory(true).create(1, "id", List.of(K8S, LLM));
 
         assertInstanceOf(CachedAssetEvaluator.class, deployment.evaluator());
         deployment.close();
@@ -76,7 +95,7 @@ class CoreDeploymentFactoryTest
     @Test
     void theServedEvaluatorIsNotCachedWhenTheCacheIsDisabled()
     {
-        CoreDeployment deployment = factory(false).create(1, "id", Set.of(K8S, LLM));
+        CoreDeployment deployment = factory(false).create(1, "id", List.of(K8S, LLM));
 
         assertFalse(deployment.evaluator() instanceof CachedAssetEvaluator);
         deployment.close();
@@ -85,7 +104,7 @@ class CoreDeploymentFactoryTest
     @Test
     void newEvaluatorBuildsAnUncachedEvaluatorOfItsOwnOnEachCall()
     {
-        CoreDeployment deployment = factory(true).create(1, "id", Set.of(K8S, LLM));
+        CoreDeployment deployment = factory(true).create(1, "id", List.of(K8S, LLM));
 
         try (AssetEvaluator first = deployment.newEvaluator(); AssetEvaluator second = deployment.newEvaluator()) {
             assertFalse(first instanceof CachedAssetEvaluator);
@@ -99,7 +118,7 @@ class CoreDeploymentFactoryTest
     void aNewEvaluatorBuildsItsOwnComponents_andClosingItLeavesTheModulesOpen() throws WombatActivityException
     {
         CountingModule module = new CountingModule();
-        CoreDeployment deployment = factory(true, List.of(module)).create(1, "id", Set.of(CountingModule.TYPE.name()));
+        CoreDeployment deployment = factory(true, List.of(module)).create(1, "id", List.of(CountingModule.TYPE.name()));
         CountedAsset asset = new CountedAsset(AssetIdentity.of("a1", "e1", CountingModule.TYPE), null);
         TimeRange range = TimeRange.between(Instant.EPOCH, Instant.EPOCH.plus(Duration.ofHours(1)));
 
@@ -117,8 +136,8 @@ class CoreDeploymentFactoryTest
     void eachDeploymentGetsItsOwnMonitorAndEvaluatorButSharesTheModules()
     {
         CoreDeploymentFactory factory = factory(true);
-        CoreDeployment first = factory.create(1, "id", Set.of(K8S));
-        CoreDeployment second = factory.create(1, "id", Set.of(K8S));
+        CoreDeployment first = factory.create(1, "id", List.of(K8S));
+        CoreDeployment second = factory.create(1, "id", List.of(K8S));
 
         assertNotSame(first.monitor(), second.monitor());
         assertNotSame(first.evaluator(), second.evaluator());
@@ -186,12 +205,66 @@ class CoreDeploymentFactoryTest
         }
     }
 
+    /* An asset-type of no activity-resolver of its own, so that its family's modules are tried for its assets */
+    private static final class BareModule implements WombatModule
+    {
+        static final AssetType TYPE = AssetType.of("acme", "test", "bare", ActivityRegime.MODELED, ServiceFamily.LLM);
+
+        @Override
+        public AssetType type()
+        {
+            return TYPE;
+        }
+
+        @Override
+        public Optional<Class<? extends Asset>> assetClass()
+        {
+            return Optional.of(BareAsset.class);
+        }
+    }
+
+    /* Accepts every asset of its family, so that only the first one tried builds an activity-resolver */
+    private static final class FamilyModule implements WombatModule
+    {
+        final FamilyType type;
+        final AtomicInteger builds = new AtomicInteger();
+
+        FamilyModule(String localName)
+        {
+            this.type = FamilyType.of("acme", "test", localName, ServiceFamily.LLM);
+        }
+
+        @Override
+        public FamilyType type()
+        {
+            return this.type;
+        }
+
+        @Override
+        public Optional<ProcessorFactory<WombatActivityResolver>> activityResolver()
+        {
+            return Optional.of((services, asset) -> {
+                this.builds.incrementAndGet();
+                return (a, range, filter) -> Optional.empty();
+            });
+        }
+    }
+
     private record CountedAsset(AssetIdentity identity, AssetProfile profile) implements Asset
     {
         @Override
         public AssetType type()
         {
             return CountingModule.TYPE;
+        }
+    }
+
+    private record BareAsset(AssetIdentity identity, AssetProfile profile) implements Asset
+    {
+        @Override
+        public AssetType type()
+        {
+            return BareModule.TYPE;
         }
     }
 }

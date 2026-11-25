@@ -5,8 +5,8 @@ import jakarta.transaction.Transactional;
 import tech.illuin.wombat.engine.context.environment.persistence.EnvironmentEntity;
 import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @ApplicationScoped
 public class CoreDeploymentRepository extends Repository<CoreDeploymentEntity, Long>
@@ -32,7 +32,7 @@ public class CoreDeploymentRepository extends Repository<CoreDeploymentEntity, L
      * @throws jakarta.persistence.PersistenceException if another instance recorded that version in the meantime
      */
     @Transactional
-    public CoreDeploymentEntity insertNext(Set<String> enabledModules, String requestedBy)
+    public CoreDeploymentEntity insertNext(List<String> enabledModules, String requestedBy)
     {
         long latest = getEntityManager()
             .createQuery("SELECT COALESCE(MAX(d.version), 0) FROM CoreDeploymentEntity d", Long.class)

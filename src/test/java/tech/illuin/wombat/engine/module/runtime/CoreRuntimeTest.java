@@ -52,8 +52,8 @@ class CoreRuntimeTest
         CoreDeployment second = deployment(2);
         when(this.factory.create(anyLong(), anyString(), any())).thenReturn(deployment(1), second);
 
-        this.runtime.deploy(1, "one", Set.of());
-        this.runtime.deploy(2, "two", Set.of());
+        this.runtime.deploy(1, "one", List.of());
+        this.runtime.deploy(2, "two", List.of());
 
         assertSame(second, this.runtime.current());
     }
@@ -63,10 +63,10 @@ class CoreRuntimeTest
     {
         CoreDeployment second = deployment(2);
         when(this.factory.create(anyLong(), anyString(), any())).thenReturn(second);
-        this.runtime.deploy(2, "two", Set.of());
+        this.runtime.deploy(2, "two", List.of());
 
-        assertSame(second, this.runtime.deploy(1, "one", Set.of()));
-        assertSame(second, this.runtime.deploy(2, "two", Set.of()));
+        assertSame(second, this.runtime.deploy(1, "one", List.of()));
+        assertSame(second, this.runtime.deploy(2, "two", List.of()));
         verify(this.factory, times(1)).create(anyLong(), anyString(), any());
     }
 
@@ -76,8 +76,8 @@ class CoreRuntimeTest
         CoreDeployment first = deployment(1);
         CoreDeployment second = deployment(2);
         when(this.factory.create(anyLong(), anyString(), any())).thenReturn(first, second);
-        this.runtime.deploy(1, "one", Set.of());
-        this.runtime.deploy(2, "two", Set.of());
+        this.runtime.deploy(1, "one", List.of());
+        this.runtime.deploy(2, "two", List.of());
 
         verify(first.monitor(), never()).close();
         verify(first.evaluator(), never()).close();
@@ -95,8 +95,8 @@ class CoreRuntimeTest
         CoreDeployment first = deployment(1);
         when(this.factory.create(anyLong(), anyString(), any())).thenReturn(first).thenThrow(new IllegalStateException("broken module"));
 
-        this.runtime.deploy(1, "one", Set.of());
-        assertThrows(IllegalStateException.class, () -> this.runtime.deploy(2, "two", Set.of()));
+        this.runtime.deploy(1, "one", List.of());
+        assertThrows(IllegalStateException.class, () -> this.runtime.deploy(2, "two", List.of()));
 
         assertSame(first, this.runtime.current());
         assertTrue(this.pendingCloses.isEmpty());
@@ -109,7 +109,7 @@ class CoreRuntimeTest
         when(module.type()).thenReturn(KubernetesSimulatedModule.TYPE);
         CoreDeployment deployment = deployment(1, module);
         when(this.factory.create(anyLong(), anyString(), any())).thenReturn(deployment);
-        this.runtime.deploy(1, "one", Set.of());
+        this.runtime.deploy(1, "one", List.of());
 
         this.runtime.close();
 

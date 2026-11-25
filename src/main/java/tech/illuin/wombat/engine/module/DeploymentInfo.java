@@ -18,9 +18,10 @@ public record DeploymentInfo(LatestDeployment latest, List<CoreInstance> instanc
 {
     /**
      * @param id      the full hash: clients shorten it to 7 characters, like a commit id
-     * @param modules the modules enabled when it was requested
+     * @param modules the modules enabled when it was requested, in the order the core is built in, which is the order
+     *                the family modules of a family are tried in
      */
-    public record LatestDeployment(long version, String id, Instant requestedAt, String requestedBy, Set<String> modules) {}
+    public record LatestDeployment(long version, String id, Instant requestedAt, String requestedBy, List<String> modules) {}
 
     /**
      * @param deployedId null if the deployment the instance runs is unknown here

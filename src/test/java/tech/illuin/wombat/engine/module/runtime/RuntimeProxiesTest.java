@@ -64,11 +64,11 @@ class RuntimeProxiesTest
         when(second.evaluator().evaluate(range, filter)).thenReturn(evaluations);
 
         RuntimeAssetEvaluator evaluator = new RuntimeAssetEvaluator(this.runtime);
-        this.runtime.deploy(1, "id-1", Set.of());
+        this.runtime.deploy(1, "id-1", List.of());
         evaluator.evaluate(range, filter);
         verify(first.evaluator()).evaluate(range, filter);
 
-        this.runtime.deploy(2, "id-2", Set.of());
+        this.runtime.deploy(2, "id-2", List.of());
         assertSame(evaluations, evaluator.evaluate(range, filter));
     }
 
@@ -81,11 +81,11 @@ class RuntimeProxiesTest
         AssetIdentity identity = new AssetIdentity("asset", "env", "acme.type");
 
         RuntimeAssetMonitor monitor = new RuntimeAssetMonitor(this.runtime);
-        this.runtime.deploy(1, "id-1", Set.of());
+        this.runtime.deploy(1, "id-1", List.of());
         monitor.trigger();
         verify(first.monitor()).trigger();
 
-        this.runtime.deploy(2, "id-2", Set.of());
+        this.runtime.deploy(2, "id-2", List.of());
         monitor.trigger();
         monitor.refresh(identity);
         verify(second.monitor()).trigger();

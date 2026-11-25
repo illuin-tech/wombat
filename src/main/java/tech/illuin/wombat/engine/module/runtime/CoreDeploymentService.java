@@ -21,6 +21,8 @@ import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +51,10 @@ public class CoreDeploymentService
 
     /* After the modules are registered and the environments reconciled, before the monitor is scheduled */
     static final int STARTUP_PRIORITY_DEPLOY = 2100;
+    /* A stable sort, so that the family modules of a family keep the registry's order */
+    private static final Comparator<ModuleMetadata> DEPLOYMENT_ORDER = Comparator.comparing(ModuleMetadata::kind)
+        .thenComparing(module -> module.type().family())
+        .thenComparing(module -> module.kind() == ModuleMetadata.Kind.asset ? module.type().name() : "");
     private static final Logger logger = LoggerFactory.getLogger(CoreDeploymentService.class);
 
     @Inject
@@ -102,10 +108,11 @@ public class CoreDeploymentService
      */
     void onStart(@Observes @Priority(STARTUP_PRIORITY_DEPLOY) StartupEvent event)
     {
-        CoreDeploymentEntity latest = this.deployments.findLatest().orElseGet(this::bootstrap);
-        Set<String> joining = difference(this.newModulesGoingLive(), latest.enabledModules);
-        if (!joining.isEmpty())
-            latest = this.join(latest, joining);
+        CoreDeploymentEntity recorded = this.deployments.findLatest().orElseGet(this::bootstrap);
+        List<String> joining = this.newModulesGoingLive().stream()
+            .filter(name -> !recorded.enabledModules.contains(name))
+            .toList();
+        CoreDeploymentEntity latest = joining.isEmpty() ? recorded : this.join(recorded, joining);
         this.runtime.deploy(latest.version, latest.id, latest.enabledModules);
         this.writeHeartbeat();
     }
@@ -186,29 +193,30 @@ public class CoreDeploymentService
     }
 
     /**
-     * The modules registered for the first time at this startup that go live at once: those the app ships always do,
-     * those of extension jars unless {@code wombat.module.extension.auto-deploy} is off. The others wait for a redeploy,
-     * as a toggle does.
+     * The modules registered for the first time at this startup that go live at once, in the registry's order: those the
+     * app ships always do, those of extension jars unless {@code wombat.module.extension.auto-deploy} is off. The others
+     * wait for a redeploy, as a toggle does.
      */
-    private Set<String> newModulesGoingLive()
+    private List<String> newModulesGoingLive()
     {
-        return this.registry.newlyRegistered().stream()
-            .filter(name -> this.autoDeployExtensions || this.registry.getModule(name)
-                .map(module -> module.source() != ModuleMetadata.Source.extension)
-                .orElse(true)
-            )
-            .collect(Collectors.toSet());
+        Set<String> newlyRegistered = this.registry.newlyRegistered();
+        return this.registry.listModules().stream()
+            .filter(module -> newlyRegistered.contains(module.type().name()))
+            .filter(module -> this.autoDeployExtensions || module.source() != ModuleMetadata.Source.extension)
+            .map(module -> module.type().name())
+            .toList();
     }
 
     /**
      * Records a deployment adding the modules registered for the first time at this startup: a module with no row is
-     * enabled, so a new one runs without waiting for a redeploy. Another instance may record one at the same time: its
-     * deployment is then the one taken.
+     * enabled, so a new one runs without waiting for a redeploy. They are appended to the latest deployment's modules
+     * rather than taken in the registry's order, so that a startup applies no reorder that was not redeployed. Another
+     * instance may record one at the same time: its deployment is then the one taken.
      */
-    private CoreDeploymentEntity join(CoreDeploymentEntity latest, Set<String> joining)
+    private CoreDeploymentEntity join(CoreDeploymentEntity latest, List<String> joining)
     {
         logger.info("Deploying {} newly registered module(s) along with wombat core {}: {}", joining.size(), CoreRuntime.shortId(latest.id), joining);
-        Set<String> modules = new HashSet<>(latest.enabledModules);
+        List<String> modules = new ArrayList<>(latest.enabledModules);
         modules.addAll(joining);
         try {
             return this.deployments.insertNext(modules, null);
@@ -257,12 +265,17 @@ public class CoreDeploymentService
         this.instances.upsert(entity);
     }
 
-    private Set<String> enabledModules()
+    /**
+     * The modules the registry enables, as a deployment lists them: the asset-type modules first, whose order means
+     * nothing, by family and name; then the family modules, by family, in the registry's order.
+     */
+    private List<String> enabledModules()
     {
         return this.registry.listModules().stream()
             .filter(ModuleMetadata::enabled)
+            .sorted(DEPLOYMENT_ORDER)
             .map(module -> module.type().name())
-            .collect(Collectors.toSet());
+            .toList();
     }
 
     private static Set<String> difference(Set<String> from, Set<String> without)

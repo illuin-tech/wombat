@@ -46,7 +46,7 @@ public class ModuleService
     {
         Map<String, Long> counts = this.assets.countVisibleByType();
         Set<ModuleType> deployed = this.runtime.current().types();
-        Set<String> latest = this.latest().enabledModules;
+        List<String> latest = this.latest().enabledModules;
         return this.registry.listModules().stream()
             .map(module -> info(module, deployed, latest, counts))
             .sorted(ORDER)
@@ -135,12 +135,12 @@ public class ModuleService
     }
 
     /* A redeploy cannot bring a missing module in */
-    private static boolean isPending(ModuleMetadata module, Set<String> latest)
+    private static boolean isPending(ModuleMetadata module, List<String> latest)
     {
         return !module.missing() && module.enabled() != latest.contains(module.type().name());
     }
 
-    private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, Set<String> latest, Map<String, Long> counts)
+    private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, List<String> latest, Map<String, Long> counts)
     {
         return new ModuleInfo(
             module.type(),

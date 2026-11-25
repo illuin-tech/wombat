@@ -4,6 +4,8 @@ import jakarta.persistence.PersistenceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tech.illuin.wombat.core.asset.type.FamilyType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.AssetMonitor;
@@ -44,6 +46,8 @@ class CoreDeploymentServiceTest
 {
     private static final String K8S = KubernetesSimulatedModule.TYPE.name();
     private static final String LLM = LLMSimulatedModule.TYPE.name();
+    private static final FamilyModule ZETA = FamilyModule.of("zeta");
+    private static final FamilyModule ALPHA = FamilyModule.of("alpha");
 
     private CoreDeploymentFactory factory;
     private CoreRuntime runtime;
@@ -80,12 +84,12 @@ class CoreDeploymentServiceTest
     void theFirstStartupRecordsTheModulesTheRegistryEnables()
     {
         when(this.deployments.findLatest()).thenReturn(Optional.empty());
-        when(this.deployments.insertNext(Set.of(K8S), null)).thenReturn(recorded(1, K8S));
+        when(this.deployments.insertNext(List.of(K8S), null)).thenReturn(recorded(1, K8S));
 
         this.service(true).onStart(null);
 
         assertEquals(1, this.runtime.current().version());
-        verify(this.deployments).insertNext(Set.of(K8S), null);
+        verify(this.deployments).insertNext(List.of(K8S), null);
     }
 
     @Test
@@ -93,7 +97,7 @@ class CoreDeploymentServiceTest
     {
         this.registry = newlyRegistering(Source.extension, LLM);
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)));
-        when(this.deployments.insertNext(Set.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
+        when(this.deployments.insertNext(List.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
 
         this.service(true).onStart(null);
 
@@ -142,7 +146,7 @@ class CoreDeploymentServiceTest
     {
         this.registry = newlyRegistering(Source.core, LLM);
         when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S)));
-        when(this.deployments.insertNext(Set.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
+        when(this.deployments.insertNext(List.of(K8S, LLM), null)).thenReturn(recorded(5, K8S, LLM));
 
         this.service(true, false).onStart(null);
 
@@ -164,7 +168,7 @@ class CoreDeploymentServiceTest
     void aRedeployRecordsTheEnabledModulesAndDeploysThemHere()
     {
         CoreDeploymentService service = this.started(recorded(1, K8S, LLM));
-        when(this.deployments.insertNext(Set.of(K8S), "alice")).thenReturn(recorded(2, K8S));
+        when(this.deployments.insertNext(List.of(K8S), "alice")).thenReturn(recorded(2, K8S));
 
         CoreDeploymentService.Redeploy redeploy = service.redeploy("alice");
 
@@ -172,6 +176,35 @@ class CoreDeploymentServiceTest
         assertEquals(CoreInstanceEntity.InstanceStatus.ok, redeploy.local().status());
         assertEquals(Set.of(), redeploy.local().added());
         assertEquals(Set.of(LLM), redeploy.local().removed());
+    }
+
+    @Test
+    void aRedeployRecordsTheAssetTypeModulesByFamily_thenTheFamilyModulesInTheRegistryOrder()
+    {
+        this.registry = new InMemoryModuleRegistry();
+        this.registry.registerModule(new LLMSimulatedModule(), true);
+        this.registry.registerModule(ZETA, true);
+        this.registry.registerModule(new KubernetesSimulatedModule(), true);
+        this.registry.registerModule(ALPHA, true);
+        CoreDeploymentService service = this.started(recorded(1, K8S));
+        when(this.deployments.insertNext(any(), any())).thenReturn(recorded(2, K8S));
+
+        service.redeploy("alice");
+
+        verify(this.deployments).insertNext(List.of(K8S, LLM, ZETA.type().name(), ALPHA.type().name()), "alice");
+    }
+
+    @Test
+    void aStartupAppendsTheNewModulesToTheLatestDeployment_leavingTheRegistryOrderToARedeploy()
+    {
+        FamilyModule gamma = FamilyModule.of("gamma");
+        this.registry = newlyRegistering(Source.core, List.of(new KubernetesSimulatedModule(), ZETA, ALPHA, gamma), gamma.type().name());
+        when(this.deployments.findLatest()).thenReturn(Optional.of(recorded(4, K8S, ALPHA.type().name(), ZETA.type().name())));
+        when(this.deployments.insertNext(any(), isNull())).thenReturn(recorded(5, K8S));
+
+        this.service(true).onStart(null);
+
+        verify(this.deployments).insertNext(List.of(K8S, ALPHA.type().name(), ZETA.type().name(), gamma.type().name()), null);
     }
 
     @Test
@@ -276,11 +309,16 @@ class CoreDeploymentServiceTest
         return new CoreDeploymentService(this.runtime, this.registry, this.deployments, this.instances, modules, "instance-a", Duration.ofSeconds(30), heartbeat, autoDeployExtensions);
     }
 
-    /**
-     * Stands for the registry of an instance which registered {@code names} for the first time at its startup, its
-     * modules all coming from {@code source}.
-     */
     private static InMemoryModuleRegistry newlyRegistering(Source source, String... names)
+    {
+        return newlyRegistering(source, List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule()), names);
+    }
+
+    /**
+     * Stands for the registry of an instance which registered {@code names} for the first time at its startup, among
+     * {@code modules} in that order, its modules all coming from {@code source}.
+     */
+    private static InMemoryModuleRegistry newlyRegistering(Source source, List<WombatModule> modules, String... names)
     {
         InMemoryModuleRegistry registry = new InMemoryModuleRegistry()
         {
@@ -291,14 +329,14 @@ class CoreDeploymentServiceTest
             }
 
             @Override
-            public Optional<ModuleMetadata> getModule(String module)
+            public List<ModuleMetadata> listModules()
             {
-                return super.getModule(module)
-                    .map(found -> new ModuleMetadata(found.type(), found.assetClass(), found.enabled(), found.missing(), source));
+                return super.listModules().stream()
+                    .map(found -> new ModuleMetadata(found.type(), found.assetClass(), found.enabled(), found.missing(), source))
+                    .toList();
             }
         };
-        registry.registerModule(new KubernetesSimulatedModule(), true);
-        registry.registerModule(new LLMSimulatedModule(), true);
+        modules.forEach(module -> registry.registerModule(module, true));
         return registry;
     }
 
@@ -311,16 +349,25 @@ class CoreDeploymentServiceTest
 
     private static CoreDeploymentEntity recorded(long version, String... modules)
     {
-        return CoreDeploymentEntity.of(version, Instant.now(), null, Set.of(modules));
+        return CoreDeploymentEntity.of(version, Instant.now(), null, List.of(modules));
     }
 
     /* Holds the requested modules among those of this test; the others are reported missing */
-    private static CoreDeployment deployment(long version, Set<String> requested)
+    private static CoreDeployment deployment(long version, List<String> requested)
     {
         List<WombatModule> known = List.of(new KubernetesSimulatedModule(), new LLMSimulatedModule());
         List<WombatModule> deployed = known.stream().filter(module -> requested.contains(module.type().name())).toList();
         Set<String> missing = requested.stream().filter(name -> deployed.stream().noneMatch(module -> module.type().name().equals(name))).collect(Collectors.toSet());
         AssetEvaluator evaluator = mock(AssetEvaluator.class);
         return new CoreDeployment(version, "id-" + version, deployed, missing, mock(AssetMonitor.class), evaluator, () -> evaluator, Instant.now());
+    }
+
+    /* Serves a family with nothing: only its name, and its place among the modules, matter here */
+    private record FamilyModule(FamilyType type) implements WombatModule
+    {
+        static FamilyModule of(String localName)
+        {
+            return new FamilyModule(FamilyType.of("acme", "test", localName, ServiceFamily.LLM));
+        }
     }
 }

@@ -5,7 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
+import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
@@ -69,6 +71,21 @@ class DbModuleRegistryTest
         this.registry.onStart(null);
 
         verify(this.repository).register(argThat(types -> Set.copyOf(types).equals(Set.of(KubernetesSimulatedModule.TYPE, LLMSimulatedModule.TYPE))));
+    }
+
+    @Test
+    void theDetectedModulesAreRegisteredAndListedInDetectionOrder()
+    {
+        List<WombatModule> detected = List.of(new LLMSimulatedModule(), new BoaviztaModule(), new KubernetesSimulatedModule());
+        DbModuleRegistry registry = new DbModuleRegistry(detected, this.repository, this.instances, Path.of("extensions"), Duration.ofSeconds(30));
+        when(this.repository.register(any())).thenReturn(Set.of());
+        when(this.repository.listAll()).thenReturn(List.of());
+
+        registry.onStart(null);
+
+        List<ModuleType> types = detected.stream().map(WombatModule::type).toList();
+        verify(this.repository).register(types);
+        assertEquals(types, registry.listModules().stream().map(ModuleMetadata::type).toList());
     }
 
     @Test

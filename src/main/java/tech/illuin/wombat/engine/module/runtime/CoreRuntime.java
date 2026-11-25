@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.asset.type.ModuleType;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
@@ -44,13 +45,13 @@ public class CoreRuntime
     }
 
     /**
-     * Builds a deployment of the requested asset-types and swaps it in. If the build fails, the running deployment is
-     * kept and the exception is thrown. Deployments are applied one at a time, and only forward: a version not newer
-     * than the running one is ignored.
+     * Builds a deployment of the requested modules, in their order, and swaps it in. If the build fails, the running
+     * deployment is kept and the exception is thrown. Deployments are applied one at a time, and only forward: a version
+     * not newer than the running one is ignored.
      *
      * @return the running deployment
      */
-    public synchronized CoreDeployment deploy(long version, String id, Set<String> requested)
+    public synchronized CoreDeployment deploy(long version, String id, List<String> requested)
     {
         CoreDeployment previous = this.current;
         if (previous != null && version <= previous.version())

@@ -154,7 +154,7 @@ class ModuleServiceTest
 
     private void latest(String... enabled)
     {
-        when(this.deployments.latest()).thenReturn(Optional.of(CoreDeploymentEntity.of(1, Instant.now(), null, Set.of(enabled))));
+        when(this.deployments.latest()).thenReturn(Optional.of(CoreDeploymentEntity.of(1, Instant.now(), null, List.of(enabled))));
     }
 
     private void registered(ModuleMetadata... modules)

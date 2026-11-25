@@ -3,7 +3,9 @@ package tech.illuin.wombat.engine.module.registry;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
 
+import java.util.List;
 import java.util.Set;
 import java.util.Optional;
 
@@ -40,6 +42,20 @@ class InMemoryModuleRegistryTest
 
         assertTrue(registry.getModule(module.type().name()).orElseThrow().enabled());
         assertEquals(1, registry.listModules().size());
+    }
+
+    @Test
+    void listModules_keepsTheRegistrationOrder()
+    {
+        InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
+        registry.registerModule(new LLMSimulatedModule(), true);
+        registry.registerModule(new BoaviztaModule(), true);
+        registry.registerModule(new KubernetesSimulatedModule(), true);
+
+        assertEquals(
+            List.of(LLMSimulatedModule.TYPE, BoaviztaModule.TYPE, KubernetesSimulatedModule.TYPE),
+            registry.listModules().stream().map(ModuleMetadata::type).toList()
+        );
     }
 
     @Test

@@ -11,9 +11,12 @@ import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluator;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Builds a {@link CoreDeployment} out of the beans the app provides: the context to resolve, the services modules draw
@@ -26,7 +29,7 @@ public class CoreDeploymentFactory
     private final WombatContextProvider contextProvider;
     private final WombatServices services;
     private final WombatMetricPersister persister;
-    private final List<WombatModule> modules;
+    private final Map<String, WombatModule> modules;
     private final CachedAssetEvaluatorProperties cacheProperties;
 
     public CoreDeploymentFactory(
@@ -39,21 +42,27 @@ public class CoreDeploymentFactory
         this.contextProvider = contextProvider;
         this.services = services;
         this.persister = persister;
-        this.modules = modules;
+        this.modules = modules.stream().collect(Collectors.toMap(
+            module -> module.type().name(),
+            Function.identity()
+        ));
         this.cacheProperties = cacheProperties;
     }
 
     /**
-     * @param requested the names of the modules to deploy; those not detected here are reported as missing
+     * @param requested the names of the modules to deploy, in the order the core is built in, which is the order the
+     *                  family modules of a family are tried in; those not detected here are reported as missing
      */
-    public CoreDeployment create(long version, String id, Set<String> requested)
+    public CoreDeployment create(long version, String id, List<String> requested)
     {
-        List<WombatModule> deployed = this.modules.stream()
-            .filter(module -> requested.contains(module.type().name()))
+        List<WombatModule> deployed = requested.stream()
+            .map(this.modules::get)
+            .filter(Objects::nonNull)
             .toList();
 
-        Set<String> missing = new HashSet<>(requested);
-        deployed.forEach(module -> missing.remove(module.type().name()));
+        Set<String> missing = requested.stream()
+            .filter(name -> !this.modules.containsKey(name))
+            .collect(Collectors.toSet());
 
         /* The core holds nothing but the modules, which every deployment shares: it is only kept to build evaluators,
            and never closed */

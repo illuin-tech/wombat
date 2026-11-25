@@ -22,6 +22,7 @@ import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
 import java.security.CodeSource;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,7 +58,15 @@ public class DbModuleRegistry implements ModuleRegistry
 
     DbModuleRegistry(List<WombatModule> modules, ModuleRepository repository, CoreInstanceRepository instances, Path extensionPath, Duration pollInterval)
     {
-        this.detected = modules.stream().collect(Collectors.toMap(module -> module.type().name(), Function.identity()));
+        /* In detection order, which the modules are listed and registered in */
+        this.detected = modules.stream().collect(Collectors.toMap(
+            module -> module.type().name(),
+            Function.identity(),
+            (first, second) -> {
+                throw new IllegalStateException("Duplicate module " + first.type().name());
+            },
+            LinkedHashMap::new
+        ));
         this.repository = repository;
         this.instances = instances;
         this.extensionPath = extensionPath.toAbsolutePath().normalize();

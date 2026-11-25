@@ -10,6 +10,7 @@ import io.restassured.http.ContentType;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import io.quarkus.security.identity.SecurityIdentity;
 import tech.illuin.wombat.engine.module.ModuleService;
@@ -17,6 +18,8 @@ import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
+import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
@@ -34,10 +37,13 @@ import tech.illuin.wombat.ui.AuthenticationEnabledTest;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
@@ -58,6 +64,8 @@ class ModuleControllerTest
     private static final String MODULE_ID = KubernetesSimulatedModule.TYPE.name();
     private static final AssetType MISSING_TYPE = AssetType.of("acme", "removed-extension", ActivityRegime.MEASURED, ServiceFamily.LLM);
     private static final String MISSING_ID = MISSING_TYPE.name();
+    private static final String METRICS_ID = KubernetesMetricsModule.TYPE.name();
+    private static final String BOAVIZTA_ID = BoaviztaModule.TYPE.name();
 
     @Inject
     ModuleRepository repository;
@@ -71,15 +79,30 @@ class ModuleControllerTest
     @Inject
     CoreDeploymentService deployments;
 
+    @Inject
+    ModuleService service;
+
+    private Map<String, Integer> orderings;
+
+    @BeforeEach
+    void rememberTheOrder()
+    {
+        this.orderings = QuarkusTransaction.requiringNew().call(() -> this.repository.listAll().stream()
+            .filter(row -> row.ordering != null)
+            .collect(Collectors.toMap(row -> row.typeName, row -> row.ordering)));
+    }
+
     /* The registry and the core are shared by the tests of this profile: a test changing them restores them */
     @AfterEach
     void restoreTheRegistryAndTheCore()
     {
         QuarkusTransaction.requiringNew().run(() -> {
             this.repository.findById(MODULE_ID).enabled = true;
+            this.repository.findById(BOAVIZTA_ID).enabled = true;
             this.repository.deleteById(MISSING_ID);
+            this.orderings.forEach((name, ordering) -> this.repository.findById(name).ordering = ordering);
         });
-        if (!this.runtime.current().types().contains(KubernetesSimulatedModule.TYPE))
+        if (!this.runtime.current().types().contains(KubernetesSimulatedModule.TYPE) || !this.service.deployment().moved().isEmpty())
             this.deployments.redeploy(null);
     }
 
@@ -249,6 +272,113 @@ class ModuleControllerTest
 
     @Test
     @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void list_followsTheOrderOfTheModules_andTellsWhatEachProvides()
+    {
+        List<Integer> orderings = given()
+            .when().get("/api/modules")
+            .then()
+            .statusCode(200)
+            .body("payload.find { it.type.name == '" + BOAVIZTA_ID + "' }.provides", contains("impact"))
+            .extract().jsonPath().getList("payload.ordering", Integer.class);
+
+        assertEquals(orderings.stream().sorted().toList(), orderings);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void aReorderIsPendingUntilARedeploy_whichThenBuildsTheCoreInTheNewOrder()
+    {
+        List<String> reordered = new ArrayList<>(listed());
+        reordered.remove(BOAVIZTA_ID);
+        reordered.add(reordered.indexOf(METRICS_ID), BOAVIZTA_ID);
+
+        given().contentType(ContentType.JSON).body(order(reordered))
+            .when().put("/api/modules/order")
+            .then()
+            .statusCode(200)
+            .body("payload.type.name", contains(reordered.toArray(String[]::new)));
+        given()
+            .when().get("/api/modules/deployment")
+            .then()
+            .statusCode(200)
+            .body("payload.moved", contains(BOAVIZTA_ID))
+            .body("payload.pending", empty());
+        given().when().get("/api/modules/" + BOAVIZTA_ID).then().statusCode(200).body("payload.pending", is(true));
+        given().when().get("/api/modules/" + METRICS_ID).then().statusCode(200).body("payload.pending", is(false));
+        assertEquals("boss", QuarkusTransaction.requiringNew().call(() -> this.repository.findById(BOAVIZTA_ID).updatedBy));
+
+        given().when().post("/api/modules/deployment").then().statusCode(201);
+
+        given()
+            .when().get("/api/modules/deployment")
+            .then()
+            .statusCode(200)
+            .body("payload.moved", empty());
+        List<String> tried = this.runtime.current().modules().stream()
+            .map(module -> module.type().name())
+            .filter(List.of(METRICS_ID, BOAVIZTA_ID)::contains)
+            .toList();
+        assertEquals(List.of(BOAVIZTA_ID, METRICS_ID), tried);
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void aReorderMustListEachRegisteredModuleOnce()
+    {
+        List<String> modules = listed();
+        List<String> withAnUnknownOne = new ArrayList<>(modules);
+        withAnUnknownOne.add("acme.unknown");
+        List<String> withADuplicate = new ArrayList<>(modules);
+        withADuplicate.add(modules.getFirst());
+
+        given().contentType(ContentType.JSON).body(order(modules.subList(1, modules.size()))).when().put("/api/modules/order").then().statusCode(400);
+        given().contentType(ContentType.JSON).body(order(withADuplicate)).when().put("/api/modules/order").then().statusCode(400);
+        given().contentType(ContentType.JSON).body(order(withAnUnknownOne)).when().put("/api/modules/order").then().statusCode(400);
+        given().contentType(ContentType.JSON).body("{}").when().put("/api/modules/order").then().statusCode(400);
+        given().when().get("/api/modules/deployment").then().body("payload.moved", empty());
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void precedence_tellsWhichFamilyModuleServesEachComponentFirst()
+    {
+        given()
+            .when().get("/api/modules/precedence")
+            .then()
+            .statusCode(200)
+            .body("payload.changed", is(false))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.feature", contains("activity", "impact"))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.deployed", contains(BOAVIZTA_ID));
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void precedence_tellsWhatTheNextRedeployChanges()
+    {
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}").when().put("/api/modules/" + BOAVIZTA_ID).then().statusCode(200);
+
+        given()
+            .when().get("/api/modules/precedence")
+            .then()
+            .statusCode(200)
+            .body("payload.changed", is(true))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.deployed", contains(BOAVIZTA_ID))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.next", empty())
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.changed", is(true));
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void aReorderIsForbiddenToUsers()
+    {
+        given().contentType(ContentType.JSON).body(order(List.of(BOAVIZTA_ID, METRICS_ID)))
+            .when().put("/api/modules/order")
+            .then()
+            .statusCode(403);
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
     void aRedeployIsForbiddenToUsers()
     {
         given().when().post("/api/modules/deployment").then().statusCode(403);
@@ -265,8 +395,11 @@ class ModuleControllerTest
             .body("paths.'/api/modules/{id}'.keySet()", hasItems("get", "put", "delete"))
             .body("paths.'/api/modules/deployment'.keySet()", hasItems("get", "post"))
             .body("paths.'/api/modules/deployment'.post.responses.keySet()", hasItems("201", "409"))
-            .body("components.schemas.ModuleInfo.properties.keySet()", hasItems("type", "enabled", "deployed", "pending", "missing", "source", "assetCount"))
-            .body("components.schemas.DeploymentInfo.properties.keySet()", hasItems("latest", "instances", "pending", "pollIntervalSeconds"))
+            .body("paths.'/api/modules/order'.put.responses.keySet()", hasItems("200", "400"))
+            .body("paths.'/api/modules/precedence'.keySet()", hasItems("get"))
+            .body("components.schemas.ModulePrecedence.properties.keySet()", hasItems("families", "changed"))
+            .body("components.schemas.ModuleInfo.properties.keySet()", hasItems("type", "enabled", "deployed", "pending", "missing", "source", "ordering", "provides", "assetCount"))
+            .body("components.schemas.DeploymentInfo.properties.keySet()", hasItems("latest", "instances", "pending", "moved", "pollIntervalSeconds"))
             .body("components.schemas.Redeployed.properties.keySet()", hasItems("version", "id", "local"))
             .body("components.schemas.InstanceStatus.enum", contains("ok", "failed"));
     }
@@ -343,6 +476,7 @@ class ModuleControllerTest
         given().when().get("/api/modules").then().statusCode(403);
         given().when().get("/api/modules/" + MODULE_ID).then().statusCode(403);
         given().when().get("/api/modules/" + MODULE_ID + "/schema").then().statusCode(403);
+        given().when().get("/api/modules/precedence").then().statusCode(403);
     }
 
     @Test
@@ -351,13 +485,23 @@ class ModuleControllerTest
         KubernetesSimulatedModule module = new KubernetesSimulatedModule();
         ModuleRegistry registry = mock(ModuleRegistry.class);
         AssetSchemaRegistry schemaRegistry = mock(AssetSchemaRegistry.class);
-        when(registry.getModule(MODULE_ID)).thenReturn(Optional.of(ModuleMetadata.core(module.type(), module.assetClass(), true)));
+        when(registry.getModule(MODULE_ID)).thenReturn(Optional.of(ModuleMetadata.core(module, true, null)));
         when(schemaRegistry.getSchema(module.type())).thenReturn(Optional.empty());
         ModuleController controller = new ModuleController(mock(ModuleService.class), registry, schemaRegistry, mock(SecurityIdentity.class));
 
         NotFoundException error = assertThrows(NotFoundException.class, () -> controller.getSchema(MODULE_ID));
 
         assertEquals("No module could be found for id " + MODULE_ID, error.getMessage());
+    }
+
+    private static String order(List<String> modules)
+    {
+        return "{\"modules\": [" + String.join(", ", modules.stream().map(module -> "\"" + module + "\"").toList()) + "]}";
+    }
+
+    private static List<String> listed()
+    {
+        return given().when().get("/api/modules").then().statusCode(200).extract().jsonPath().getList("payload.type.name", String.class);
     }
 
     private String issue(String... permissions)

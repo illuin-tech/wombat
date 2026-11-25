@@ -3,7 +3,8 @@ import type { AssetInfo } from '@/domain/environment'
 import type { ModuleMetadata } from '@/domain/module'
 import { copyCandidates } from './copyCandidates'
 
-const module = (localName: string, extra: Partial<ModuleMetadata> = {}): ModuleMetadata => ({
+const module = (localName: string, extra: Partial<Omit<ModuleMetadata, 'kind' | 'type'>> = {}): ModuleMetadata => ({
+  kind: 'asset',
   type: { namespace: 'n', localName, name: `n.${localName}`, regime: 'MODELED', family: 'LLM' },
   assetClass: 'Asset', enabled: true, creatable: true, ...extra,
 })

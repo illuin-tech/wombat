@@ -18,8 +18,10 @@ import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.DeploymentInfo;
 import tech.illuin.wombat.engine.module.ModuleInfo;
+import tech.illuin.wombat.engine.module.ModulePrecedence;
 import tech.illuin.wombat.engine.module.ModuleService;
 import tech.illuin.wombat.engine.module.registry.ModuleConflictException;
+import tech.illuin.wombat.engine.module.registry.ModuleOrderException;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.UnknownModuleException;
 import tech.illuin.wombat.engine.module.runtime.DeploymentConflictException;
@@ -162,6 +164,45 @@ public class ModuleController
         }
     }
 
+    /**
+     * Sets the order of the modules, which the family modules of a family are tried in; the core follows it once
+     * redeployed.
+     */
+    @PUT
+    @Path("/order")
+    @PermissionsAllowed(Permission.Names.API_MODULE_MANAGE)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(responseCode = "200", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(properties = {
+        @SchemaProperty(name = "status", implementation = Status.class),
+        @SchemaProperty(name = "payload", type = SchemaType.ARRAY, implementation = ModuleInfo.class)
+    })))
+    @APIResponse(responseCode = "400", description = "The order does not list each registered module exactly once")
+    public Response<List<ModuleInfo>> setOrder(@NotNull @Valid ModuleOrderRequest request)
+    {
+        try {
+            return Response.success(this.service.setOrder(request.modules(), this.user()));
+        }
+        catch (ModuleOrderException e) {
+            throw new BadRequestException(e.getMessage());
+        }
+    }
+
+    /**
+     * Which family module serves first, for each family and component, in the latest deployment and in the next one.
+     */
+    @GET
+    @Path("/precedence")
+    @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(responseCode = "200", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(properties = {
+        @SchemaProperty(name = "status", implementation = Status.class),
+        @SchemaProperty(name = "payload", implementation = ModulePrecedence.class)
+    })))
+    public Response<ModulePrecedence> precedence()
+    {
+        return Response.success(this.service.precedence());
+    }
+
     @GET
     @Path("/deployment")
     @Produces(MediaType.APPLICATION_JSON)
@@ -206,5 +247,12 @@ public class ModuleController
 
     public record ModuleUpdateRequest(
         @NotNull @JsonProperty("enabled") @Schema(required = true) Boolean enabled
+    ) {}
+
+    /**
+     * @param modules every registered module, disabled and missing ones included
+     */
+    public record ModuleOrderRequest(
+        @NotNull @JsonProperty("modules") @Schema(required = true) List<String> modules
     ) {}
 }

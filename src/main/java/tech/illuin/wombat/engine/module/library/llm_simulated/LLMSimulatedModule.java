@@ -6,6 +6,8 @@ import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
 
+import java.util.Optional;
+
 public class LLMSimulatedModule implements WombatModule
 {
     public static final AssetType TYPE = AssetType.of("tech.illuin", "wombat-module", "llm-simulated", ActivityRegime.MODELED, ServiceFamily.LLM);
@@ -17,8 +19,8 @@ public class LLMSimulatedModule implements WombatModule
     }
 
     @Override
-    public Class<? extends Asset> assetClass()
+    public Optional<Class<? extends Asset>> assetClass()
     {
-        return LLMSimulatedAsset.class;
+        return Optional.of(LLMSimulatedAsset.class);
     }
 }

@@ -43,17 +43,17 @@ class CoreDeploymentRepositoryTest
     }
 
     @Test
-    void insertNext_takesTheNextVersion_andKeepsTheModules()
+    void insertNext_takesTheNextVersion_andKeepsTheModulesInOrder()
     {
         long latest = this.deployments.findLatest().orElseThrow().version;
 
-        CoreDeploymentEntity next = this.deployments.insertNext(Set.of("a.b", "c.d"), "alice");
+        CoreDeploymentEntity next = this.deployments.insertNext(List.of("c.d", "a.b"), "alice");
         this.inserted.add(next.version);
 
         assertEquals(latest + 1, next.version);
         CoreDeploymentEntity read = this.deployments.findLatest().orElseThrow();
         assertEquals(next.id, read.id);
-        assertEquals(Set.of("a.b", "c.d"), read.enabledModules);
+        assertEquals(List.of("c.d", "a.b"), read.enabledModules);
         assertEquals("alice", read.requestedBy);
     }
 

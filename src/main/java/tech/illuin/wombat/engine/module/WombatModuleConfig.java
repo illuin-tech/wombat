@@ -17,22 +17,9 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAssetProblemHandler;
-import tech.illuin.wombat.core.activity.WombatActivityResolver;
-import tech.illuin.wombat.core.activity.commons.ActivityData;
-import tech.illuin.wombat.core.activity.kubernetes.KubernetesActivityResolver;
-import tech.illuin.wombat.core.activity.llm.LLMActivityResolver;
-import tech.illuin.wombat.core.asset.Asset;
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
-import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
-import tech.illuin.wombat.core.connector.boavizta.impact.BoaviztaEvaluationResolver;
-import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
-import tech.illuin.wombat.core.connector.ecologits.impact.EcologitsEvaluationResolver;
-import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
-import tech.illuin.wombat.core.evaluation.cost.commons.AssetCost;
-import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
-import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.commons.WombatProperties;
+import tech.illuin.wombat.engine.module.extension.AppExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.CoreExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.DynamicExtensionLoader;
@@ -50,37 +37,15 @@ import java.util.List;
 @ApplicationScoped
 public class WombatModuleConfig
 {
-    /* Prices nothing: a cost without amount, until a module brings a cost resolver */
-    private static final WombatEvaluationResolver NOOP_COST_RESOLVER = (Asset asset, ActivityData activity) -> new AssetCost(asset.identity(), null, List.of(), activity.range());
     private static final Logger logger = LoggerFactory.getLogger(WombatModuleConfig.class);
-
-    @Produces @Singleton
-    public static DefaultHandlers provideKubernetesDefaults(KubernetesMetricResolver metricResolver, BoaviztaClient boaviztaClient)
-    {
-        return new DefaultHandlers(
-            ServiceFamily.KUBERNETES_CONTAINER,
-            new KubernetesActivityResolver(metricResolver),
-            new BoaviztaEvaluationResolver(boaviztaClient),
-            NOOP_COST_RESOLVER
-        );
-    }
-
-    @Produces @Singleton
-    public static DefaultHandlers provideLLMDefaults(LLMMetricResolver metricResolver, EcologitsClient ecologitsClient)
-    {
-        return new DefaultHandlers(
-            ServiceFamily.LLM,
-            new LLMActivityResolver(metricResolver),
-            new EcologitsEvaluationResolver(ecologitsClient),
-            NOOP_COST_RESOLVER
-        );
-    }
 
     @Produces @Singleton
     public static ExtensionLoader provideWombatExtensionLoader(WombatProperties wombat)
     {
+        /* Family modules are tried in this order */
         return new CompositeExtensionLoader(
             new CoreExtensionLoader(),
+            new AppExtensionLoader(),
             new DynamicExtensionLoader(wombat.module().extension().path())
         );
     }
@@ -150,24 +115,19 @@ public class WombatModuleConfig
     }
 
     /**
-     * Every detected module is registered, disabled ones too, so their assets are still read as such rather than as
-     * unrecognized ones. Taken from the detected modules rather than the registry, which reads the database: the YAML
-     * mapper is needed at startup, before the migrations run.
+     * Every detected module is registered with its settings, disabled ones too, so their assets are still read as such
+     * rather than as unrecognized ones. Taken from the detected modules rather than the registry, which reads the
+     * database: the YAML mapper is needed at startup, before the migrations run.
      */
     private static <O extends ObjectMapper> void registerSubTypes(List<WombatModule> modules, O mapper)
     {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         mapper.disable(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS);
         mapper.addHandler(new UnrecognizedAssetProblemHandler());
-        modules.forEach(module -> mapper.registerSubtypes(new NamedType(
-            module.assetClass(), module.type().name()
-        )));
+        for (WombatModule module : modules)
+        {
+            module.assetClass().ifPresent(assetClass -> mapper.registerSubtypes(new NamedType(assetClass, module.type().name())));
+            module.settingsClass().ifPresent(settingsClass -> mapper.registerSubtypes(new NamedType(settingsClass, module.type().name())));
+        }
     }
-
-    public record DefaultHandlers(
-        ServiceFamily family,
-        WombatActivityResolver activityResolver,
-        WombatEvaluationResolver impactResolver,
-        WombatEvaluationResolver costResolver
-    ) {}
 }

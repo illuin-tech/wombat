@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -87,6 +88,22 @@ class DynamicExtensionLoaderTest
         }
         catch (IOException e) {
              fail(e);
+        }
+    }
+
+    @Test
+    void loadExtensions_loadsJarsByFileName(@TempDir Path tempDir) throws Exception
+    {
+        /* Created in reverse, so that the creation order is not the one expected */
+        createTestModuleJar(tempDir.resolve("b-module.jar"), CustomLLMTestModule.class, CustomLLMTestAsset.class, CustomLLMTestProfile.class);
+        createTestModuleJar(tempDir.resolve("a-module.jar"), CustomTestModule.class, CustomTestAsset.class);
+
+        try (DynamicExtensionLoader loader = new DynamicExtensionLoader(tempDir))
+        {
+            List<String> names = loader.load().stream()
+                .map(module -> module.type().name())
+                .toList();
+            assertEquals(List.of(CustomTestModule.TYPE.name(), CustomLLMTestModule.TYPE.name()), names);
         }
     }
 
@@ -158,7 +175,7 @@ class DynamicExtensionLoaderTest
             WombatModule module = modules.getFirst();
             assertEquals("tech.custom.llm-module.custom-llm-asset", module.type().name());
 
-            Class<? extends Asset> assetClass = module.assetClass();
+            Class<? extends Asset> assetClass = module.assetClass().orElseThrow();
             Constructor<? extends Asset> constructor = assetClass.getConstructor(String.class);
             Asset asset = constructor.newInstance("asset-1");
 
@@ -260,9 +277,9 @@ class DynamicExtensionLoaderTest
         }
 
         @Override
-        public Class<? extends Asset> assetClass()
+        public Optional<Class<? extends Asset>> assetClass()
         {
-            return CustomTestAsset.class;
+            return Optional.of(CustomTestAsset.class);
         }
     }
 
@@ -275,9 +292,9 @@ class DynamicExtensionLoaderTest
         }
 
         @Override
-        public Class<? extends Asset> assetClass()
+        public Optional<Class<? extends Asset>> assetClass()
         {
-            return CustomTestAsset.class;
+            return Optional.of(CustomTestAsset.class);
         }
     }
 
@@ -313,9 +330,9 @@ class DynamicExtensionLoaderTest
         }
 
         @Override
-        public Class<? extends Asset> assetClass()
+        public Optional<Class<? extends Asset>> assetClass()
         {
-            return CustomLLMTestAsset.class;
+            return Optional.of(CustomLLMTestAsset.class);
         }
     }
 

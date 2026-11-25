@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { shortDeploymentId, type CoreDeploymentStatus, type JsonSchema, type ModuleInfo } from '@/domain/module'
+import { FAMILY_HINTS, REGIME_HINTS } from '@/domain/assetTypeDisplay'
 import { errorText } from '@/services/api/client'
 import { deleteModule, fetchDeployment, fetchModule, fetchModuleSchema, setModuleEnabled } from '@/services/api/modules'
 import { can } from '@/services/auth/permissions'
@@ -10,12 +11,13 @@ import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import NoticeCard from '@/components/NoticeCard.vue'
+import PillHint from '@/components/PillHint.vue'
 import RegimePill from '@/components/RegimePill.vue'
 import SourcePill from '@/components/SourcePill.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import ToggleSwitch from '@/components/ToggleSwitch.vue'
 import SchemaOutline from '@/pages/modules/components/SchemaOutline.vue'
-import { moduleStates, STATE_LABELS } from '@/pages/modules/model/moduleList'
+import { FEATURE_HINTS, FEATURE_LABELS, moduleStates, SOURCE_HINTS, STATE_LABELS } from '@/pages/modules/model/moduleList'
 import { schemaOutline } from '@/pages/modules/model/schemaOutline'
 
 const route = useRoute()
@@ -140,9 +142,27 @@ onMounted(load)
           <dl class="module-facts">
             <dt>Namespace</dt><dd><code class="tech-name">{{ module.type.namespace }}</code></dd>
             <dt>Asset class</dt><dd><code v-if="module.assetClass" class="tech-name">{{ module.assetClass }}</code><template v-else>—</template></dd>
-            <dt>Family</dt><dd><AssetTypeTag :family="module.type.family" /></dd>
-            <dt>Regime</dt><dd><RegimePill :regime="module.type.regime" /></dd>
-            <dt>Source</dt><dd><SourcePill v-if="module.source" :source="module.source" /><template v-else>Unknown</template></dd>
+            <dt>Family</dt><dd><PillHint :hint="FAMILY_HINTS[module.type.family]"><AssetTypeTag :family="module.type.family" /></PillHint></dd>
+            <dt>Regime</dt>
+            <dd>
+              <PillHint v-if="module.kind === 'asset'" :hint="REGIME_HINTS[module.type.regime]"><RegimePill :regime="module.type.regime" /></PillHint>
+              <template v-else>— (serves every asset of its family)</template>
+            </dd>
+            <dt>Provides</dt>
+            <dd>
+              <span v-if="module.provides.length > 0" class="module-states module-provides">
+                <PillHint v-for="feature in module.provides" :key="feature" :hint="FEATURE_HINTS[feature]">
+                  <span class="module-feature" :class="feature">{{ FEATURE_LABELS[feature] }}</span>
+                </PillHint>
+              </span>
+              <template v-else-if="module.source">—</template>
+              <template v-else>Unknown</template>
+            </dd>
+            <dt>Source</dt>
+            <dd>
+              <PillHint v-if="module.source" :hint="SOURCE_HINTS[module.source]"><SourcePill :source="module.source" /></PillHint>
+              <template v-else>Unknown</template>
+            </dd>
             <dt>Assets</dt><dd>{{ module.assetCount }}</dd>
           </dl>
         </div>
@@ -184,7 +204,8 @@ onMounted(load)
           </button>
         </div>
         <div class="module-schema-body">
-          <p v-if="!module.assetClass" class="form-hint">This instance does not detect the module: its schema is not available here.</p>
+          <p v-if="module.kind === 'family'" class="form-hint">A family module defines no asset: it serves every asset of its family.</p>
+          <p v-else-if="!module.assetClass" class="form-hint">This instance does not detect the module: its schema is not available here.</p>
           <span v-else-if="schemaError" class="form-error" role="alert">{{ schemaError }}</span>
           <SkeletonBlock v-else-if="!schema" width="320px" height="14px" />
           <pre v-else-if="showRawSchema" class="schema-raw">{{ rawSchema }}</pre>

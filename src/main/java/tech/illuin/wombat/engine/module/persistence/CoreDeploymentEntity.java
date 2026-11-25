@@ -10,9 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HexFormat;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.List;
 
 /**
  * A core redeploy: the modules every instance builds its core of, as they were enabled when it was requested. Instances
@@ -37,25 +37,29 @@ public class CoreDeploymentEntity
     @Column(name = "requested_by")
     public String requestedBy;
 
-    @Convert(converter = TypeNameSetConverter.class)
+    /**
+     * In the order the core is built in, which is the order the family modules of a family are tried in. The deployments
+     * recorded before that order was kept list their modules by name: they hold no family module, so it is harmless.
+     */
+    @Convert(converter = TypeNameListConverter.class)
     @Column(name = "enabled_modules", nullable = false)
-    public Set<String> enabledModules;
+    public List<String> enabledModules;
 
-    public static CoreDeploymentEntity of(long version, Instant requestedAt, String requestedBy, Set<String> enabledModules)
+    public static CoreDeploymentEntity of(long version, Instant requestedAt, String requestedBy, List<String> enabledModules)
     {
         CoreDeploymentEntity entity = new CoreDeploymentEntity();
         entity.version = version;
         entity.requestedAt = requestedAt;
         entity.requestedBy = requestedBy;
-        entity.enabledModules = new TreeSet<>(enabledModules);
+        entity.enabledModules = new ArrayList<>(enabledModules);
         entity.id = id(version, requestedAt, entity.enabledModules);
         return entity;
     }
 
     /* The version is part of it, so that two deployments of the same modules still get different ids */
-    static String id(long version, Instant requestedAt, Set<String> enabledModules)
+    static String id(long version, Instant requestedAt, List<String> enabledModules)
     {
-        String content = version + "\n" + requestedAt.toEpochMilli() + "\n" + String.join(",", new TreeSet<>(enabledModules));
+        String content = version + "\n" + requestedAt.toEpochMilli() + "\n" + String.join(",", enabledModules);
         try {
             byte[] hash = MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);

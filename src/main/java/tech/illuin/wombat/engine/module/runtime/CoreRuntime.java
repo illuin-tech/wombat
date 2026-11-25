@@ -1,18 +1,13 @@
 package tech.illuin.wombat.engine.module.runtime;
 
-import jakarta.annotation.PreDestroy;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 
-import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -21,25 +16,18 @@ import java.util.stream.Collectors;
  * <p>
  * The app's {@code AssetMonitor} and {@code AssetEvaluator} beans read {@link #current()} on every call, see
  * {@link RuntimeAssetMonitor} and {@link RuntimeAssetEvaluator}, so they follow a swap at once. The replaced deployment
- * is closed after a grace delay, leaving the calls that already hold it time to complete.
+ * is closed through {@code retiredCloser}, which the app delays to leave the calls that already hold it time to
+ * complete.
  */
-@ApplicationScoped
 public class CoreRuntime
 {
     private final CoreDeploymentFactory factory;
     private final Executor retiredCloser;
     private volatile CoreDeployment current;
 
-    private static final Duration CLOSE_GRACE_DELAY = Duration.ofSeconds(60);
     private static final Logger logger = LoggerFactory.getLogger(CoreRuntime.class);
 
-    @Inject
-    public CoreRuntime(CoreDeploymentFactory factory)
-    {
-        this(factory, CompletableFuture.delayedExecutor(CLOSE_GRACE_DELAY.toSeconds(), TimeUnit.SECONDS));
-    }
-
-    CoreRuntime(CoreDeploymentFactory factory, Executor retiredCloser)
+    public CoreRuntime(CoreDeploymentFactory factory, Executor retiredCloser)
     {
         this.factory = factory;
         this.retiredCloser = retiredCloser;
@@ -57,13 +45,13 @@ public class CoreRuntime
     }
 
     /**
-     * Builds a deployment of the requested asset-types and swaps it in. If the build fails, the running deployment is
-     * kept and the exception is thrown. Deployments are applied one at a time, and only forward: a version not newer
-     * than the running one is ignored.
+     * Builds a deployment of the requested modules, in their order, and swaps it in. If the build fails, the running
+     * deployment is kept and the exception is thrown. Deployments are applied one at a time, and only forward: a version
+     * not newer than the running one is ignored.
      *
      * @return the running deployment
      */
-    public synchronized CoreDeployment deploy(long version, String id, Set<String> requested)
+    public synchronized CoreDeployment deploy(long version, String id, List<String> requested)
     {
         CoreDeployment previous = this.current;
         if (previous != null && version <= previous.version())
@@ -82,8 +70,7 @@ public class CoreRuntime
     }
 
     /* Synchronized with deploy, so that a deployment swapped in during shutdown is the one closed */
-    @PreDestroy
-    synchronized void close()
+    public synchronized void close()
     {
         CoreDeployment deployment = this.current;
         if (deployment != null)
@@ -102,13 +89,13 @@ public class CoreRuntime
 
         logger.info("Deployed wombat core {} (#{}) with {} module(s), added {}, removed {}", shortId(next.id()), next.version(), after.size(), added, removed);
         if (!next.missing().isEmpty())
-            logger.warn("Requested asset-types with no module on this instance: {}", next.missing());
+            logger.warn("Requested modules not detected on this instance: {}", next.missing());
     }
 
-    static Set<String> names(Set<AssetType> types)
+    static Set<String> names(Set<ModuleType> types)
     {
         return types.stream()
-            .map(AssetType::name)
+            .map(ModuleType::name)
             .collect(Collectors.toSet());
     }
 

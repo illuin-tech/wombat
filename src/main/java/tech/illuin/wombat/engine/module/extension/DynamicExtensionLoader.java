@@ -73,10 +73,10 @@ public class DynamicExtensionLoader implements ExtensionLoader
 
                 String typeName = module.type().name();
                 if (!seenTypes.add(typeName))
-                    throw new IllegalArgumentException("Duplicate extension module registered for asset-type: " + typeName);
+                    throw new IllegalArgumentException("Duplicate extension module registered under " + typeName);
 
                 modules.add(module);
-                logger.info("Discovered extension module {} for asset-type {}", module.getClass().getName(), typeName);
+                logger.info("Discovered extension module {} under {}", module.getClass().getName(), typeName);
             }
 
             return this.setAndGet(Collections.unmodifiableList(modules));
@@ -100,6 +100,9 @@ public class DynamicExtensionLoader implements ExtensionLoader
             return stream
                 .filter(Files::isRegularFile)
                 .filter(p -> p.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
+                /* By file name rather than the filesystem's order, which may differ between replicas: the order of the
+                   jars is that of their family modules */
+                .sorted()
                 .map(Path::toUri)
                 .map(DynamicExtensionLoader::convertToURL)
                 .filter(Objects::nonNull)

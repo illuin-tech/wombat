@@ -2,56 +2,93 @@ package tech.illuin.wombat.engine.module.registry;
 
 import tech.illuin.wombat.core.module.WombatModule;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A registry of the modules registered on it, none of them missing; its state is lost with it.
+ * A registry of the modules registered on it, listed in registration order, none of them missing; its state is lost
+ * with it. A module is placed last in the order of the modules when registered.
  */
 public class InMemoryModuleRegistry implements ModuleRegistry
 {
-    private final Map<String, ModuleMetadata> modules;
+    private final Map<String, Registration> modules;
 
     public InMemoryModuleRegistry()
     {
-        this.modules = new ConcurrentHashMap<>();
+        this.modules = new LinkedHashMap<>();
     }
 
-    public void registerModule(WombatModule module, boolean enabled)
+    /**
+     * Registers {@code module}, or sets the state of a registered one, which keeps its ordering.
+     */
+    public synchronized void registerModule(WombatModule module, boolean enabled)
     {
-        this.modules.put(module.type().name(), ModuleMetadata.core(module.type(), module.assetClass(), enabled));
-    }
-
-    @Override
-    public List<ModuleMetadata> listModules()
-    {
-        return this.modules.values().stream().toList();
-    }
-
-    @Override
-    public Optional<ModuleMetadata> getModule(String module)
-    {
-        return Optional.ofNullable(this.modules.get(module));
+        Registration registered = this.modules.get(module.type().name());
+        Integer ordering = registered != null ? registered.ordering() : this.nextOrdering();
+        this.modules.put(module.type().name(), new Registration(module, enabled, ordering));
     }
 
     @Override
-    public ModuleMetadata setEnabled(String module, boolean enabled, String user)
+    public synchronized List<ModuleMetadata> listModules()
     {
-        ModuleMetadata current = this.getModule(module)
+        return this.modules.values().stream()
+            .map(Registration::metadata)
+            .toList();
+    }
+
+    @Override
+    public synchronized Optional<ModuleMetadata> getModule(String module)
+    {
+        return Optional.ofNullable(this.modules.get(module))
+            .map(Registration::metadata);
+    }
+
+    @Override
+    public synchronized ModuleMetadata setEnabled(String module, boolean enabled, String user)
+    {
+        Registration registered = Optional.ofNullable(this.modules.get(module))
             .orElseThrow(() -> new UnknownModuleException(module));
-        ModuleMetadata updated = ModuleMetadata.core(current.type(), current.assetClass(), enabled);
+        Registration updated = new Registration(registered.module(), enabled, registered.ordering());
         this.modules.put(module, updated);
-        return updated;
+        return updated.metadata();
+    }
+
+    @Override
+    public synchronized void setOrder(List<String> modules, String user)
+    {
+        ModuleOrderException.check(this.modules.keySet(), modules);
+
+        for (int index = 0; index < modules.size(); index++)
+        {
+            Registration registered = this.modules.get(modules.get(index));
+            this.modules.put(modules.get(index), new Registration(registered.module(), registered.enabled(), index + 1));
+        }
     }
 
     /** No module is missing here, so none can be removed. */
     @Override
-    public void remove(String module)
+    public synchronized void remove(String module)
     {
         if (!this.modules.containsKey(module))
             throw new UnknownModuleException(module);
         throw new ModuleConflictException("Module " + module + " is detected, only a missing module can be removed");
+    }
+
+    private int nextOrdering()
+    {
+        return this.modules.values().stream()
+            .mapToInt(Registration::ordering)
+            .max()
+            .orElse(0) + 1;
+    }
+
+    private record Registration(WombatModule module, boolean enabled, Integer ordering)
+    {
+        ModuleMetadata metadata()
+        {
+            return ModuleMetadata.core(this.module, this.enabled, this.ordering);
+        }
     }
 }

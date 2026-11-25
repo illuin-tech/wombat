@@ -5,13 +5,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.FamilyType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
+import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
+import tech.illuin.wombat.module.ecologits.EcologitsModule;
+import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -19,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -39,6 +47,9 @@ class DbModuleRegistryTest
     private static final String K8S = KubernetesSimulatedModule.TYPE.name();
     private static final String LLM = LLMSimulatedModule.TYPE.name();
     private static final AssetType REMOVED = AssetType.of("acme", "removed", ActivityRegime.MEASURED, ServiceFamily.LLM);
+    private static final String METRICS = KubernetesMetricsModule.TYPE.name();
+    private static final String BOAVIZTA = BoaviztaModule.TYPE.name();
+    private static final FamilyType REMOVED_ESTIMATOR = FamilyType.of("acme", "removed-estimator", ServiceFamily.KUBERNETES_CONTAINER);
 
     private ModuleRepository repository;
     private CoreInstanceRepository instances;
@@ -71,11 +82,61 @@ class DbModuleRegistryTest
     }
 
     @Test
+    void theDetectedModulesAreRegisteredAndListedInDetectionOrder()
+    {
+        List<WombatModule> detected = List.of(new LLMSimulatedModule(), new BoaviztaModule(), new KubernetesSimulatedModule());
+        DbModuleRegistry registry = new DbModuleRegistry(detected, this.repository, this.instances, Path.of("extensions"), Duration.ofSeconds(30));
+        when(this.repository.register(any())).thenReturn(Set.of());
+        when(this.repository.listAll()).thenReturn(List.of());
+
+        registry.onStart(null);
+
+        List<ModuleType> types = detected.stream().map(WombatModule::type).toList();
+        verify(this.repository).register(types);
+        assertEquals(types, registry.listModules().stream().map(ModuleMetadata::type).toList());
+    }
+
+    @Test
     void aFailedRegistrationDoesNotFailTheStartup()
     {
         when(this.repository.register(any())).thenThrow(new PersistenceException("unique constraint violated"));
 
         assertDoesNotThrow(() -> this.registry.onStart(null));
+        assertEquals(Set.of(), this.registry.newlyRegistered());
+    }
+
+    @Test
+    void startupTellsTheModulesItRegisteredForTheFirstTime()
+    {
+        when(this.repository.register(any())).thenReturn(Set.of(LLM));
+
+        this.registry.onStart(null);
+
+        assertEquals(Set.of(LLM), this.registry.newlyRegistered());
+    }
+
+    @Test
+    void aFamilyModuleIsDetected_butOffersNoAssetType()
+    {
+        DbModuleRegistry registry = new DbModuleRegistry(List.of(new BoaviztaModule()), this.repository, this.instances, Path.of("extensions"), Duration.ofSeconds(30));
+
+        ModuleMetadata boavizta = registry.getModule(BoaviztaModule.TYPE).orElseThrow();
+
+        assertEquals(ModuleMetadata.Kind.family, boavizta.kind());
+        assertTrue(boavizta.active());
+        assertNull(boavizta.assetClass());
+        assertFalse(boavizta.creatable());
+    }
+
+    @Test
+    void aFamilyModuleRowKeepsItsType_withoutRegime()
+    {
+        ModuleEntity entity = ModuleEntity.registered(BoaviztaModule.TYPE);
+
+        assertEquals(ModuleMetadata.Kind.family, entity.kind);
+        assertNull(entity.regime);
+        assertEquals(BoaviztaModule.TYPE, entity.type());
+        assertEquals(KubernetesSimulatedModule.TYPE, ModuleEntity.registered(KubernetesSimulatedModule.TYPE).type());
     }
 
     @Test
@@ -209,6 +270,72 @@ class DbModuleRegistryTest
     }
 
     @Test
+    void listModules_tellsTheOrderingOfEachModule_andWhatItProvides()
+    {
+        this.rows(ordered(KubernetesSimulatedModule.TYPE, 1), ordered(KubernetesMetricsModule.TYPE, 2), ordered(BoaviztaModule.TYPE, 3), ordered(REMOVED_ESTIMATOR, 4));
+
+        Map<String, ModuleMetadata> modules = this.kubernetesModules().listModules().stream()
+            .collect(Collectors.toMap(module -> module.type().name(), Function.identity()));
+
+        assertEquals(1, modules.get(K8S).ordering());
+        assertEquals(3, modules.get(BOAVIZTA).ordering());
+        assertEquals(Set.of(Feature.impact), modules.get(BOAVIZTA).provides());
+        assertEquals(Set.of(Feature.activity), modules.get(METRICS).provides());
+        assertEquals(4, modules.get(REMOVED_ESTIMATOR.name()).ordering());
+        assertEquals(Set.of(), modules.get(REMOVED_ESTIMATOR.name()).provides(), "not detected here, so unknown");
+    }
+
+    @Test
+    void setOrder_ordersTheModulesAsGiven_andTellsWhoReorderedThem()
+    {
+        ModuleEntity k8s = ordered(KubernetesSimulatedModule.TYPE, 1);
+        ModuleEntity metrics = ordered(KubernetesMetricsModule.TYPE, 2);
+        ModuleEntity boavizta = ordered(BoaviztaModule.TYPE, 3);
+        this.rows(k8s, metrics, boavizta);
+
+        this.kubernetesModules().setOrder(List.of(BOAVIZTA, K8S, METRICS), "alice");
+
+        assertEquals(List.of(1, 2, 3), List.of(boavizta.ordering, k8s.ordering, metrics.ordering));
+        assertEquals("alice", boavizta.updatedBy);
+        assertEquals("alice", metrics.updatedBy);
+    }
+
+    @Test
+    void setOrder_leavesTheModulesWhichKeepTheirOrdering()
+    {
+        ModuleEntity k8s = ordered(KubernetesSimulatedModule.TYPE, 1);
+        this.rows(k8s, ordered(KubernetesMetricsModule.TYPE, 2), ordered(BoaviztaModule.TYPE, 3));
+
+        this.kubernetesModules().setOrder(List.of(K8S, BOAVIZTA, METRICS), "alice");
+
+        assertEquals(1, k8s.ordering);
+        assertNull(k8s.updatedBy);
+    }
+
+    @Test
+    void setOrder_registersADetectedModuleWithoutRow()
+    {
+        this.rows(ordered(KubernetesSimulatedModule.TYPE, 1), ordered(BoaviztaModule.TYPE, 2));
+
+        this.kubernetesModules().setOrder(List.of(K8S, BOAVIZTA, METRICS), "alice");
+
+        verify(this.repository).persist(argThat((ModuleEntity entity) -> entity.typeName.equals(METRICS) && entity.ordering == 3));
+    }
+
+    @Test
+    void setOrder_mustListEachRegisteredModuleOnce_missingOnesIncluded()
+    {
+        this.rows(ordered(KubernetesSimulatedModule.TYPE, 1), ordered(KubernetesMetricsModule.TYPE, 2), ordered(BoaviztaModule.TYPE, 3), ordered(REMOVED_ESTIMATOR, 4));
+        DbModuleRegistry registry = this.kubernetesModules();
+        String removed = REMOVED_ESTIMATOR.name();
+
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(BOAVIZTA, METRICS, K8S), "alice"));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(BOAVIZTA, METRICS, K8S, K8S), "alice"));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(BOAVIZTA, METRICS, K8S, removed, EcologitsModule.TYPE.name()), "alice"));
+        assertDoesNotThrow(() -> registry.setOrder(List.of(removed, BOAVIZTA, METRICS, K8S), "alice"));
+    }
+
+    @Test
     void remove_onAnUnknownModuleIsNotFound()
     {
         assertThrows(UnknownModuleException.class, () -> this.registry.remove("acme.unknown"));
@@ -227,5 +354,32 @@ class DbModuleRegistryTest
         ModuleEntity entity = ModuleEntity.registered(type);
         entity.enabled = enabled;
         return entity;
+    }
+
+    private static ModuleEntity ordered(ModuleType type, int ordering)
+    {
+        ModuleEntity entity = ModuleEntity.registered(type);
+        entity.ordering = ordering;
+        return entity;
+    }
+
+    /* Listed, and found by name */
+    private void rows(ModuleEntity... rows)
+    {
+        when(this.repository.listAll()).thenReturn(List.of(rows));
+        for (ModuleEntity row : rows)
+            when(this.repository.findById(row.typeName)).thenReturn(row);
+    }
+
+    /* Detects an asset-type of the Kubernetes family, and the two family modules Wombat ships for it */
+    private DbModuleRegistry kubernetesModules()
+    {
+        return new DbModuleRegistry(
+            List.of(new KubernetesSimulatedModule(), new KubernetesMetricsModule(), new BoaviztaModule()),
+            this.repository,
+            this.instances,
+            Path.of("extensions"),
+            Duration.ofSeconds(30)
+        );
     }
 }

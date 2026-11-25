@@ -1,7 +1,7 @@
-import type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, Redeployed } from '@/domain/module'
+import type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, ModulePrecedence, Redeployed } from '@/domain/module'
 import { request, type StatusMessages } from '@/services/api/client'
 
-export type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, Redeployed } from '@/domain/module'
+export type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, ModulePrecedence, Redeployed } from '@/domain/module'
 
 const MODULE_MESSAGES: StatusMessages = {
   403: 'You are not allowed to manage modules.',
@@ -35,12 +35,26 @@ export function setModuleEnabled(type: string, enabled: boolean): Promise<Module
   })
 }
 
+/** Sets the order of the modules, given every registered one: the core follows on redeploy. Returns them in their new order. */
+export function setModuleOrder(modules: string[]): Promise<ModuleInfo[]> {
+  return request<ModuleInfo[]>('/api/modules/order', {
+    method: 'PUT',
+    body: { modules },
+    messages: { ...MODULE_MESSAGES, 400: 'The modules changed in the meantime: reload the page, then move the module again.' },
+  })
+}
+
 /** Forgets a missing module. */
 export function deleteModule(type: string): Promise<void> {
   return request<void>(modulePath(type), {
     method: 'DELETE',
     messages: { ...MODULE_MESSAGES, 409: 'An instance detects this module again: only a missing module can be deleted.' },
   })
+}
+
+/** Which family module serves first, for each family and component, deployed and after the next redeploy. */
+export function fetchPrecedence(): Promise<ModulePrecedence> {
+  return request<ModulePrecedence>('/api/modules/precedence')
 }
 
 export function fetchDeployment(): Promise<CoreDeploymentStatus> {

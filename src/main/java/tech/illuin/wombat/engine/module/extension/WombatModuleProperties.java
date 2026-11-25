@@ -19,6 +19,14 @@ public interface WombatModuleProperties
         @WithName("path")
         @WithDefault("extensions")
         Path path();
+
+        /**
+         * Whether the modules of an extension jar seen for the first time go live at that startup, or wait for a
+         * redeploy. The modules the app ships always go live, so that an upgrade leaves nothing unserved.
+         */
+        @WithName("auto-deploy")
+        @WithDefault("true")
+        boolean autoDeploy();
     }
 
     interface DeploymentProperties

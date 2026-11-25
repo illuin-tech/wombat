@@ -23,13 +23,15 @@ const READER = ['ui.modules.read']
 const MANAGER = ['ui.modules.read', 'ui.modules.manage', 'api.module.manage']
 
 const anthropic: ModuleInfo = {
+  kind: 'asset',
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-anthropic', name: 'tech.illuin.wombat-module.llm-anthropic', regime: 'MEASURED', family: 'LLM' },
-  assetClass: 'tech.illuin.LLMAnthropicAsset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core', assetCount: 3,
+  assetClass: 'tech.illuin.LLMAnthropicAsset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core',
+  ordering: 1, provides: ['source', 'activity'], assetCount: 3,
 }
 
 const deployment: CoreDeploymentStatus = {
   latest: { version: 7, id: 'a3f9c21e8b0d', requestedAt: '2026-11-20T14:02:00Z', requestedBy: null, modules: [anthropic.type.name] },
-  instances: [], pending: [], pollIntervalSeconds: 30,
+  instances: [], pending: [], moved: [], pollIntervalSeconds: 30,
 }
 
 let wrapper: VueWrapper
@@ -74,6 +76,22 @@ describe('ModulePage', () => {
     expect(wrapper.find('.page-title').text()).toBe('llm-anthropic')
     expect(wrapper.find('.module-facts').text()).toContain('tech.illuin.LLMAnthropicAsset')
     expect(wrapper.find('.module-core-line').text()).toBe('Running in core a3f9c21 on this instance')
+  })
+
+  it('tells what the module provides, or that this instance cannot tell', async () => {
+    await render(READER)
+
+    const features = wrapper.findAll('.module-provides .module-feature')
+    expect(features.map(feature => feature.text())).toEqual(['Source', 'Activity'])
+    expect(features.map(feature => feature.classes())).toEqual([['module-feature', 'source'], ['module-feature', 'activity']])
+
+    await wrapper.findAll('.module-provides .pill-hint')[1].trigger('mouseenter')
+    expect(document.querySelector('.pill-hint-bubble')!.textContent).toContain('Resolves what the assets did over a time range')
+
+    wrapper.unmount()
+    await render(READER, { ...anthropic, source: null, assetClass: null, provides: [] })
+    expect(wrapper.find('.module-provides').exists()).toBe(false)
+    expect(wrapper.find('.module-facts').text()).toMatch(/Provides\s*Unknown/)
   })
 
   it('shows the toggle to managers only', async () => {

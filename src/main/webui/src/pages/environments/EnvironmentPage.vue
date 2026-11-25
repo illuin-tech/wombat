@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { byDisplayName, displayName, type AssetInfo, type AssetType, type EnvironmentInfo } from '@/domain/environment'
-import type { ModuleMetadata } from '@/domain/module'
+import { byDisplayName, displayName, type AssetInfo, type EnvironmentInfo } from '@/domain/environment'
+import { assetTypesByName, type ModuleMetadata } from '@/domain/module'
 import { createAsset, deleteAsset, updateAsset } from '@/services/api/assets'
 import { errorText } from '@/services/api/client'
 import {
@@ -85,7 +85,7 @@ const assetAdapter = computed<AssetEditorAdapter | null>(() => {
 const deleteBlockedReason = computed(() => assets.value.length > 0
   ? `Delete its ${assets.value.length} asset${assets.value.length === 1 ? '' : 's'} first to delete this environment`
   : null)
-const typesByName = computed(() => new Map<string, AssetType>(modules.value.map(module => [module.type.name, module.type])))
+const typesByName = computed(() => assetTypesByName(modules.value))
 
 const idProblem = computed(() => creating.value ? idError(id.value) : null)
 const nameProblem = computed(() => nameError(form.name))

@@ -35,7 +35,7 @@ Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI a
 API hubs include:
 * `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary, and `api/simulation/sandbox` for the simulations kept by Wombat: see [simulations](doc/simulations.md)
-* `api/modules` is for listing and managing registered `WombatModules` and their asset types: see [modules](doc/modules.md)
+* `api/modules` is for listing, ordering and managing registered `WombatModules` and their asset types: see [modules](doc/modules.md)
 * `api/environments` is for getting information about active environments
 * `api/metrics` is for pushing sampled metrics from worker instances to an aggregator, see [distributed setup](doc/distributed.md)
 * `api/secrets` provides admin-only management of the optional encrypted database secret store; see [secret management](doc/secret-management.md)
@@ -196,20 +196,20 @@ flowchart LR
     class FINOPS_RESULT finopsStyle
 ```
 
-Here is a list of the current integrations shipped as core-modules or defaults:
+Here is a list of the current integrations shipped as core modules. Asset-type modules each define a kind of asset, family modules serve every asset of their family:
 
-| Module                                            | Family        | Description                                                                                                                                   |
-|---------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-| `tech.illuin.wombat-module.kubernetes-api`        | K8S Container | Connects to Kubernetes cluster APIs to poll CPU and memory resource metrics.                                                                  |
-| `tech.illuin.wombat-module.kubernetes-static`     | K8S Container | Models static Kubernetes container workloads using node counts and superposed temporal scenarios.                                             |
-| `tech.illuin.wombat-module.llm-prometheus`        | LLM Service   | Queries Prometheus via PromQL for LLM inference telemetry.                                                                                    |
-| `tech.illuin.wombat-module.llm-static`            | LLM Service   | Models static LLM workloads from a yearly request volume per model, shaped by temporal scenarios.                                             |
-| `tech.illuin.wombat-module.llm-anthropic`         | LLM Service   | Queries the Anthropic Admin usage report for per-model token usage over the evaluated time range.                                             |
-| `tech.illuin.wombat-module.llm-vertexai`          | LLM Service   | Queries the VertexAI metrics API for per-model token usage over the evaluated time range.                                                     |
-| Default component: BoaviztAPI impact resolver     | K8S Container | Estimates multi-criteria environmental impacts (GHG emissions, primary energy, abiotic depletion) for server workloads using the Boavizta API |
-| Default component: Ecologits impact resolver      | LLM Service   | Estimates multi-criteria environmental footprints for AI/LLM inferences using EcoLogits                                                       |
-| Default component: Store-backed Activity Resolver | K8S Container | Aggregates container and node activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                           |
-| Default component: Store-backed Activity Resolver | LLM Service   | Aggregates LLM service activity metrics from a metric store (SQLite, Postgres, Micrometer..)                                                  |
+| Module                                                  | Family        | Description                                                                                                                                   |
+|---------------------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `tech.illuin.wombat-module.kubernetes-api`              | K8S Container | Connects to Kubernetes cluster APIs to poll CPU and memory resource metrics.                                                                  |
+| `tech.illuin.wombat-module.kubernetes-static`           | K8S Container | Models static Kubernetes container workloads using node counts and superposed temporal scenarios.                                             |
+| `tech.illuin.wombat-module.llm-prometheus`              | LLM Service   | Queries Prometheus via PromQL for LLM inference telemetry.                                                                                    |
+| `tech.illuin.wombat-module.llm-static`                  | LLM Service   | Models static LLM workloads from a yearly request volume per model, shaped by temporal scenarios.                                             |
+| `tech.illuin.wombat-module.llm-anthropic`               | LLM Service   | Queries the Anthropic Admin usage report for per-model token usage over the evaluated time range.                                             |
+| `tech.illuin.wombat-module.llm-vertexai`                | LLM Service   | Queries the VertexAI metrics API for per-model token usage over the evaluated time range.                                                     |
+| `tech.illuin.wombat-module.boavizta` (family)           | K8S Container | Estimates multi-criteria environmental impacts (GHG emissions, primary energy, abiotic depletion) for server workloads using the Boavizta API |
+| `tech.illuin.wombat-module.ecologits` (family)          | LLM Service   | Estimates multi-criteria environmental footprints for AI/LLM inferences using EcoLogits                                                       |
+| `tech.illuin.wombat-module.kubernetes-metrics` (family) | K8S Container | Aggregates the container and node activity metrics sourced into the metric store (SQLite, Postgres, Micrometer..)                             |
+| `tech.illuin.wombat-module.llm-metrics` (family)        | LLM Service   | Aggregates the LLM service activity metrics sourced into the metric store (SQLite, Postgres, Micrometer..)                                    |
 
 More information on each of these modules can be found [in the `wombat-core` documentation](https://github.com/illuin-tech/wombat-core#core-modules).
 
@@ -273,14 +273,18 @@ Wombat allows user to provide custom modules built with `wombat-core` (see [repo
 Custom modules are loaded **_at startup_** from every JAR found in `wombat.module.extension.path`
 (defaults to `extensions`, relative to the working directory). Override it with `-Dwombat.module.extension.path=...` or `WOMBAT_MODULE_EXTENSION_PATH=...`.
 A JAR added later is only loaded after a restart. Once loaded, a module is enabled; it is turned off, and the core
-redeployed, from **Settings > Modules**: see [modules](doc/modules.md).
+redeployed, from **Settings > Modules**: see [modules](doc/modules.md). A module seen for the first time goes live at
+that startup, unless `wombat.module.extension.auto-deploy` is `false` (`WOMBAT_MODULE_EXTENSION_AUTO_DEPLOY=false`): it
+then waits for a redeploy. The modules of the JARs come after those Wombat ships, in the order of the JAR file names: a
+family module of an extension is only tried after those of Wombat, until moved up from Settings > Modules, see
+[the order of the modules](doc/modules.md#the-order-of-the-modules).
 
 When starting up the app with a custom extension, you should see logs like these:
 
 ```
 2026-10-01 16:42:56,837 INFO  [tech.illuin.wombat.module.extension.DynamicExtensionLoader] (Quarkus Main Thread) Loading extensions from /path/to/extensions (1 jar(s))
-2026-10-01 16:42:56,839 INFO  [tech.illuin.wombat.module.extension.DynamicExtensionLoader] (Quarkus Main Thread) Discovered extension module tech.illuin.wombat.module.simulator.k8s.KubernetesSimulatorModule for asset-type tech.illuin.wombat-simulator.kubernetes
-2026-10-01 16:42:56,839 INFO  [tech.illuin.wombat.module.extension.DynamicExtensionLoader] (Quarkus Main Thread) Discovered extension module tech.illuin.wombat.module.simulator.llm.LLMSimulatorModule for asset-type tech.illuin.wombat-simulator.llm
+2026-10-01 16:42:56,839 INFO  [tech.illuin.wombat.module.extension.DynamicExtensionLoader] (Quarkus Main Thread) Discovered extension module tech.illuin.wombat.module.simulator.k8s.KubernetesSimulatorModule under tech.illuin.wombat-simulator.kubernetes
+2026-10-01 16:42:56,839 INFO  [tech.illuin.wombat.module.extension.DynamicExtensionLoader] (Quarkus Main Thread) Discovered extension module tech.illuin.wombat.module.simulator.llm.LLMSimulatorModule under tech.illuin.wombat-simulator.llm
 2026-10-01 16:42:56,839 INFO  [tech.illuin.wombat.module.WombatModuleConfig] (Quarkus Main Thread) Wiring 6 wombat module(s): [KubernetesSimulatedModule, LLMSimulatedModule, LLMStaticModule, KubernetesAPIModule, KubernetesSimulatorModule, LLMSimulatorModule]
 ```
 

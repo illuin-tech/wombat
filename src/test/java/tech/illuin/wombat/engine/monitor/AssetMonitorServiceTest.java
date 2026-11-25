@@ -8,6 +8,9 @@ import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.asset.profile.LLMProvider;
 import tech.illuin.wombat.core.context.ResolvedContext;
 import tech.illuin.wombat.core.context.WombatContextProvider;
+import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
+import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
+import tech.illuin.wombat.core.module.MetricResolvers;
 import tech.illuin.wombat.core.module.WombatServices;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.source.AssetMonitor;
@@ -28,10 +31,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static tech.illuin.wombat.core.activity.commons.Country.FRANCE;
+import static org.mockito.Mockito.mock;
 
 class AssetMonitorServiceTest
 {
     private static final long DEFAULT_HEARTBEAT_SECONDS = 1;
+    private static final WombatServices SERVICES = new WombatServices(
+        SecretResolver.standard(),
+        new MetricResolvers(mock(KubernetesMetricResolver.class), mock(LLMMetricResolver.class)),
+        List.of()
+    );
 
     @Test
     void assetPeriodLesserOrEqualToHeartbeat_runsOnEveryHeartbeat() throws InterruptedException
@@ -142,7 +151,7 @@ class AssetMonitorServiceTest
         RecordingSource source = new RecordingSource();
         try (AssetMonitor monitor = new AssetMonitor(
             contextOf(prometheus("orphan", Period.ZERO)),
-            new WombatServices(SecretResolver.standard()),
+            SERVICES,
             (asset, type, metrics) -> {}
         )) {
             beat(monitor, 3, DEFAULT_HEARTBEAT_SECONDS);
@@ -153,7 +162,7 @@ class AssetMonitorServiceTest
 
     private static AssetMonitor monitorFor(RecordingSource source, LLMPrometheusAsset... assets)
     {
-        AssetMonitor monitor = new AssetMonitor(contextOf(assets), new WombatServices(SecretResolver.standard()), (asset, type, metrics) -> {});
+        AssetMonitor monitor = new AssetMonitor(contextOf(assets), SERVICES, (asset, type, metrics) -> {});
         monitor.register(assets[0].type(), (services, asset) -> source);
         return monitor;
     }

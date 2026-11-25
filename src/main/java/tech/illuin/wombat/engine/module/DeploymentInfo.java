@@ -8,19 +8,27 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The core deployment as the API serves it: the latest one requested, which instances run it, and the toggles it does
- * not hold yet.
+ * The core deployment as the API serves it: the latest one requested, which instances run it, and the toggles and the
+ * order of the modules it does not hold yet.
  *
- * @param pending             the modules whose registry state the latest deployment does not hold yet
+ * @param pending             the modules whose toggle the latest deployment does not hold yet
+ * @param moved               the modules the latest deployment holds at another place than the registry's order: the
+ *                            fewest which, moved, give that order
  * @param pollIntervalSeconds how often instances poll for the latest deployment
  */
-public record DeploymentInfo(LatestDeployment latest, List<CoreInstance> instances, List<PendingModule> pending, long pollIntervalSeconds)
-{
+public record DeploymentInfo(
+    LatestDeployment latest,
+    List<CoreInstance> instances,
+    List<PendingModule> pending,
+    List<String> moved,
+    long pollIntervalSeconds
+) {
     /**
      * @param id      the full hash: clients shorten it to 7 characters, like a commit id
-     * @param modules the modules enabled when it was requested
+     * @param modules the modules enabled when it was requested, in the order the core is built in, which is the order
+     *                the family modules of a family are tried in
      */
-    public record LatestDeployment(long version, String id, Instant requestedAt, String requestedBy, Set<String> modules) {}
+    public record LatestDeployment(long version, String id, Instant requestedAt, String requestedBy, List<String> modules) {}
 
     /**
      * @param deployedId null if the deployment the instance runs is unknown here

@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
-import tech.illuin.wombat.core.connector.boavizta.connector.BoaviztaClient;
-import tech.illuin.wombat.core.connector.ecologits.connector.EcologitsClient;
+import tech.illuin.wombat.core.module.ModuleSettings;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
+import tech.illuin.wombat.module.boavizta.BoaviztaSettings;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -147,25 +148,15 @@ class WombatModuleConfigTest
     }
 
     @Test
-    void provideDefaults_createsHandlersForFamilies()
+    void provideMappers_readModuleSettingsByModuleName() throws Exception
     {
-        KubernetesMetricResolver k8sResolver = mock(KubernetesMetricResolver.class);
-        BoaviztaClient boaviztaClient = mock(BoaviztaClient.class);
-        WombatModuleConfig.DefaultHandlers k8sHandlers = WombatModuleConfig.provideKubernetesDefaults(k8sResolver, boaviztaClient);
+        JsonMapper jsonMapper = this.config.provideJsonMapper(List.of(new KubernetesAPIModule(), new BoaviztaModule()));
 
-        assertEquals(ServiceFamily.KUBERNETES_CONTAINER, k8sHandlers.family());
-        assertNotNull(k8sHandlers.activityResolver());
-        assertNotNull(k8sHandlers.impactResolver());
-        assertNotNull(k8sHandlers.costResolver());
+        ModuleSettings settings = jsonMapper.readValue("""
+            {"type": "tech.illuin.wombat-module.boavizta", "uri": "http://boaviztapi:5000/v1/"}
+            """, ModuleSettings.class);
 
-        LLMMetricResolver llmResolver = mock(LLMMetricResolver.class);
-        EcologitsClient ecologitsClient = mock(EcologitsClient.class);
-        WombatModuleConfig.DefaultHandlers llmHandlers = WombatModuleConfig.provideLLMDefaults(llmResolver, ecologitsClient);
-
-        assertEquals(ServiceFamily.LLM, llmHandlers.family());
-        assertNotNull(llmHandlers.activityResolver());
-        assertNotNull(llmHandlers.impactResolver());
-        assertNotNull(llmHandlers.costResolver());
+        assertEquals(new BoaviztaSettings("http://boaviztapi:5000/v1/", null), settings);
     }
 
     private static WombatProperties wombatProperties()
@@ -199,7 +190,14 @@ class WombatModuleConfigTest
                 return new WombatModuleProperties()
                 {
                     @Override
-                    public WombatModuleProperties.ExtensionProperties extension() { return () -> Path.of("extensions"); }
+                    public WombatModuleProperties.ExtensionProperties extension()
+                    {
+                        return new WombatModuleProperties.ExtensionProperties()
+                        {
+                            @Override public Path path() { return Path.of("extensions"); }
+                            @Override public boolean autoDeploy() { return true; }
+                        };
+                    }
                     @Override public WombatModuleProperties.DeploymentProperties deployment() { return null; }
                 };
             }

@@ -14,9 +14,10 @@ final class ExtensionContractCheck
     static Optional<String> check(WombatModule module)
     {
         if (module.type() == null || module.type().name().isBlank())
-            throw new IllegalArgumentException("Extension module " + module.getClass().getName() + " has invalid AssetType");
-        if (module.assetClass() == null)
-            throw new IllegalArgumentException("Extension module " + module.getClass().getName() + " has null assetClass");
+            throw new IllegalArgumentException("Extension module " + module.getClass().getName() + " has invalid type");
+        if (module.assetClass() == null || module.settingsClass() == null)
+            throw new IllegalArgumentException("Extension module " + module.getClass().getName() + " has null assetClass or settingsClass, expected an Optional");
+        /* Whether the asset class matches the type is checked by the core, which registers the module */
 
         return Optional.empty();
     }

@@ -1,15 +1,50 @@
-/* Settings > Modules: the module states, the running core and its instances, the redeploy */
+/* Settings > Modules: the module states and their order, the running core and its instances, the redeploy */
 
 .module-states { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.module-state { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
+.module-state, .module-feature { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
 .module-state.enabled { background: var(--accent-green-soft); color: var(--accent-green); }
 .module-state.disabled { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
 .module-state.pending { background: var(--accent-yellow-soft); color: var(--accent-yellow); }
 .module-state.missing { background: transparent; color: var(--accent-orange); border: 1px solid rgba(234,88,12,0.35); }
+/* What a module provides, one colour per kind of component */
+.module-feature.source { background: var(--accent-blue-soft); color: var(--accent-blue); }
+.module-feature.activity { background: var(--accent-orange-soft); color: var(--accent-orange); }
+.module-feature.impact { background: var(--accent-green-soft); color: var(--accent-green); }
+.module-feature.cost { background: var(--accent-yellow-soft); color: var(--accent-yellow); }
 
 .module-row-name { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .module-source { font-size: 12px; color: var(--text-muted); }
+.module-order { display: inline-flex; gap: 2px; margin-right: 8px; vertical-align: middle; }
+.module-move { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text-muted); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.module-move:hover:not(:disabled), .module-move:focus-visible { color: var(--text); border-color: var(--border); background: var(--surface2); outline: none; }
+.module-move:disabled { opacity: 0.3; cursor: default; }
 .module-pending-banner { background: var(--accent-yellow-soft); color: var(--text); border: 1px solid var(--accent-yellow); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; }
+
+/* Which family module serves first, as deployed and, while a change is pending, after the redeploy */
+.precedence { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; box-shadow: var(--shadow-sm); }
+.precedence-title { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); }
+.precedence-panels { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.precedence-panels.changed { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.precedence-arrow { align-self: center; font-size: 22px; color: var(--text-muted); }
+.precedence-panel { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+.precedence-panels.changed .precedence-panel { flex-direction: column; }
+.precedence-panel.next { border-left: 3px solid var(--accent-yellow); padding-left: 12px; }
+.precedence-panel-title { width: 100%; margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-dim); }
+.precedence-family { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.precedence-rows { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.precedence-row { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 10px; padding: 3px 8px; border-radius: var(--radius-sm); font-size: 13px; }
+.precedence-row > .pill-hint { justify-self: start; }
+.precedence-row.changed { background: var(--accent-yellow-soft); }
+.precedence-first { color: var(--text); }
+.precedence-chain { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.precedence-stage { font-weight: 600; white-space: nowrap; }
+.precedence-stage.own { font-weight: 400; font-style: italic; color: var(--text-muted); }
+.precedence-chain-arrow { color: var(--text-muted); }
+.precedence-then { color: var(--text-muted); }
+@media (max-width: 720px) {
+  .precedence-panels.changed { grid-template-columns: minmax(0, 1fr); }
+  .precedence-arrow { justify-self: center; transform: rotate(90deg); }
+}
 
 .core-status { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; box-shadow: var(--shadow-sm); font-size: 13px; }
 .core-status-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }

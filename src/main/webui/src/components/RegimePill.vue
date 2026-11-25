@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { inject } from 'vue'
 import { REGIME_LABELS } from '@/domain/assetTypeDisplay'
 import type { ActivityRegime } from '@/domain/environment'
+import { IN_PILL_HINT } from '@/components/PillHint.vue'
 
 defineProps<{ regime: ActivityRegime }>()
+const inHint = inject(IN_PILL_HINT, false)
 
 const TITLES: Record<ActivityRegime, string> = {
   MEASURED: 'Its activity is measured on a running system',
@@ -12,7 +15,7 @@ const TITLES: Record<ActivityRegime, string> = {
 </script>
 
 <template>
-  <span class="icon-pill" :class="regime.toLowerCase()" :title="TITLES[regime]">
+  <span class="icon-pill" :class="regime.toLowerCase()" :title="inHint ? undefined : TITLES[regime]">
     <svg v-if="regime === 'MEASURED'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z" />
       <path d="m14.5 12.5 2-2" />

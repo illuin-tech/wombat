@@ -1,6 +1,6 @@
 package tech.illuin.wombat.engine.module.runtime;
 
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.source.AssetMonitor;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * @param version           the deployment's place in the sequence every instance converges on
  * @param id                the deployment's hash, shown shortened like a commit id
  * @param modules           the module instances wired in, shared with the other deployments
- * @param missing           the requested asset-types that no module detected on this instance provides
+ * @param missing           the requested modules that no module detected on this instance provides
  * @param evaluator         the evaluator the app serves, cached when the evaluator cache is enabled
  * @param evaluatorSupplier builds evaluators out of the same modules, see {@link #newEvaluator()}
  */
@@ -47,7 +47,7 @@ public record CoreDeployment(
         return this.evaluatorSupplier.get();
     }
 
-    public Set<AssetType> types()
+    public Set<ModuleType> types()
     {
         return this.modules.stream()
             .map(WombatModule::type)

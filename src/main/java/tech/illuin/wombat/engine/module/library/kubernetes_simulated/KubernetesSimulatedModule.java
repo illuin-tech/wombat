@@ -6,6 +6,8 @@ import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
 
+import java.util.Optional;
+
 public class KubernetesSimulatedModule implements WombatModule
 {
     public static final AssetType TYPE = AssetType.of("tech.illuin", "wombat-module", "kubernetes-simulated", ActivityRegime.MODELED, ServiceFamily.KUBERNETES_CONTAINER);
@@ -17,8 +19,8 @@ public class KubernetesSimulatedModule implements WombatModule
     }
 
     @Override
-    public Class<? extends Asset> assetClass()
+    public Optional<Class<? extends Asset>> assetClass()
     {
-        return KubernetesSimulatedAsset.class;
+        return Optional.of(KubernetesSimulatedAsset.class);
     }
 }

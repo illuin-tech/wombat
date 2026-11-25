@@ -21,6 +21,7 @@ import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +44,7 @@ public class CoreDeploymentService
     private final String instanceId;
     private final Duration pollInterval;
     private final boolean heartbeat;
+    private final boolean autoDeployExtensions;
     /* The latest version that failed to build here: the poll does not retry it, a newer one is needed */
     private volatile Failure failure;
 
@@ -68,7 +70,8 @@ public class CoreDeploymentService
             wombat.module().deployment().instanceId(),
             wombat.module().deployment().pollInterval(),
             /* A worker has no API nor UI to show its heartbeat, nor replicas to converge with */
-            wombat.mode() != NodeMode.worker
+            wombat.mode() != NodeMode.worker,
+            wombat.module().extension().autoDeploy()
         );
     }
 
@@ -80,7 +83,8 @@ public class CoreDeploymentService
         List<WombatModule> modules,
         String instanceId,
         Duration pollInterval,
-        boolean heartbeat
+        boolean heartbeat,
+        boolean autoDeployExtensions
     ) {
         this.runtime = runtime;
         this.registry = registry;
@@ -90,6 +94,7 @@ public class CoreDeploymentService
         this.instanceId = instanceId;
         this.pollInterval = pollInterval;
         this.heartbeat = heartbeat;
+        this.autoDeployExtensions = autoDeployExtensions;
     }
 
     /**
@@ -98,7 +103,11 @@ public class CoreDeploymentService
      */
     void onStart(@Observes @Priority(STARTUP_PRIORITY_DEPLOY) StartupEvent event)
     {
-        CoreDeploymentEntity latest = this.deployments.findLatest().orElseGet(this::bootstrap);
+        CoreDeploymentEntity recorded = this.deployments.findLatest().orElseGet(this::bootstrap);
+        List<String> joining = this.newModulesGoingLive().stream()
+            .filter(name -> !recorded.enabledModules.contains(name))
+            .toList();
+        CoreDeploymentEntity latest = joining.isEmpty() ? recorded : this.join(recorded, joining);
         this.runtime.deploy(latest.version, latest.id, latest.enabledModules);
         this.writeHeartbeat();
     }
@@ -178,6 +187,40 @@ public class CoreDeploymentService
         }
     }
 
+    /**
+     * The modules registered for the first time at this startup that go live at once, in the registry's order: those
+     * the app ships always do, those of extension jars unless {@code wombat.module.extension.auto-deploy} is off. The
+     * others wait for a redeploy, as a toggle does.
+     */
+    private List<String> newModulesGoingLive()
+    {
+        Set<String> newlyRegistered = this.registry.newlyRegistered();
+        return this.registry.listModules().stream()
+            .filter(module -> newlyRegistered.contains(module.type().name()))
+            .filter(module -> this.autoDeployExtensions || module.source() != ModuleMetadata.Source.extension)
+            .map(module -> module.type().name())
+            .toList();
+    }
+
+    /**
+     * Records a deployment adding the modules registered for the first time at this startup: a module with no row is
+     * enabled, so a new one runs without waiting for a redeploy. They are appended to the latest deployment's modules
+     * rather than taken in the registry's order, so that a startup applies no reorder that was not redeployed. Another
+     * instance may record one at the same time: its deployment is then the one taken.
+     */
+    private CoreDeploymentEntity join(CoreDeploymentEntity latest, List<String> joining)
+    {
+        logger.info("Deploying {} newly registered module(s) along with wombat core {}: {}", joining.size(), CoreRuntime.shortId(latest.id), joining);
+        List<String> modules = new ArrayList<>(latest.enabledModules);
+        modules.addAll(joining);
+        try {
+            return this.deployments.insertNext(modules, null);
+        }
+        catch (PersistenceException e) {
+            return this.deployments.findLatest().orElseThrow(() -> e);
+        }
+    }
+
     /* A build failure is reported rather than thrown: the running deployment is kept, and the heartbeat tells it */
     @SuppressWarnings("IllegalCatch")
     private DeployResult deployHere(CoreDeploymentEntity deployment)
@@ -217,12 +260,16 @@ public class CoreDeploymentService
         this.instances.upsert(entity);
     }
 
-    private Set<String> enabledModules()
+    /**
+     * The modules the registry enables, in the order of the modules.
+     */
+    private List<String> enabledModules()
     {
         return this.registry.listModules().stream()
             .filter(ModuleMetadata::enabled)
+            .sorted(ModuleMetadata.ORDERING)
             .map(module -> module.type().name())
-            .collect(Collectors.toSet());
+            .toList();
     }
 
     private static Set<String> difference(Set<String> from, Set<String> without)

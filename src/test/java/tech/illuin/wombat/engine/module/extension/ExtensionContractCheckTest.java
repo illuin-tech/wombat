@@ -6,8 +6,12 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.profile.AssetProfile;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.FamilyType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,7 +25,7 @@ class ExtensionContractCheckTest
     @Test
     void check_validModule_passes()
     {
-        assertTrue(ExtensionContractCheck.check(new TestModule(VALID_TYPE, TestAsset.class)).isEmpty());
+        assertTrue(ExtensionContractCheck.check(new TestModule(VALID_TYPE, Optional.of(TestAsset.class))).isEmpty());
     }
 
     @Test
@@ -29,9 +33,9 @@ class ExtensionContractCheckTest
     {
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> ExtensionContractCheck.check(new TestModule(null, TestAsset.class))
+            () -> ExtensionContractCheck.check(new TestModule(null, Optional.of(TestAsset.class)))
         );
-        assertTrue(exception.getMessage().contains("has invalid AssetType"));
+        assertTrue(exception.getMessage().contains("has invalid type"));
     }
 
     @Test
@@ -42,9 +46,16 @@ class ExtensionContractCheckTest
 
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> ExtensionContractCheck.check(new TestModule(blankType, TestAsset.class))
+            () -> ExtensionContractCheck.check(new TestModule(blankType, Optional.of(TestAsset.class)))
         );
-        assertTrue(exception.getMessage().contains("has invalid AssetType"));
+        assertTrue(exception.getMessage().contains("has invalid type"));
+    }
+
+    @Test
+    void check_familyModule_passes()
+    {
+        FamilyType family = FamilyType.of("tech.test", "methodology", ServiceFamily.LLM);
+        assertTrue(ExtensionContractCheck.check(new TestModule(family, Optional.empty())).isEmpty());
     }
 
     @Test
@@ -57,7 +68,7 @@ class ExtensionContractCheckTest
         assertTrue(exception.getMessage().contains("has null assetClass"));
     }
 
-    private record TestModule(AssetType type, Class<? extends Asset> assetClass) implements WombatModule
+    private record TestModule(ModuleType type, Optional<Class<? extends Asset>> assetClass) implements WombatModule
     {
     }
 

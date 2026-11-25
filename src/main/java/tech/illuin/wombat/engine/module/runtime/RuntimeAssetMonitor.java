@@ -1,7 +1,7 @@
 package tech.illuin.wombat.engine.module.runtime;
 
 import tech.illuin.wombat.core.asset.AssetIdentity;
-import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.core.source.WombatSource;
@@ -34,7 +34,7 @@ public class RuntimeAssetMonitor extends AssetMonitor
 
     /** Sources are registered by {@link CoreDeploymentFactory}, from the deployed modules. */
     @Override
-    public AssetMonitor register(AssetType type, ProcessorFactory<WombatSource> factory)
+    public AssetMonitor register(ModuleType type, ProcessorFactory<WombatSource> factory)
     {
         throw new UnsupportedOperationException("Sources come from the deployed modules");
     }

@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import tech.illuin.wombat.core.secret.SecretResolver;
+import tech.illuin.wombat.core.module.WombatServices;
+import tech.illuin.wombat.core.module.MetricResolvers;
+import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
+import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAsset;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetConverter;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetEntity;
@@ -39,6 +44,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class DynamicModuleIntegrationTest
 {
@@ -102,9 +108,9 @@ class DynamicModuleIntegrationTest
             // 3. WombatCore Registration & Execution
             try (WombatCore core = new WombatCore(
                 () -> new ResolvedContext(List.of(env)),
+                new WombatServices(SecretResolver.standard(), new MetricResolvers(mock(KubernetesMetricResolver.class), mock(LLMMetricResolver.class)), List.of()),
                 (asset, type, metrics) -> {},
-                List.of(dynamicModule),
-                defaults -> {}
+                List.of(dynamicModule)
             ); AssetMonitor monitor = core.createMonitor()) {
                 monitor.trigger();
             }
@@ -213,9 +219,9 @@ class DynamicModuleIntegrationTest
         }
 
         @Override
-        public Class<? extends Asset> assetClass()
+        public Optional<Class<? extends Asset>> assetClass()
         {
-            return CustomDynamicAsset.class;
+            return Optional.of(CustomDynamicAsset.class);
         }
 
         @Override

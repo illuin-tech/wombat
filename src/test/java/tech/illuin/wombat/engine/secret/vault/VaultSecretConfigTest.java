@@ -1,5 +1,6 @@
 package tech.illuin.wombat.engine.secret.vault;
 
+import io.quarkus.runtime.configuration.DurationConverter;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.engine.secret.SecretConfig;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -130,6 +132,7 @@ class VaultSecretConfigTest
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
+            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(Map.of(
                 "wombat.secret.write-mode", writeMode,
                 "wombat.secret.vault.enabled", String.valueOf(enabled)

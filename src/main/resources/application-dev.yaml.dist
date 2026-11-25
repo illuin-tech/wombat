@@ -29,6 +29,8 @@ wombat:
   #    path: /secrets
   #  vault:
   #    enabled: true # read-only Vault resolver, with the Vault dev service above
+  #  cache:
+  #    ttl: 0s # re-read secrets on every fetch while changing them outside the app
 
 persistence:
   #backend:

@@ -4,6 +4,7 @@ import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.smallrye.config.WithName;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,6 +21,8 @@ public interface SecretProperties
     Database database();
 
     Vault vault();
+
+    Cache cache();
 
     interface Directory
     {
@@ -53,6 +56,13 @@ public interface SecretProperties
         @WithName("path-prefix")
         @WithDefault("wombat")
         String pathPrefix();
+    }
+
+    interface Cache
+    {
+        /** How long a resolved secret is kept in memory, zero disables the cache. */
+        @WithDefault("10m")
+        Duration ttl();
     }
 
     enum WriteMode

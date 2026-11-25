@@ -14,6 +14,8 @@ import tech.illuin.wombat.core.secret.CompositeSecretResolver;
 import tech.illuin.wombat.core.secret.EnvironmentSecretResolver;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.secret.SecretWriter;
+import tech.illuin.wombat.engine.secret.CachedSecretResolver;
+import tech.illuin.wombat.engine.secret.InvalidatingSecretWriter;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.engine.secret.database.DatabaseSecretStore;
 import tech.illuin.wombat.security.PermissionAugmentor;
@@ -54,11 +56,13 @@ class VaultReadOnlyIntegrationTest
     @Test
     void readOnlyVaultSitsBetweenTheWriterAndTheLocalSources()
     {
-        List<SecretResolver> resolvers = assertInstanceOf(CompositeSecretResolver.class, this.resolver).resolvers();
+        SecretResolver composite = assertInstanceOf(CachedSecretResolver.class, this.resolver).delegate();
+        List<SecretResolver> resolvers = assertInstanceOf(CompositeSecretResolver.class, composite).resolvers();
+        SecretWriter writer = assertInstanceOf(InvalidatingSecretWriter.class, this.writer).delegate();
 
         assertEquals(4, resolvers.size());
-        assertSame(this.writer, resolvers.getFirst());
-        assertInstanceOf(DatabaseSecretStore.class, this.writer);
+        assertSame(writer, resolvers.getFirst());
+        assertInstanceOf(DatabaseSecretStore.class, writer);
         assertSame(this.vault, resolvers.get(1));
         assertInstanceOf(EnvironmentSecretResolver.class, resolvers.getLast());
 

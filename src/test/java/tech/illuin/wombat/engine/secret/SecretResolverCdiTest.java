@@ -47,7 +47,8 @@ class SecretResolverCdiTest
             .toList();
 
         assertEquals(3, sources.size());
-        assertEquals(sources, assertInstanceOf(CompositeSecretResolver.class, this.resolver).resolvers());
+        SecretResolver composite = assertInstanceOf(CachedSecretResolver.class, this.resolver).delegate();
+        assertEquals(sources, assertInstanceOf(CompositeSecretResolver.class, composite).resolvers());
         assertEquals("from-keystore", sources.getFirst().find("shared").orElseThrow());
         assertEquals("from-directory", sources.get(1).find("shared").orElseThrow());
         assertInstanceOf(EnvironmentSecretResolver.class, sources.getLast());

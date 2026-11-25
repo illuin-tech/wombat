@@ -3,6 +3,7 @@ package tech.illuin.wombat.engine.secret.vault;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.All;
+import io.quarkus.runtime.configuration.DurationConverter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.secret.CompositeSecretResolver;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.core.secret.SecretWriter;
+import tech.illuin.wombat.engine.secret.CachedSecretResolver;
+import tech.illuin.wombat.engine.secret.InvalidatingSecretWriter;
 import tech.illuin.wombat.engine.secret.SecretConfig;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 import tech.illuin.wombat.engine.secret.WritableBackend;
@@ -30,6 +33,7 @@ import tech.illuin.wombat.engine.secret.vault.client.VaultKvV2ClientAdapter;
 import tech.illuin.wombat.security.PermissionAugmentor;
 import tech.illuin.wombat.ui.AuthenticationEnabledTest;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,8 +155,9 @@ class VaultSecretManagementIntegrationTest
 
         assertEquals(1, selected.size());
         assertSame(this.store, selected.getFirst().resolver());
-        assertSame(this.store, this.writer);
-        List<SecretResolver> resolvers = assertInstanceOf(CompositeSecretResolver.class, this.resolver).resolvers();
+        assertSame(this.store, assertInstanceOf(InvalidatingSecretWriter.class, this.writer).delegate());
+        SecretResolver composite = assertInstanceOf(CachedSecretResolver.class, this.resolver).delegate();
+        List<SecretResolver> resolvers = assertInstanceOf(CompositeSecretResolver.class, composite).resolvers();
         assertSame(this.store, resolvers.getFirst());
         assertTrue(resolvers.stream().noneMatch(VaultSecretResolver.class::isInstance));
     }
@@ -258,6 +263,7 @@ class VaultSecretManagementIntegrationTest
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
+            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(Map.of("wombat.secret.vault.path-prefix", prefix), "test", 100))
             .build();
         return config.getConfigMapping(SecretProperties.class);

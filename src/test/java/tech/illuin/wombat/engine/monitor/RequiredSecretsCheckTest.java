@@ -1,6 +1,7 @@
 package tech.illuin.wombat.engine.monitor;
 
 import io.quarkus.runtime.StartupEvent;
+import io.quarkus.runtime.configuration.DurationConverter;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
@@ -27,6 +28,7 @@ import tech.illuin.wombat.module.llm_static.scenario.ConstantScenario;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -241,6 +243,7 @@ class RequiredSecretsCheckTest
     {
         SmallRyeConfig config = new SmallRyeConfigBuilder()
             .withMapping(SecretProperties.class)
+            .withConverter(Duration.class, 100, new DurationConverter())
             .withSources(new PropertiesConfigSource(Map.of(
                 "wombat.secret.write-mode", writeMode.name()
             ), "test", 100))

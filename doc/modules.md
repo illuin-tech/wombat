@@ -144,6 +144,48 @@ the assets it samples. To skip the metrics of a module, disable it on the aggreg
 The instance id is the pod name in Kubernetes, and `wombat` when `HOSTNAME` is unset: a restarted instance takes its
 heartbeat back. Under plain Docker, `HOSTNAME` is the container id, which changes when the container is recreated; set the instance id to keep it.
 
+## Module settings
+
+A module may take settings of its own, as a whole rather than per asset: e.g. the API an impact methodology calls. They
+are given under `wombat.module.settings`, by the module's full name, with the property names of the module's
+documentation:
+
+```yaml
+wombat:
+  module:
+    settings:
+      tech.illuin.wombat-module.boavizta:
+        uri: "http://boaviztapi:5000/v1/"
+        proxy-url: "http://proxy.example.com:3128"
+```
+
+A module given no settings applies its own defaults. Wombat's `application.yaml` repeats those of the modules it ships:
+
+| Module                                | Settings                                                                                                 |
+|---------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `tech.illuin.wombat-module.boavizta`  | `uri` (default `https://api.boavizta.org/v1/`), `proxy-url`: [boavizta](https://github.com/illuin-tech/wombat-core/blob/master/doc/module/boavizta.md)   |
+| `tech.illuin.wombat-module.ecologits` | `uri` (default `https://api.ecologits.ai/`), `proxy-url`: [ecologits](https://github.com/illuin-tech/wombat-core/blob/master/doc/module/ecologits.md) |
+
+The settings are read once, at startup, and checked: a property the module does not have, a value of the wrong type, a
+missing required one or a constraint broken fails the startup, the message naming the key of each. Settings naming a
+module that is not detected, e.g. once the jar of an extension is removed, are only logged as a warning.
+
+Outside YAML, the module's name is quoted: `-Dwombat.module.settings."tech.illuin.wombat-module.boavizta".uri=…`, or
+the environment variable `WOMBAT_MODULE_SETTINGS__TECH_ILLUIN_WOMBAT_MODULE_BOAVIZTA__URI`, each quote becoming `_`.
+As for any map in the configuration, an environment variable overrides a key another source sets, such as the `uri` of
+`application.yaml`; on its own, its dots cannot be told from its dashes, so give the key in YAML, with a value (an empty
+one fails the startup). A list is a YAML sequence, or indexed keys (`regions[0]`).
+
+These settings were `wombat.connector.boavizta.*` and `wombat.connector.ecologits.*` before: a configuration file or a
+`-D` still setting those fails the startup, naming them, while `WOMBAT_CONNECTOR_*` variables are ignored, so that the
+modules call the public APIs. Move them under the new keys.
+
+A secret, e.g. an API key, is never a setting itself: the module takes the name of a secret, which it resolves through
+the [secret resolver](secret-management.md).
+
+For module authors, settings are a record returned by `WombatModule.settingsClass()`, described like an asset: a record
+held by another is validated only when marked `@Valid`.
+
 ## API and permissions
 
 | Route                           | Permission          | Does                                                                      |

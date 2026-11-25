@@ -10,7 +10,6 @@ import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.asset.type.FamilyType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
-import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Kind;
 import tech.illuin.wombat.module.boavizta.BoaviztaModule;
 import tech.illuin.wombat.module.ecologits.EcologitsModule;
 import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
@@ -81,29 +80,33 @@ class ModuleRepositoryTest
     }
 
     @Test
-    void theFamilyModulesAreOrderedAtStartup_inDetectionOrder()
+    void theModulesAreOrderedAtStartup_inDetectionOrder()
     {
-        assertEquals(1, this.repository.findById(KubernetesMetricsModule.TYPE.name()).ordering);
-        assertEquals(2, this.repository.findById(BoaviztaModule.TYPE.name()).ordering);
-        assertNull(this.repository.findById(DETECTED).ordering);
+        int metrics = this.repository.findById(KubernetesMetricsModule.TYPE.name()).ordering;
+        int boavizta = this.repository.findById(BoaviztaModule.TYPE.name()).ordering;
+        int simulated = this.repository.findById(DETECTED).ordering;
+
+        assertTrue(metrics < boavizta);
+        assertTrue(boavizta < simulated, "the modules of wombat-core-module come before those of the app");
     }
 
     @Test
-    void register_placesANewFamilyModuleLastInItsFamily()
+    void register_placesTheNewModulesLast_inTheirOrder()
     {
-        int last = this.lastOrdering(ServiceFamily.LLM);
+        int last = this.lastOrdering();
 
-        this.repository.register(List.of(NEW_FAMILY_TYPE));
+        this.repository.register(List.of(NEW_TYPE, NEW_FAMILY_TYPE));
 
-        assertEquals(last + 1, this.repository.findById(NEW_FAMILY).ordering);
+        assertEquals(last + 1, this.repository.findById(NEW).ordering);
+        assertEquals(last + 2, this.repository.findById(NEW_FAMILY).ordering);
     }
 
     @Test
-    void register_placesAFamilyModuleWithoutOrdering_andLeavesTheOthers()
+    void register_placesAModuleWithoutOrderingLast_andLeavesTheOthers()
     {
         this.repository.register(List.of(NEW_FAMILY_TYPE));
         QuarkusTransaction.requiringNew().run(() -> this.repository.findById(NEW_FAMILY).ordering = null);
-        int last = this.lastOrdering(ServiceFamily.LLM);
+        int last = this.lastOrdering();
         Integer ecologits = this.repository.findById(EcologitsModule.TYPE.name()).ordering;
 
         this.repository.register(List.of(EcologitsModule.TYPE, NEW_FAMILY_TYPE));
@@ -112,10 +115,10 @@ class ModuleRepositoryTest
         assertEquals(ecologits, this.repository.findById(EcologitsModule.TYPE.name()).ordering);
     }
 
-    private int lastOrdering(ServiceFamily family)
+    private int lastOrdering()
     {
         return this.repository.listAll().stream()
-            .filter(row -> row.kind == Kind.family && row.family == family && row.ordering != null)
+            .filter(row -> row.ordering != null)
             .mapToInt(row -> row.ordering)
             .max()
             .orElse(0);

@@ -179,20 +179,20 @@ class CoreDeploymentServiceTest
     }
 
     @Test
-    void aRedeployRecordsTheAssetTypeModulesByFamily_thenTheFamilyModulesByOrdering()
+    void aRedeployRecordsTheEnabledModulesInTheirOrder()
     {
         this.registry = new InMemoryModuleRegistry();
         this.registry.registerModule(new LLMSimulatedModule(), true);
         this.registry.registerModule(ZETA, true);
-        this.registry.registerModule(new KubernetesSimulatedModule(), true);
+        this.registry.registerModule(new KubernetesSimulatedModule(), false);
         this.registry.registerModule(ALPHA, true);
-        this.registry.setFamilyOrder(ServiceFamily.LLM, List.of(ALPHA.type().name(), ZETA.type().name()), "alice");
+        this.registry.setOrder(List.of(ALPHA.type().name(), K8S, ZETA.type().name(), LLM), "alice");
         CoreDeploymentService service = this.started(recorded(1, K8S));
-        when(this.deployments.insertNext(any(), any())).thenReturn(recorded(2, K8S));
+        when(this.deployments.insertNext(any(), any())).thenReturn(recorded(2, LLM));
 
         service.redeploy("alice");
 
-        verify(this.deployments).insertNext(List.of(K8S, LLM, ALPHA.type().name(), ZETA.type().name()), "alice");
+        verify(this.deployments).insertNext(List.of(ALPHA.type().name(), ZETA.type().name(), LLM), "alice");
     }
 
     @Test

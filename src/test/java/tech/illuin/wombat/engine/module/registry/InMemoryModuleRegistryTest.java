@@ -2,7 +2,6 @@ package tech.illuin.wombat.engine.module.registry;
 
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.type.ModuleType;
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.module.boavizta.BoaviztaModule;
@@ -15,7 +14,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,7 +27,7 @@ class InMemoryModuleRegistryTest
 
         registry.registerModule(module, false);
 
-        ModuleMetadata expected = ModuleMetadata.core(module, false, null);
+        ModuleMetadata expected = ModuleMetadata.core(module, false, 1);
         assertEquals(Set.of(expected), Set.copyOf(registry.listModules()));
         assertEquals(expected, registry.getModule(module.type().name()).orElseThrow());
         assertEquals(expected, registry.getModule(module.type()).orElseThrow());
@@ -64,29 +62,27 @@ class InMemoryModuleRegistryTest
     }
 
     @Test
-    void aFamilyModuleIsPlacedLastInItsFamily_andKeepsItsOrderingWhenRegisteredAgain()
+    void aModuleIsPlacedLast_andKeepsItsOrderingWhenRegisteredAgain()
     {
         InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
         registry.registerModule(new KubernetesSimulatedModule(), true);
         registry.registerModule(new KubernetesMetricsModule(), true);
         registry.registerModule(new EcologitsModule(), true);
-        registry.registerModule(new BoaviztaModule(), true);
         registry.registerModule(new KubernetesMetricsModule(), false);
 
-        assertEquals(1, ordering(registry, KubernetesMetricsModule.TYPE));
-        assertEquals(2, ordering(registry, BoaviztaModule.TYPE));
-        assertEquals(1, ordering(registry, EcologitsModule.TYPE));
-        assertNull(ordering(registry, KubernetesSimulatedModule.TYPE));
+        assertEquals(1, ordering(registry, KubernetesSimulatedModule.TYPE));
+        assertEquals(2, ordering(registry, KubernetesMetricsModule.TYPE));
+        assertEquals(3, ordering(registry, EcologitsModule.TYPE));
     }
 
     @Test
-    void setFamilyOrder_ordersTheFamilyModulesAsGiven()
+    void setOrder_ordersTheModulesAsGiven()
     {
         InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
         registry.registerModule(new KubernetesMetricsModule(), true);
         registry.registerModule(new BoaviztaModule(), false);
 
-        registry.setFamilyOrder(ServiceFamily.KUBERNETES_CONTAINER, List.of(BoaviztaModule.TYPE.name(), KubernetesMetricsModule.TYPE.name()), null);
+        registry.setOrder(List.of(BoaviztaModule.TYPE.name(), KubernetesMetricsModule.TYPE.name()), null);
 
         assertEquals(1, ordering(registry, BoaviztaModule.TYPE));
         assertEquals(2, ordering(registry, KubernetesMetricsModule.TYPE));
@@ -94,20 +90,18 @@ class InMemoryModuleRegistryTest
     }
 
     @Test
-    void setFamilyOrder_mustListEachFamilyModuleOfTheFamilyOnce()
+    void setOrder_mustListEachRegisteredModuleOnce()
     {
         InMemoryModuleRegistry registry = new InMemoryModuleRegistry();
         registry.registerModule(new KubernetesSimulatedModule(), true);
-        registry.registerModule(new KubernetesMetricsModule(), true);
         registry.registerModule(new BoaviztaModule(), true);
-        ServiceFamily family = ServiceFamily.KUBERNETES_CONTAINER;
-        String metrics = KubernetesMetricsModule.TYPE.name();
+        String simulated = KubernetesSimulatedModule.TYPE.name();
         String boavizta = BoaviztaModule.TYPE.name();
 
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(boavizta), null));
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(boavizta, boavizta), null));
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(boavizta, metrics, KubernetesSimulatedModule.TYPE.name()), null));
-        assertEquals(1, ordering(registry, KubernetesMetricsModule.TYPE), "a rejected order changes nothing");
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(boavizta), null));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(boavizta, boavizta), null));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(boavizta, simulated, LLMSimulatedModule.TYPE.name()), null));
+        assertEquals(1, ordering(registry, KubernetesSimulatedModule.TYPE), "a rejected order changes nothing");
     }
 
     @Test
@@ -142,7 +136,7 @@ class InMemoryModuleRegistryTest
         assertThrows(UnknownModuleException.class, () -> registry.remove("unknown"));
     }
 
-    private static Integer ordering(InMemoryModuleRegistry registry, ModuleType type)
+    private static int ordering(InMemoryModuleRegistry registry, ModuleType type)
     {
         return registry.getModule(type).orElseThrow().ordering();
     }

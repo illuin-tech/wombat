@@ -11,13 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.asset.type.ModuleType;
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceRepository;
 import tech.illuin.wombat.engine.module.persistence.ModuleEntity;
 import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
-import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Kind;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Source;
 
 import java.net.URISyntaxException;
@@ -158,13 +156,12 @@ public class DbModuleRegistry implements ModuleRegistry
 
     @Override
     @Transactional
-    public void setFamilyOrder(ServiceFamily family, List<String> modules, String user)
+    public void setOrder(List<String> modules, String user)
     {
-        List<String> members = this.listModules().stream()
-            .filter(module -> module.kind() == Kind.family && module.type().family() == family)
+        List<String> registered = this.listModules().stream()
             .map(module -> module.type().name())
             .toList();
-        ModuleOrderException.check(family, members, modules);
+        ModuleOrderException.check(registered, modules);
 
         for (int index = 0; index < modules.size(); index++)
         {

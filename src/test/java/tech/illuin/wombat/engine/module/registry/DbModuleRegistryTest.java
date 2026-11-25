@@ -270,71 +270,69 @@ class DbModuleRegistryTest
     }
 
     @Test
-    void listModules_tellsTheOrderingOfTheFamilyModules_andWhatEachModuleProvides()
+    void listModules_tellsTheOrderingOfEachModule_andWhatItProvides()
     {
-        when(this.repository.listAll()).thenReturn(List.of(ordered(KubernetesMetricsModule.TYPE, 1), ordered(BoaviztaModule.TYPE, 2), ordered(REMOVED_ESTIMATOR, 3)));
+        this.rows(ordered(KubernetesSimulatedModule.TYPE, 1), ordered(KubernetesMetricsModule.TYPE, 2), ordered(BoaviztaModule.TYPE, 3), ordered(REMOVED_ESTIMATOR, 4));
 
-        Map<String, ModuleMetadata> modules = this.kubernetesFamily().listModules().stream()
+        Map<String, ModuleMetadata> modules = this.kubernetesModules().listModules().stream()
             .collect(Collectors.toMap(module -> module.type().name(), Function.identity()));
 
-        assertEquals(2, modules.get(BOAVIZTA).ordering());
+        assertEquals(1, modules.get(K8S).ordering());
+        assertEquals(3, modules.get(BOAVIZTA).ordering());
         assertEquals(Set.of(Feature.impact), modules.get(BOAVIZTA).provides());
         assertEquals(Set.of(Feature.activity), modules.get(METRICS).provides());
-        assertNull(modules.get(K8S).ordering());
-        assertEquals(3, modules.get(REMOVED_ESTIMATOR.name()).ordering());
+        assertEquals(4, modules.get(REMOVED_ESTIMATOR.name()).ordering());
         assertEquals(Set.of(), modules.get(REMOVED_ESTIMATOR.name()).provides(), "not detected here, so unknown");
     }
 
     @Test
-    void setFamilyOrder_ordersTheFamilyModulesAsGiven_andTellsWhoReorderedThem()
+    void setOrder_ordersTheModulesAsGiven_andTellsWhoReorderedThem()
     {
-        ModuleEntity metrics = ordered(KubernetesMetricsModule.TYPE, 1);
-        ModuleEntity boavizta = ordered(BoaviztaModule.TYPE, 2);
-        this.rows(metrics, boavizta);
+        ModuleEntity k8s = ordered(KubernetesSimulatedModule.TYPE, 1);
+        ModuleEntity metrics = ordered(KubernetesMetricsModule.TYPE, 2);
+        ModuleEntity boavizta = ordered(BoaviztaModule.TYPE, 3);
+        this.rows(k8s, metrics, boavizta);
 
-        this.kubernetesFamily().setFamilyOrder(ServiceFamily.KUBERNETES_CONTAINER, List.of(BOAVIZTA, METRICS), "alice");
+        this.kubernetesModules().setOrder(List.of(BOAVIZTA, K8S, METRICS), "alice");
 
-        assertEquals(1, boavizta.ordering);
-        assertEquals(2, metrics.ordering);
+        assertEquals(List.of(1, 2, 3), List.of(boavizta.ordering, k8s.ordering, metrics.ordering));
         assertEquals("alice", boavizta.updatedBy);
         assertEquals("alice", metrics.updatedBy);
     }
 
     @Test
-    void setFamilyOrder_leavesTheModulesWhichKeepTheirOrdering()
+    void setOrder_leavesTheModulesWhichKeepTheirOrdering()
     {
-        ModuleEntity metrics = ordered(KubernetesMetricsModule.TYPE, 1);
-        this.rows(metrics, ordered(BoaviztaModule.TYPE, 2));
+        ModuleEntity k8s = ordered(KubernetesSimulatedModule.TYPE, 1);
+        this.rows(k8s, ordered(KubernetesMetricsModule.TYPE, 2), ordered(BoaviztaModule.TYPE, 3));
 
-        this.kubernetesFamily().setFamilyOrder(ServiceFamily.KUBERNETES_CONTAINER, List.of(METRICS, BOAVIZTA), "alice");
+        this.kubernetesModules().setOrder(List.of(K8S, BOAVIZTA, METRICS), "alice");
 
-        assertEquals(1, metrics.ordering);
-        assertNull(metrics.updatedBy);
+        assertEquals(1, k8s.ordering);
+        assertNull(k8s.updatedBy);
     }
 
     @Test
-    void setFamilyOrder_registersADetectedModuleWithoutRow()
+    void setOrder_registersADetectedModuleWithoutRow()
     {
-        this.rows(ordered(BoaviztaModule.TYPE, 1));
+        this.rows(ordered(KubernetesSimulatedModule.TYPE, 1), ordered(BoaviztaModule.TYPE, 2));
 
-        this.kubernetesFamily().setFamilyOrder(ServiceFamily.KUBERNETES_CONTAINER, List.of(BOAVIZTA, METRICS), "alice");
+        this.kubernetesModules().setOrder(List.of(K8S, BOAVIZTA, METRICS), "alice");
 
-        verify(this.repository).persist(argThat((ModuleEntity entity) -> entity.typeName.equals(METRICS) && entity.ordering == 2));
+        verify(this.repository).persist(argThat((ModuleEntity entity) -> entity.typeName.equals(METRICS) && entity.ordering == 3));
     }
 
     @Test
-    void setFamilyOrder_mustListEachFamilyModuleOfTheFamilyOnce_missingOnesIncluded()
+    void setOrder_mustListEachRegisteredModuleOnce_missingOnesIncluded()
     {
-        this.rows(ordered(KubernetesMetricsModule.TYPE, 1), ordered(BoaviztaModule.TYPE, 2), ordered(REMOVED_ESTIMATOR, 3));
-        DbModuleRegistry registry = this.kubernetesFamily();
-        ServiceFamily family = ServiceFamily.KUBERNETES_CONTAINER;
+        this.rows(ordered(KubernetesSimulatedModule.TYPE, 1), ordered(KubernetesMetricsModule.TYPE, 2), ordered(BoaviztaModule.TYPE, 3), ordered(REMOVED_ESTIMATOR, 4));
+        DbModuleRegistry registry = this.kubernetesModules();
         String removed = REMOVED_ESTIMATOR.name();
 
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(BOAVIZTA, METRICS), "alice"));
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(BOAVIZTA, METRICS, METRICS), "alice"));
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(BOAVIZTA, METRICS, removed, K8S), "alice"));
-        assertThrows(ModuleOrderException.class, () -> registry.setFamilyOrder(family, List.of(BOAVIZTA, METRICS, removed, EcologitsModule.TYPE.name()), "alice"));
-        assertDoesNotThrow(() -> registry.setFamilyOrder(family, List.of(removed, BOAVIZTA, METRICS), "alice"));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(BOAVIZTA, METRICS, K8S), "alice"));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(BOAVIZTA, METRICS, K8S, K8S), "alice"));
+        assertThrows(ModuleOrderException.class, () -> registry.setOrder(List.of(BOAVIZTA, METRICS, K8S, removed, EcologitsModule.TYPE.name()), "alice"));
+        assertDoesNotThrow(() -> registry.setOrder(List.of(removed, BOAVIZTA, METRICS, K8S), "alice"));
     }
 
     @Test
@@ -358,7 +356,7 @@ class DbModuleRegistryTest
         return entity;
     }
 
-    private static ModuleEntity ordered(FamilyType type, int ordering)
+    private static ModuleEntity ordered(ModuleType type, int ordering)
     {
         ModuleEntity entity = ModuleEntity.registered(type);
         entity.ordering = ordering;
@@ -374,7 +372,7 @@ class DbModuleRegistryTest
     }
 
     /* Detects an asset-type of the Kubernetes family, and the two family modules Wombat ships for it */
-    private DbModuleRegistry kubernetesFamily()
+    private DbModuleRegistry kubernetesModules()
     {
         return new DbModuleRegistry(
             List.of(new KubernetesSimulatedModule(), new KubernetesMetricsModule(), new BoaviztaModule()),

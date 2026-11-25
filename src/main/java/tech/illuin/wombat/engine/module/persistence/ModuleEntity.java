@@ -53,9 +53,8 @@ public class ModuleEntity
     public ServiceFamily family;
 
     /**
-     * The place of the module among those it competes with, from 1 for the one tried first. Only the family modules of
-     * a family compete: null for an asset-type module, and for a family module until it is detected, which places it
-     * last, see {@link ModuleRepository#register}.
+     * The place of the module in the order of the modules, from 1: the family modules of a family are tried in that
+     * order. Null until the module is detected, which places it last, see {@link ModuleRepository#register}.
      */
     @Column(name = "ordering", columnDefinition = "INTEGER")
     public Integer ordering;
@@ -94,9 +93,6 @@ public class ModuleEntity
      */
     public void advertise(ModuleType type)
     {
-        /* An ordering only holds among the family modules of the family it was given in */
-        if (this.kind != Kind.of(type) || this.family != type.family())
-            this.ordering = null;
         this.kind = Kind.of(type);
         this.namespace = type.namespace();
         this.localName = type.localName();

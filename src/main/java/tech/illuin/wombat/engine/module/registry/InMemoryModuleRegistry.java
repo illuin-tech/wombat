@@ -1,7 +1,5 @@
 package tech.illuin.wombat.engine.module.registry;
 
-import tech.illuin.wombat.core.asset.type.FamilyType;
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.WombatModule;
 
 import java.util.LinkedHashMap;
@@ -11,7 +9,7 @@ import java.util.Optional;
 
 /**
  * A registry of the modules registered on it, listed in registration order, none of them missing; its state is lost
- * with it. A family module is placed last in its family when registered.
+ * with it. A module is placed last in the order of the modules when registered.
  */
 public class InMemoryModuleRegistry implements ModuleRegistry
 {
@@ -28,7 +26,7 @@ public class InMemoryModuleRegistry implements ModuleRegistry
     public synchronized void registerModule(WombatModule module, boolean enabled)
     {
         Registration registered = this.modules.get(module.type().name());
-        Integer ordering = registered != null ? registered.ordering() : this.nextOrdering(module);
+        Integer ordering = registered != null ? registered.ordering() : this.nextOrdering();
         this.modules.put(module.type().name(), new Registration(module, enabled, ordering));
     }
 
@@ -58,13 +56,9 @@ public class InMemoryModuleRegistry implements ModuleRegistry
     }
 
     @Override
-    public synchronized void setFamilyOrder(ServiceFamily family, List<String> modules, String user)
+    public synchronized void setOrder(List<String> modules, String user)
     {
-        List<String> members = this.modules.values().stream()
-            .filter(registered -> registered.module().type() instanceof FamilyType type && type.family() == family)
-            .map(registered -> registered.module().type().name())
-            .toList();
-        ModuleOrderException.check(family, members, modules);
+        ModuleOrderException.check(this.modules.keySet(), modules);
 
         for (int index = 0; index < modules.size(); index++)
         {
@@ -82,13 +76,9 @@ public class InMemoryModuleRegistry implements ModuleRegistry
         throw new ModuleConflictException("Module " + module + " is detected, only a missing module can be removed");
     }
 
-    /* Null for an asset-type module, which has no ordering */
-    private Integer nextOrdering(WombatModule module)
+    private int nextOrdering()
     {
-        if (!(module.type() instanceof FamilyType type))
-            return null;
         return this.modules.values().stream()
-            .filter(registered -> registered.module().type() instanceof FamilyType other && other.family() == type.family())
             .mapToInt(Registration::ordering)
             .max()
             .orElse(0) + 1;

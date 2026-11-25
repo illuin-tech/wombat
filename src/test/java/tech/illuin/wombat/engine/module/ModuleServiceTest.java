@@ -13,11 +13,14 @@ import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesS
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
 import tech.illuin.wombat.engine.module.persistence.CoreDeploymentEntity;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.UnknownModuleException;
 import tech.illuin.wombat.engine.module.runtime.CoreDeployment;
 import tech.illuin.wombat.engine.module.runtime.CoreDeploymentService;
 import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
+import tech.illuin.wombat.module.boavizta.BoaviztaModule;
+import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,6 +46,10 @@ class ModuleServiceTest
     private static final String K8S = K8S_MODULE.type().name();
     private static final String LLM = LLM_MODULE.type().name();
     private static final AssetType REMOVED = AssetType.of("acme", "removed", ActivityRegime.MEASURED, ServiceFamily.LLM);
+    private static final KubernetesMetricsModule METRICS_MODULE = new KubernetesMetricsModule();
+    private static final BoaviztaModule BOAVIZTA_MODULE = new BoaviztaModule();
+    private static final String METRICS = METRICS_MODULE.type().name();
+    private static final String BOAVIZTA = BOAVIZTA_MODULE.type().name();
 
     private ModuleRegistry registry;
     private AssetRepository assets;
@@ -109,14 +116,14 @@ class ModuleServiceTest
     }
 
     @Test
-    void list_putsTheDetectedModulesFirst_thenTheMissingOnes()
+    void list_followsTheOrderOfTheModules_missingOnesIncluded()
     {
-        this.registered(missing(REMOVED), detected(LLM_MODULE, true), detected(K8S_MODULE, true));
+        this.registered(ordered(K8S_MODULE, true, 3), missing(REMOVED, 1), ordered(LLM_MODULE, true, 2), detected(BOAVIZTA_MODULE, true));
         this.deployed();
 
         List<String> names = this.service.list().stream().map(module -> module.type().name()).toList();
 
-        assertEquals(List.of(K8S, LLM, REMOVED.name()), names);
+        assertEquals(List.of(REMOVED.name(), LLM, K8S, BOAVIZTA), names, "a module not placed yet comes last");
     }
 
     @Test
@@ -152,6 +159,62 @@ class ModuleServiceTest
         assertEquals(30, deployment.pollIntervalSeconds());
     }
 
+    @Test
+    void list_tellsTheOrderingOfEachModule_andWhatItProvides()
+    {
+        this.registered(ordered(K8S_MODULE, true, 1), ordered(BOAVIZTA_MODULE, true, 2));
+        this.latest(K8S, BOAVIZTA);
+        this.deployed(K8S_MODULE, BOAVIZTA_MODULE);
+
+        Map<String, ModuleInfo> modules = byName(this.service.list());
+
+        assertEquals(2, modules.get(BOAVIZTA).ordering());
+        assertEquals(Set.of(Feature.impact), modules.get(BOAVIZTA).provides());
+    }
+
+    @Test
+    void deployment_tellsWhenTheOrderIsPending_apartFromTheToggles()
+    {
+        this.registered(ordered(K8S_MODULE, true, 3), ordered(BOAVIZTA_MODULE, true, 1), ordered(METRICS_MODULE, true, 2));
+        this.latest(K8S, METRICS, BOAVIZTA);
+        when(this.deployments.liveInstances()).thenReturn(List.of());
+        when(this.deployments.pollInterval()).thenReturn(Duration.ofSeconds(30));
+
+        DeploymentInfo deployment = this.service.deployment();
+
+        assertTrue(deployment.orderPending());
+        assertEquals(List.of(), deployment.pending());
+        assertEquals(List.of(K8S, METRICS, BOAVIZTA), deployment.latest().modules());
+    }
+
+    @Test
+    void theOrderIsNotPending_whenTheLatestDeploymentHoldsTheModulesItDeploysInTheRegistryOrder()
+    {
+        /* Boavizta is disabled since, and the removed module was never deployed: neither changes the order */
+        this.registered(ordered(K8S_MODULE, true, 1), ordered(BOAVIZTA_MODULE, false, 2), missing(REMOVED, 3), ordered(METRICS_MODULE, true, 4));
+        this.latest(K8S, BOAVIZTA, METRICS);
+        when(this.deployments.liveInstances()).thenReturn(List.of());
+        when(this.deployments.pollInterval()).thenReturn(Duration.ofSeconds(30));
+
+        DeploymentInfo deployment = this.service.deployment();
+
+        assertFalse(deployment.orderPending());
+        assertEquals(List.of(new DeploymentInfo.PendingModule(BOAVIZTA, false)), deployment.pending());
+    }
+
+    @Test
+    void setOrder_goesThroughTheRegistry_andListsTheModulesInTheirNewOrder()
+    {
+        this.registered(ordered(K8S_MODULE, true, 2), ordered(BOAVIZTA_MODULE, true, 1));
+        this.latest(K8S, BOAVIZTA);
+        this.deployed(K8S_MODULE, BOAVIZTA_MODULE);
+
+        List<ModuleInfo> modules = this.service.setOrder(List.of(BOAVIZTA, K8S), "alice");
+
+        verify(this.registry).setOrder(List.of(BOAVIZTA, K8S), "alice");
+        assertEquals(List.of(BOAVIZTA, K8S), modules.stream().map(module -> module.type().name()).toList());
+    }
+
     private void latest(String... enabled)
     {
         when(this.deployments.latest()).thenReturn(Optional.of(CoreDeploymentEntity.of(1, Instant.now(), null, List.of(enabled))));
@@ -173,9 +236,19 @@ class ModuleServiceTest
         return ModuleMetadata.core(module, enabled, null);
     }
 
+    private static ModuleMetadata ordered(WombatModule module, boolean enabled, int ordering)
+    {
+        return ModuleMetadata.core(module, enabled, ordering);
+    }
+
     private static ModuleMetadata missing(AssetType type)
     {
-        return new ModuleMetadata(type, null, true, true, null, null, Set.of());
+        return missing(type, null);
+    }
+
+    private static ModuleMetadata missing(AssetType type, Integer ordering)
+    {
+        return new ModuleMetadata(type, null, true, true, null, ordering, Set.of());
     }
 
     private static Map<String, ModuleInfo> byName(List<ModuleInfo> modules)

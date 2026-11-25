@@ -1,13 +1,11 @@
 package tech.illuin.wombat.engine.module.registry;
 
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
 /**
- * An order of the family modules of a family which does not list each of them exactly once.
+ * An order of the modules which does not list each registered module exactly once.
  */
 public class ModuleOrderException extends RuntimeException
 {
@@ -17,12 +15,12 @@ public class ModuleOrderException extends RuntimeException
     }
 
     /**
-     * @param members the family modules registered for {@code family}
-     * @throws ModuleOrderException unless {@code order} lists each of {@code members} exactly once
+     * @param registered the registered modules
+     * @throws ModuleOrderException unless {@code order} lists each of {@code registered} exactly once
      */
-    static void check(ServiceFamily family, Collection<String> members, List<String> order)
+    static void check(Collection<String> registered, List<String> order)
     {
-        if (order.size() != members.size() || !new HashSet<>(order).equals(new HashSet<>(members)))
-            throw new ModuleOrderException("The order of the " + family + " family must list each of its family modules once: " + members);
+        if (order.size() != registered.size() || !new HashSet<>(order).equals(new HashSet<>(registered)))
+            throw new ModuleOrderException("The order must list each registered module once: " + registered);
     }
 }

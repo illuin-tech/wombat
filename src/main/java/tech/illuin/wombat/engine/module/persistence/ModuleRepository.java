@@ -3,8 +3,6 @@ package tech.illuin.wombat.engine.module.persistence;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import tech.illuin.wombat.core.asset.type.ModuleType;
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
-import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Kind;
 import tech.illuin.wombat.persistence.backend.api.repository.Repository;
 
 import java.util.Collection;
@@ -24,8 +22,8 @@ public class ModuleRepository extends Repository<ModuleEntity, String>
 
     /**
      * Inserts an enabled row for each of {@code types} that has none. The existing rows keep their state, and take the
-     * asset-type as advertised now. A family module with no ordering yet, new or not, is placed last in its family, in
-     * the order of {@code types}.
+     * asset-type as advertised now. A module with no ordering yet, new or not, is placed last, in the order of
+     * {@code types}.
      *
      * @return the names of the types registered
      * @throws jakarta.persistence.PersistenceException if another instance registered one of them in the meantime
@@ -50,18 +48,18 @@ public class ModuleRepository extends Repository<ModuleEntity, String>
             else if (!entity.type().equals(type))
                 entity.advertise(type);
 
-            if (entity.kind == Kind.family && entity.ordering == null)
-                entity.ordering = lastOrdering(rows.values(), entity.family) + 1;
+            if (entity.ordering == null)
+                entity.ordering = lastOrdering(rows.values()) + 1;
         }
         /* Flushed here, so that a concurrent registration surfaces as a PersistenceException rather than at commit */
         this.entityManager.flush();
         return registered;
     }
 
-    private static int lastOrdering(Collection<ModuleEntity> rows, ServiceFamily family)
+    private static int lastOrdering(Collection<ModuleEntity> rows)
     {
         return rows.stream()
-            .filter(row -> row.kind == Kind.family && row.family == family && row.ordering != null)
+            .filter(row -> row.ordering != null)
             .mapToInt(row -> row.ordering)
             .max()
             .orElse(0);

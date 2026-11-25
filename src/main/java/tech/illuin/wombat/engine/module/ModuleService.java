@@ -30,9 +30,6 @@ public class ModuleService
     private final CoreRuntime runtime;
     private final CoreDeploymentService deployments;
 
-    private static final Comparator<ModuleInfo> ORDER = Comparator.comparing(ModuleInfo::missing)
-        .thenComparing(module -> module.type().name());
-
     public ModuleService(ModuleRegistry registry, AssetRepository assets, CoreRuntime runtime, CoreDeploymentService deployments)
     {
         this.registry = registry;
@@ -41,6 +38,9 @@ public class ModuleService
         this.deployments = deployments;
     }
 
+    /**
+     * @return every registered module, missing ones included, in the order of the modules
+     */
     @Transactional
     public List<ModuleInfo> list()
     {
@@ -48,8 +48,8 @@ public class ModuleService
         Set<ModuleType> deployed = this.runtime.current().types();
         List<String> latest = this.latest().enabledModules;
         return this.registry.listModules().stream()
+            .sorted(ModuleMetadata.ORDERING)
             .map(module -> info(module, deployed, latest, counts))
-            .sorted(ORDER)
             .toList();
     }
 
@@ -80,6 +80,20 @@ public class ModuleService
         this.registry.remove(name);
     }
 
+    /**
+     * See {@link ModuleRegistry#setOrder}: the core follows on redeploy.
+     *
+     * @return every registered module, in their new order
+     * @throws tech.illuin.wombat.engine.module.registry.ModuleOrderException if {@code modules} does not list each
+     *         registered module exactly once
+     */
+    @Transactional
+    public List<ModuleInfo> setOrder(List<String> modules, String user)
+    {
+        this.registry.setOrder(modules, user);
+        return this.list();
+    }
+
     @Transactional
     public DeploymentInfo deployment()
     {
@@ -87,7 +101,8 @@ public class ModuleService
         List<DeploymentInfo.CoreInstance> instances = this.deployments.liveInstances().stream()
             .map(this::instance)
             .toList();
-        List<DeploymentInfo.PendingModule> pending = this.registry.listModules().stream()
+        List<ModuleMetadata> modules = this.registry.listModules();
+        List<DeploymentInfo.PendingModule> pending = modules.stream()
             .filter(module -> isPending(module, latest.enabledModules))
             .map(module -> new DeploymentInfo.PendingModule(module.type().name(), module.enabled()))
             .sorted(Comparator.comparing(DeploymentInfo.PendingModule::type))
@@ -97,6 +112,7 @@ public class ModuleService
             new DeploymentInfo.LatestDeployment(latest.version, latest.id, latest.requestedAt, latest.requestedBy, latest.enabledModules),
             instances,
             pending,
+            isOrderPending(modules, latest.enabledModules),
             this.deployments.pollInterval().toSeconds()
         );
     }
@@ -140,6 +156,20 @@ public class ModuleService
         return !module.missing() && module.enabled() != latest.contains(module.type().name());
     }
 
+    /* Whether the latest deployment holds its modules in another order than the registry; a toggle is pending apart */
+    private static boolean isOrderPending(List<ModuleMetadata> modules, List<String> latest)
+    {
+        List<String> registered = modules.stream()
+            .sorted(ModuleMetadata.ORDERING)
+            .map(module -> module.type().name())
+            .filter(latest::contains)
+            .toList();
+        List<String> deployed = latest.stream()
+            .filter(registered::contains)
+            .toList();
+        return !registered.equals(deployed);
+    }
+
     private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, List<String> latest, Map<String, Long> counts)
     {
         return new ModuleInfo(
@@ -152,6 +182,8 @@ public class ModuleService
             isPending(module, latest),
             module.missing(),
             module.source(),
+            module.ordering(),
+            module.provides(),
             counts.getOrDefault(module.type().name(), 0L)
         );
     }

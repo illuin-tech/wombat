@@ -22,7 +22,6 @@ import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -51,11 +50,6 @@ public class CoreDeploymentService
 
     /* After the modules are registered and the environments reconciled, before the monitor is scheduled */
     static final int STARTUP_PRIORITY_DEPLOY = 2100;
-    /* An asset-type module has no ordering: those go by name. A family module with none yet goes last */
-    private static final Comparator<ModuleMetadata> DEPLOYMENT_ORDER = Comparator.comparing(ModuleMetadata::kind)
-        .thenComparing(module -> module.type().family())
-        .thenComparing(ModuleMetadata::ordering, Comparator.nullsLast(Comparator.naturalOrder()))
-        .thenComparing(module -> module.type().name());
     private static final Logger logger = LoggerFactory.getLogger(CoreDeploymentService.class);
 
     @Inject
@@ -267,14 +261,13 @@ public class CoreDeploymentService
     }
 
     /**
-     * The modules the registry enables, as a deployment lists them: the asset-type modules first, whose order means
-     * nothing, by family and name; then the family modules, by family and ordering.
+     * The modules the registry enables, in the order of the modules.
      */
     private List<String> enabledModules()
     {
         return this.registry.listModules().stream()
             .filter(ModuleMetadata::enabled)
-            .sorted(DEPLOYMENT_ORDER)
+            .sorted(ModuleMetadata.ORDERING)
             .map(module -> module.type().name())
             .toList();
     }

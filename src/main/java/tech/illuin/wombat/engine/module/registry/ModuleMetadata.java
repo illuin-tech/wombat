@@ -9,6 +9,7 @@ import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.module.WombatModule;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -20,9 +21,8 @@ import java.util.Set;
  * @param enabled    the registry state, shared by every instance
  * @param missing    whether no live instance detects the module any more, e.g. its extension jar was removed
  * @param source     whether it comes from the extension folder; null when this instance does not detect the module
- * @param ordering   the place of the module among those it competes with, from 1 for the one tried first, which the
- *                   next core deployed follows. Only the family modules of a family compete: null for an asset-type
- *                   module, and for a family module not placed yet
+ * @param ordering   the place of the module in the order of the modules, from 1, which the next core deployed follows:
+ *                   the family modules of a family are tried in that order; null for a module not placed yet
  * @param provides   empty when this instance does not detect the module
  */
 public record ModuleMetadata(
@@ -34,6 +34,12 @@ public record ModuleMetadata(
     Integer ordering,
     Set<Feature> provides
 ) {
+    /**
+     * The order of the modules: by ordering, those with none last, then by name.
+     */
+    public static final Comparator<ModuleMetadata> ORDERING = Comparator.comparing(ModuleMetadata::ordering, Comparator.nullsLast(Comparator.naturalOrder()))
+        .thenComparing(module -> module.type().name());
+
     /**
      * A module detected on this instance, not from the extension folder.
      */

@@ -35,6 +35,9 @@ export function assetTypesByName(modules: ModuleMetadata[]): Map<string, AssetTy
 
 export type ModuleSource = 'core' | 'extension'
 
+/** What a module provides for its assets, or those of its family: two family modules only compete for what both provide. */
+export type ModuleFeature = 'source' | 'activity' | 'impact' | 'cost'
+
 /** A module as Settings > Modules shows it: its registry state, and whether the running core holds it. */
 export type ModuleInfo = ModuleMetadata & {
   /** Whether the core running on the serving instance holds it. */
@@ -44,6 +47,10 @@ export type ModuleInfo = ModuleMetadata & {
   /** Whether no instance detects it any more, e.g. its extension jar was removed. */
   missing: boolean
   source: ModuleSource | null
+  /** Its place in the order of the modules, from 1: the family modules of a family are tried in that order. Null until placed. */
+  ordering: number | null
+  /** Empty when the serving instance does not detect the module. */
+  provides: ModuleFeature[]
   assetCount: number
 }
 
@@ -68,6 +75,8 @@ export interface CoreDeploymentStatus {
   latest: { version: number; id: string; requestedAt: string; requestedBy: string | null; modules: string[] }
   instances: CoreInstance[]
   pending: { type: string; enabled: boolean }[]
+  /** Whether the latest deployment holds the modules in another order than the registry. */
+  orderPending: boolean
   pollIntervalSeconds: number
 }
 

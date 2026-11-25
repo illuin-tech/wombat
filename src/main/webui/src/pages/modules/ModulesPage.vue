@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { CoreDeploymentStatus, ModuleInfo } from '@/domain/module'
 import { errorText } from '@/services/api/client'
-import { deleteModule, fetchDeployment, fetchModuleInfos } from '@/services/api/modules'
+import { deleteModule, fetchDeployment, fetchModuleInfos, setModuleOrder } from '@/services/api/modules'
 import { can } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
 import { useAsync } from '@/services/tools/useAsync'
@@ -17,7 +17,7 @@ import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import PageHead from '@/layout/PageHead.vue'
 import CoreStatus from '@/pages/modules/components/CoreStatus.vue'
 import RedeployDialog from '@/pages/modules/components/RedeployDialog.vue'
-import { filterModules, moduleStates, sortModules, STATE_LABELS, type ModuleState } from '@/pages/modules/model/moduleList'
+import { FEATURE_LABELS, filterModules, moduleStates, moveModule, STATE_LABELS, type ModuleState } from '@/pages/modules/model/moduleList'
 
 interface ModulesListing {
   modules: ModuleInfo[]
@@ -26,7 +26,7 @@ interface ModulesListing {
 
 async function loadListing(): Promise<ModulesListing> {
   const [modules, deployment] = await Promise.all([fetchModuleInfos(), fetchDeployment()])
-  return { modules: sortModules(modules), deployment }
+  return { modules, deployment }
 }
 
 const router = useRouter()
@@ -38,8 +38,17 @@ const stateOptions = (Object.keys(STATE_LABELS) as ModuleState[]).map(value => (
 const stateSummary = computed(() => states.value.length === 0 ? 'Any state' : states.value.map(state => STATE_LABELS[state]).join(', '))
 const canManage = computed(() => can(appInfo.value?.user, 'ui.modules.manage') && can(appInfo.value?.user, 'api.module.manage'))
 const shown = computed(() => filterModules(listing.data.value?.modules ?? [], search.value, states.value))
-const pendingCount = computed(() => listing.data.value?.deployment.pending.length ?? 0)
+/* Moving a row among the shown ones only would be ambiguous: the buttons wait for the whole list */
+const filtered = computed(() => search.value.trim() !== '' || states.value.length > 0)
+const canReorder = computed(() => canManage.value && !filtered.value)
+const pendingCount = computed(() => {
+  const deployment = listing.data.value?.deployment
+  return deployment ? deployment.pending.length + (deployment.orderPending ? 1 : 0) : 0
+})
 const skeletonRows = [0, 1, 2]
+
+const moving = ref(false)
+const moveError = ref<string | null>(null)
 
 const redeploying = ref(false)
 const deleted = ref<ModuleInfo | null>(null)
@@ -48,6 +57,20 @@ const deleteError = ref<string | null>(null)
 
 function open(module: ModuleInfo): void {
   void router.push({ name: 'module', params: { type: module.type.name } })
+}
+
+async function move(module: ModuleInfo, offset: -1 | 1): Promise<void> {
+  const modules = listing.data.value!.modules
+  moving.value = true
+  moveError.value = null
+  try {
+    await setModuleOrder(moveModule(modules, modules.indexOf(module), offset))
+    await listing.run()
+  } catch (caught) {
+    moveError.value = errorText(caught)
+  } finally {
+    moving.value = false
+  }
 }
 
 function confirmDelete(module: ModuleInfo): void {
@@ -76,8 +99,10 @@ onMounted(() => listing.run())
   <div class="main">
     <div class="list-head">
       <PageHead title="Modules">
-        The asset types Wombat detects. Turning a module off hides it from the asset pickers at once; a core
-        redeployment is required for monitoring and evaluations to take it into account, even across restarts.
+        The asset types Wombat detects, and the modules serving whole families, in their order: the family modules of
+        a family are tried in it, after the module of each asset's own type. Turning a module off hides it from the
+        asset pickers at once; a core redeployment is required for monitoring and evaluations to take it, or a new
+        order, into account, even across restarts.
       </PageHead>
       <button v-if="canManage && listing.data.value" class="btn-apply" type="button" id="redeployCore" @click="redeploying = true">Redeploy core</button>
     </div>
@@ -92,22 +117,24 @@ onMounted(() => listing.run())
       </p>
     </template>
 
+    <div v-if="moveError" class="form-error" role="alert">{{ moveError }}</div>
+
     <DataTable title="Modules">
       <template #controls>
         <input v-model="search" type="search" class="search-input" placeholder="Filter by name" aria-label="Filter modules by name" />
         <DropdownPicker v-model="states" label="State" :options="stateOptions" :summary="stateSummary" picker-id="moduleStatePicker" />
       </template>
       <table class="record-table">
-        <thead><tr><th>Module</th><th>Family</th><th>Source</th><th>State</th><th>Assets</th><th></th></tr></thead>
+        <thead><tr><th>Module</th><th>Family</th><th>Provides</th><th>Source</th><th>State</th><th>Assets</th><th></th></tr></thead>
         <tbody>
           <template v-if="listing.loading.value && !listing.data.value">
             <tr v-for="row in skeletonRows" :key="row">
-              <td v-for="cell in 6" :key="cell"><SkeletonBlock :width="cell === 1 ? '160px' : '64px'" height="12px" /></td>
+              <td v-for="cell in 7" :key="cell"><SkeletonBlock :width="cell === 1 ? '160px' : '64px'" height="12px" /></td>
             </tr>
           </template>
           <template v-else-if="listing.data.value">
             <tr
-              v-for="module in shown"
+              v-for="(module, index) in shown"
               :key="module.type.name"
               class="record-row module-row"
               :class="{ inactive: module.missing }"
@@ -128,6 +155,12 @@ onMounted(() => listing.run())
                   <span v-else class="icon-pill" title="Serves every asset of its family, and defines none">Family</span>
                 </span>
               </td>
+              <td>
+                <span v-if="module.provides.length > 0" class="module-states module-provides">
+                  <span v-for="feature in module.provides" :key="feature" class="icon-pill">{{ FEATURE_LABELS[feature] }}</span>
+                </span>
+                <template v-else>—</template>
+              </td>
               <td class="module-source"><SourcePill v-if="module.source" :source="module.source" /><template v-else>—</template></td>
               <td>
                 <span class="module-states">
@@ -136,6 +169,30 @@ onMounted(() => listing.run())
               </td>
               <td>{{ module.assetCount }}</td>
               <td class="record-row-actions">
+                <span v-if="canReorder" class="module-order">
+                  <button
+                    class="module-move"
+                    type="button"
+                    :disabled="moving || index === 0"
+                    :aria-label="`Move ${module.type.localName} up`"
+                    title="Move up"
+                    @click.stop="move(module, -1)"
+                    @keydown.enter.stop
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6" /></svg>
+                  </button>
+                  <button
+                    class="module-move"
+                    type="button"
+                    :disabled="moving || index === shown.length - 1"
+                    :aria-label="`Move ${module.type.localName} down`"
+                    title="Move down"
+                    @click.stop="move(module, 1)"
+                    @keydown.enter.stop
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+                  </button>
+                </span>
                 <button
                   v-if="module.missing && canManage"
                   class="btn-link-inline module-delete"
@@ -150,6 +207,7 @@ onMounted(() => listing.run())
       </table>
       <div v-if="listing.data.value && shown.length === 0" class="table-empty">No module matches these filters.</div>
     </DataTable>
+    <p v-if="canManage && filtered && listing.data.value" class="form-hint">Clear the search and the state filter to reorder the modules.</p>
 
     <RedeployDialog
       v-if="listing.data.value"

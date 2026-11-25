@@ -1,5 +1,4 @@
-import { FAMILY_ORDER } from '@/domain/assetTypeDisplay'
-import type { ModuleInfo } from '@/domain/module'
+import type { ModuleFeature, ModuleInfo } from '@/domain/module'
 
 export type ModuleState = 'enabled' | 'disabled' | 'pending' | 'missing'
 
@@ -8,6 +7,13 @@ export const STATE_LABELS: Record<ModuleState, string> = {
   disabled: 'Disabled',
   pending: 'Not deployed',
   missing: 'Missing',
+}
+
+export const FEATURE_LABELS: Record<ModuleFeature, string> = {
+  source: 'Source',
+  activity: 'Activity',
+  impact: 'Impact',
+  cost: 'Cost',
 }
 
 export function moduleStates(module: ModuleInfo): ModuleState[] {
@@ -27,10 +33,14 @@ export function filterModules(modules: readonly ModuleInfo[], query: string, sta
   })
 }
 
-/** Missing modules last; the others by family, then name. */
-export function sortModules(modules: readonly ModuleInfo[]): ModuleInfo[] {
-  return [...modules].sort((a, b) =>
-    Number(a.missing) - Number(b.missing)
-    || FAMILY_ORDER.indexOf(a.type.family) - FAMILY_ORDER.indexOf(b.type.family)
-    || a.type.localName.localeCompare(b.type.localName))
+/**
+ * The order of the modules once the one at `index` moves up (-1) or down (1), as `setModuleOrder` takes it: unchanged when
+ * it cannot move further.
+ */
+export function moveModule(modules: readonly ModuleInfo[], index: number, offset: -1 | 1): string[] {
+  const names = modules.map(module => module.type.name)
+  const target = index + offset
+  if (target < 0 || target >= names.length) return names
+  names.splice(target, 0, ...names.splice(index, 1))
+  return names
 }

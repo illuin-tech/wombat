@@ -25,12 +25,13 @@ const MANAGER = ['ui.modules.read', 'ui.modules.manage', 'api.module.manage']
 const anthropic: ModuleInfo = {
   kind: 'asset',
   type: { namespace: 'tech.illuin.wombat-module', localName: 'llm-anthropic', name: 'tech.illuin.wombat-module.llm-anthropic', regime: 'MEASURED', family: 'LLM' },
-  assetClass: 'tech.illuin.LLMAnthropicAsset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core', assetCount: 3,
+  assetClass: 'tech.illuin.LLMAnthropicAsset', enabled: true, creatable: true, deployed: true, pending: false, missing: false, source: 'core',
+  ordering: 1, provides: ['source', 'activity'], assetCount: 3,
 }
 
 const deployment: CoreDeploymentStatus = {
   latest: { version: 7, id: 'a3f9c21e8b0d', requestedAt: '2026-11-20T14:02:00Z', requestedBy: null, modules: [anthropic.type.name] },
-  instances: [], pending: [], pollIntervalSeconds: 30,
+  instances: [], pending: [], orderPending: false, pollIntervalSeconds: 30,
 }
 
 let wrapper: VueWrapper

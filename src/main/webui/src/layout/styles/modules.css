@@ -1,4 +1,4 @@
-/* Settings > Modules: the module states, the running core and its instances, the redeploy */
+/* Settings > Modules: the module states and their order, the running core and its instances, the redeploy */
 
 .module-states { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .module-state { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
@@ -9,6 +9,10 @@
 
 .module-row-name { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .module-source { font-size: 12px; color: var(--text-muted); }
+.module-order { display: inline-flex; gap: 2px; margin-right: 8px; vertical-align: middle; }
+.module-move { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text-muted); cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+.module-move:hover:not(:disabled), .module-move:focus-visible { color: var(--text); border-color: var(--border); background: var(--surface2); outline: none; }
+.module-move:disabled { opacity: 0.3; cursor: default; }
 .module-pending-banner { background: var(--accent-yellow-soft); color: var(--text); border: 1px solid var(--accent-yellow); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; }
 
 .core-status { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; box-shadow: var(--shadow-sm); font-size: 13px; }

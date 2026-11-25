@@ -2,8 +2,6 @@ package tech.illuin.wombat.commons;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import tech.illuin.wombat.engine.connector.boavizta.BoaviztaProperties;
-import tech.illuin.wombat.engine.connector.ecologits.EcologitsProperties;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
 import tech.illuin.wombat.engine.monitor.MonitorProperties;
@@ -23,17 +21,8 @@ public interface WombatProperties
 
     WombatModuleProperties module();
 
-    ConnectorProperties connector();
-
     interface EvaluatorProperties
     {
         CachedAssetEvaluatorProperties cache();
-    }
-
-    interface ConnectorProperties
-    {
-        BoaviztaProperties boavizta();
-
-        EcologitsProperties ecologits();
     }
 }

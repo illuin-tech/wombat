@@ -13,12 +13,13 @@
   #    kv-secret-engine-mount-path: secret
 
 wombat:
-  # Connector endpoints for local mock / stub services
-  connector:
-    boavizta:
-      uri: "http://localhost:5001/v1/"
-    ecologits:
-      uri: "http://localhost:5002/"
+  module:
+    # The APIs the Boavizta and Ecologits modules call, local mock / stub services
+    settings:
+      tech.illuin.wombat-module.boavizta:
+        uri: "http://localhost:5001/v1/"
+      tech.illuin.wombat-module.ecologits:
+        uri: "http://localhost:5002/"
 
   monitor:
     environments-file: monitored/monitored-environments-dev.yaml

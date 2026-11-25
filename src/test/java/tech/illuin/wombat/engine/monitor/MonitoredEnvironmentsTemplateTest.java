@@ -8,8 +8,6 @@ import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.WombatProperties;
-import tech.illuin.wombat.engine.connector.boavizta.BoaviztaProperties;
-import tech.illuin.wombat.engine.connector.ecologits.EcologitsProperties;
 import tech.illuin.wombat.core.asset.Asset;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.secret.SecretAware;
@@ -28,6 +26,7 @@ import tech.illuin.wombat.persistence.backend.push.WorkerProperties;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -172,19 +171,7 @@ class MonitoredEnvironmentsTemplateTest
                         };
                     }
                     @Override public WombatModuleProperties.DeploymentProperties deployment() { return null; }
-                };
-            }
-
-            @Override
-            public WombatProperties.ConnectorProperties connector()
-            {
-                return new WombatProperties.ConnectorProperties()
-                {
-                    @Override
-                    public BoaviztaProperties boavizta() { return null; }
-
-                    @Override
-                    public EcologitsProperties ecologits() { return null; }
+                    @Override public Map<String, Map<String, String>> settings() { return Map.of(); }
                 };
             }
         };

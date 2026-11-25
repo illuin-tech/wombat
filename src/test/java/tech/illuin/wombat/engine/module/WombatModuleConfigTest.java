@@ -13,8 +13,6 @@ import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.WombatProperties;
-import tech.illuin.wombat.engine.connector.boavizta.BoaviztaProperties;
-import tech.illuin.wombat.engine.connector.ecologits.EcologitsProperties;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
@@ -27,6 +25,7 @@ import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -199,19 +198,7 @@ class WombatModuleConfigTest
                         };
                     }
                     @Override public WombatModuleProperties.DeploymentProperties deployment() { return null; }
-                };
-            }
-
-            @Override
-            public WombatProperties.ConnectorProperties connector()
-            {
-                return new WombatProperties.ConnectorProperties()
-                {
-                    @Override
-                    public BoaviztaProperties boavizta() { return null; }
-
-                    @Override
-                    public EcologitsProperties ecologits() { return null; }
+                    @Override public Map<String, Map<String, String>> settings() { return Map.of(); }
                 };
             }
         };

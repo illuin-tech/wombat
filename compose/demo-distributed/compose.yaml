@@ -15,8 +15,9 @@ services:
       PERSISTENCE_COMPACTION_CRON: "0 1/5 * * * ?"
       PERSISTENCE_COMPACTION_WINDOW: 5m
       PERSISTENCE_COMPACTION_DELAY: 30s
-      WOMBAT_CONNECTOR_BOAVIZTA_URI: "http://boavizta:5000/v1/"
-      WOMBAT_CONNECTOR_ECOLOGITS_URI: "http://ecologits:80/"
+      # wombat.module.settings."tech.illuin.wombat-module.boavizta".uri, and the same for Ecologits
+      WOMBAT_MODULE_SETTINGS__TECH_ILLUIN_WOMBAT_MODULE_BOAVIZTA__URI: "http://boavizta:5000/v1/"
+      WOMBAT_MODULE_SETTINGS__TECH_ILLUIN_WOMBAT_MODULE_ECOLOGITS__URI: "http://ecologits:80/"
       # Secret ANTHROPIC_ADMIN_KEY of the Anthropic asset of aggregator/monitored-environments.yaml, which is evaluated here
       WOMBAT_ASSET_SECRET_ANTHROPIC_ADMIN_KEY: "${ANTHROPIC_ADMIN_KEY:-}"
     volumes:

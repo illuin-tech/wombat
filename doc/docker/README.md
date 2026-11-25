@@ -63,11 +63,12 @@ persistence:
       jdbc-url: "jdbc:sqlite:/var/data/local.db"
 
 wombat:
-  connector:
-    boavizta:
-      uri: "http://boavizta:5000/v1/"
-    ecologits:
-      uri: "http://ecologits:80/"
+  module:
+    settings:
+      tech.illuin.wombat-module.boavizta:
+        uri: "http://boavizta:5000/v1/"
+      tech.illuin.wombat-module.ecologits:
+        uri: "http://ecologits:80/"
 ```
 
 ### Provisioning environments (optional)

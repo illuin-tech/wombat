@@ -1,6 +1,5 @@
 package tech.illuin.wombat.engine.module;
 
-import io.quarkus.arc.All;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
 import jakarta.inject.Singleton;
@@ -10,7 +9,6 @@ import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
 import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.MetricResolvers;
-import tech.illuin.wombat.core.module.ModuleSettings;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.core.module.WombatServices;
 import tech.illuin.wombat.core.secret.SecretResolver;
@@ -18,6 +16,7 @@ import tech.illuin.wombat.core.source.persistence.WombatMetricPersister;
 import tech.illuin.wombat.engine.module.runtime.CoreDeploymentFactory;
 import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
 import tech.illuin.wombat.engine.module.runtime.RuntimeAssetEvaluator;
+import tech.illuin.wombat.engine.module.settings.ModuleSettingsReader;
 
 import java.time.Duration;
 import java.util.List;
@@ -37,7 +36,7 @@ public class WombatCoreConfig
 
     /**
      * The services handed to the modules: the secrets they read credentials from, the metric store sourced metrics are
-     * read back from, and their own settings.
+     * read back from, and their own settings, read once here.
      */
     @ApplicationScoped
     public CoreDeploymentFactory provideCoreDeploymentFactory(
@@ -45,14 +44,14 @@ public class WombatCoreConfig
         SecretResolver secrets,
         KubernetesMetricResolver kubernetesMetrics,
         LLMMetricResolver llmMetrics,
-        @All List<ModuleSettings> settings,
+        ModuleSettingsReader settings,
         WombatMetricPersister persister,
         List<WombatModule> modules,
         WombatProperties wombat
     ) {
         return new CoreDeploymentFactory(
             contextProvider,
-            new WombatServices(secrets, new MetricResolvers(kubernetesMetrics, llmMetrics), settings),
+            new WombatServices(secrets, new MetricResolvers(kubernetesMetrics, llmMetrics), settings.read()),
             persister,
             modules,
             wombat.evaluator().cache()

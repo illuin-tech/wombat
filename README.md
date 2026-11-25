@@ -277,7 +277,8 @@ redeployed, from **Settings > Modules**: see [modules](doc/modules.md). A module
 that startup, unless `wombat.module.extension.auto-deploy` is `false` (`WOMBAT_MODULE_EXTENSION_AUTO_DEPLOY=false`): it
 then waits for a redeploy. The modules of the JARs come after those Wombat ships, in the order of the JAR file names: a
 family module of an extension is only tried after those of Wombat, until moved up from Settings > Modules, see
-[the order of the modules](doc/modules.md#the-order-of-the-modules).
+[the order of the modules](doc/modules.md#the-order-of-the-modules). A module taking settings is given them under
+`wombat.module.settings`, by its full name: see [module settings](doc/modules.md#module-settings).
 
 When starting up the app with a custom extension, you should see logs like these:
 

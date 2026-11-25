@@ -113,14 +113,6 @@ wombat:
   #    proxy-url: "http://proxy.example.com:3128"  # optional, HTTP proxy to reach the aggregator through
   #    timeout: 30s
 
-  connector:
-    boavizta:
-      uri: "https://api.boavizta.org/v1/"
-      #proxy-url: "http://proxy.example.com:3128"
-    ecologits:
-      uri: "https://api.ecologits.ai/"
-      #proxy-url: "http://proxy.example.com:3128"
-
   monitor:
     heartbeat: "10s"
     # Optional: the environments provisioned at startup, none when there is no file. See doc/provisioning.md
@@ -144,6 +136,14 @@ wombat:
       poll-interval: 30s
       # Identifies this instance among the replicas: the pod name in Kubernetes, "wombat" when HOSTNAME is unset
       instance-id: ${HOSTNAME:wombat}
+    # The settings of each module, by its full name; see doc/modules.md. Those below are the modules' own defaults
+    settings:
+      tech.illuin.wombat-module.boavizta:
+        uri: "https://api.boavizta.org/v1/"
+        #proxy-url: "http://proxy.example.com:3128"
+      tech.illuin.wombat-module.ecologits:
+        uri: "https://api.ecologits.ai/"
+        #proxy-url: "http://proxy.example.com:3128"
 
   ## Secret Resolution Configuration
   # Write mode defaults to "disabled".

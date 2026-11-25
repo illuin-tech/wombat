@@ -14,6 +14,7 @@ import jakarta.enterprise.inject.Disposes;
 import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Singleton;
+import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.engine.context.asset.model.UnrecognizedAssetProblemHandler;
@@ -27,6 +28,7 @@ import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.schema.AssetSchemaRegistry;
 import tech.illuin.wombat.engine.module.registry.schema.DefaultSchemaRegistry;
+import tech.illuin.wombat.engine.module.settings.ModuleSettingsReader;
 
 import java.io.IOException;
 import java.util.List;
@@ -84,6 +86,15 @@ public class WombatModuleConfig
     public static AssetSchemaRegistry provideAssetSchemaRegistry(ModuleRegistry moduleRegistry, ObjectMapper mapper)
     {
         return new DefaultSchemaRegistry(moduleRegistry, mapper);
+    }
+
+    /**
+     * Reads with the YAML mapper, whose kebab-case names are those of the configuration.
+     */
+    @Produces @Singleton
+    public static ModuleSettingsReader provideModuleSettingsReader(WombatProperties wombat, List<WombatModule> modules, YAMLMapper mapper, Validator validator)
+    {
+        return new ModuleSettingsReader(wombat.module().settings(), modules, mapper, validator);
     }
 
     public void configureQuarkusObjectMapper(@Observes StartupEvent event, ObjectMapper mapper, List<WombatModule> modules)

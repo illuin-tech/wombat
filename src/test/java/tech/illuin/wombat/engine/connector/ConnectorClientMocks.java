@@ -29,7 +29,7 @@ import java.util.Optional;
  * <p>
  * The modules build their own clients out of their settings: the detected ones are swapped for subclasses taking these
  * mocks, which tests inject to stub them. Being globally-enabled alternatives, they also guarantee no test ever reaches
- * a real endpoint. The settings the real modules read are checked by {@link ConnectorSettingsTest}.
+ * a real endpoint. The settings the real modules read are checked by {@code ModuleSettingsConfigTest}.
  */
 @ApplicationScoped
 public class ConnectorClientMocks

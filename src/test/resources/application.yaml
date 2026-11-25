@@ -63,14 +63,13 @@ wombat:
       maximum-size: 5000
       expire-after-write: 10m
 
-  # Unreachable, and distinct from the public APIs the modules fall back to: see ConnectorSettingsTest
-  connector:
-    boavizta:
-      uri: "http://localhost:0/boavizta/v1/"
-      proxy-url: "http://proxy.example.com:3128"
-    ecologits:
-      uri: "http://localhost:0/ecologits/"
-
   module:
+    # Unreachable, and distinct from the public APIs the modules fall back to: see ModuleSettingsConfigTest
+    settings:
+      tech.illuin.wombat-module.boavizta:
+        uri: "http://localhost:0/boavizta/v1/"
+        proxy-url: "http://proxy.example.com:3128"
+      tech.illuin.wombat-module.ecologits:
+        uri: "http://localhost:0/ecologits/"
     extension:
       path: "/target/extensions"

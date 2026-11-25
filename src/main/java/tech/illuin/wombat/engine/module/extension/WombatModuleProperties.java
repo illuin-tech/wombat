@@ -5,6 +5,7 @@ import io.smallrye.config.WithName;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
 
 public interface WombatModuleProperties
 {
@@ -13,6 +14,14 @@ public interface WombatModuleProperties
 
     @WithName("deployment")
     DeploymentProperties deployment();
+
+    /**
+     * The settings of the modules, by module name then property path, read by
+     * {@link tech.illuin.wombat.engine.module.settings.ModuleSettingsReader}. An environment variable overrides a key
+     * another source sets; alone, SmallRye cannot tell where its dots go.
+     */
+    @WithName("settings")
+    Map<String, Map<String, String>> settings();
 
     interface ExtensionProperties
     {

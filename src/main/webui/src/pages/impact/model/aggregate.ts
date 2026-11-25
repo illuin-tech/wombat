@@ -9,6 +9,7 @@ import {
   type LLMImpact,
   type ServerSpecification,
   type ServiceImpact as RawServiceImpact,
+  type TimeRangeJson,
   isKubernetesImpact,
   isLLMImpact,
 } from '@/domain/impact'
@@ -70,6 +71,7 @@ export interface LLMPanel extends PanelBase {
   model: string
   location: string
   outputTokenCount: number
+  /** The period's requests scaled to a 365-day year, 0 when the period is unknown. */
   requestPerYear: number
   requestCount: number
 }
@@ -146,6 +148,7 @@ export function metricMean(metric: EcologitsMetric): number {
 const HOURS_PER_DAY = 24
 const HOURS_PER_YEAR = 365 * HOURS_PER_DAY
 const HOURS_PER_MONTH = Math.trunc(HOURS_PER_YEAR / 12)
+const MS_PER_HOUR = 3_600_000
 
 /** Lifetime.asHours() from its JSON text ("5y", "43800", "30d"…). */
 export function lifetimeHours(lifespan: unknown): number {
@@ -207,7 +210,7 @@ export function aggregate(impacts: AssetImpact[], assets: AssetInfo[], requested
     const llmImpacts = includedImpacts.filter(isLLMImpact)
     if (llmImpacts.length > 0) {
       llmFootprints.push(assetFootprint)
-      panels.push(llmPanel(name, assetFootprint, llmImpacts))
+      panels.push(llmPanel(name, assetFootprint, llmImpacts, assetImpact.range))
     }
   }
 
@@ -302,11 +305,11 @@ function distinct<T>(values: (T | null | undefined)[]): T[] {
   return [...new Set(values.filter((value): value is T => value !== null && value !== undefined))]
 }
 
-function llmPanel(name: string, footprint: Footprint, impacts: LLMImpact[]): LLMPanel {
+function llmPanel(name: string, footprint: Footprint, impacts: LLMImpact[], range: TimeRangeJson | null): LLMPanel {
   const first = impacts[0]
-  const requestPerYear = impacts.reduce((sum, impact) => sum + Math.trunc(impact.requestCount), 0)
   const outputTokenCount = impacts.reduce((sum, impact) => sum + impact.outputTokenCount, 0)
   const requestCount = impacts.reduce((sum, impact) => sum + impact.requestCount, 0)
+  const requestPerYear = perYear(requestCount, range)
 
   let energy = 0
   let energyUnit: string = UNIT.kwh
@@ -337,6 +340,12 @@ function llmPanel(name: string, footprint: Footprint, impacts: LLMImpact[]): LLM
     requestPerYear,
     requestCount,
   }
+}
+
+/* A NaN from a missing or malformed bound fails the `> 0` test like an empty period does */
+function perYear(count: number, range: TimeRangeJson | null): number {
+  const hours = range ? (Date.parse(range.end) - Date.parse(range.start)) / MS_PER_HOUR : 0
+  return hours > 0 ? Math.round(count * HOURS_PER_YEAR / hours) : 0
 }
 
 function serviceLine(service: ServiceImpact): ServiceLine {

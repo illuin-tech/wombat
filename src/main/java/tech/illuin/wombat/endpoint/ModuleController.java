@@ -18,6 +18,7 @@ import tech.illuin.wombat.endpoint.response.Response;
 import tech.illuin.wombat.endpoint.response.Status;
 import tech.illuin.wombat.engine.module.DeploymentInfo;
 import tech.illuin.wombat.engine.module.ModuleInfo;
+import tech.illuin.wombat.engine.module.ModulePrecedence;
 import tech.illuin.wombat.engine.module.ModuleService;
 import tech.illuin.wombat.engine.module.registry.ModuleConflictException;
 import tech.illuin.wombat.engine.module.registry.ModuleOrderException;
@@ -185,6 +186,21 @@ public class ModuleController
         catch (ModuleOrderException e) {
             throw new BadRequestException(e.getMessage());
         }
+    }
+
+    /**
+     * Which family module serves first, for each family and component, in the latest deployment and in the next one.
+     */
+    @GET
+    @Path("/precedence")
+    @Produces(MediaType.APPLICATION_JSON)
+    @APIResponse(responseCode = "200", content = @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(properties = {
+        @SchemaProperty(name = "status", implementation = Status.class),
+        @SchemaProperty(name = "payload", implementation = ModulePrecedence.class)
+    })))
+    public Response<ModulePrecedence> precedence()
+    {
+        return Response.success(this.service.precedence());
     }
 
     @GET

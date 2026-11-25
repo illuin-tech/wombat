@@ -68,6 +68,11 @@ An admin moves a module up or down from Settings > Modules, while the list is ne
 whole order through `PUT /api/modules/order`. Like a toggle, a new order reaches the core on the next redeploy: until
 then, the modules moved show as not deployed, the fewest which, moved back, give the deployed order.
 
+Above the list, Settings > Modules sums up which family module serves first, for each family and component, as
+`GET /api/modules/precedence` does. While a toggle or a move changes it, it shows the deployed precedence next to the
+one the redeploy brings. Asset-type modules are left out, as is a module the instance serving the page does not detect,
+whose components it cannot tell.
+
 ## What a toggle or a reorder changes, and when
 
 | Where                                                              | When                                                                    |
@@ -148,6 +153,7 @@ heartbeat back. Under plain Docker, `HOSTNAME` is the container id, which change
 | `PUT /api/modules/{id}`         | `api.module.manage` | Enables or disables a module (`{"enabled": false}`); `409` if missing     |
 | `DELETE /api/modules/{id}`      | `api.module.manage` | Deletes a missing module; `409` if detected                               |
 | `PUT /api/modules/order`        | `api.module.manage` | Sets the order of the modules (`{"modules": [...]}`); `400` unless it lists each registered module once |
+| `GET /api/modules/precedence`   | `api.module.read`   | Which family module serves first, per family and component, deployed and after the next redeploy |
 | `GET /api/modules/deployment`   | `api.module.read`   | The latest deployment, the live instances, the changes not deployed       |
 | `POST /api/modules/deployment`  | `api.module.manage` | Redeploys the core; `409` if another redeploy was requested at once       |
 

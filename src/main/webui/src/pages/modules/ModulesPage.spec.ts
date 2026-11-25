@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { CoreDeploymentStatus, ModuleInfo } from '@/domain/module'
-import { deleteModule, fetchDeployment, fetchModuleInfos, redeployCore, setModuleOrder } from '@/services/api/modules'
+import { deleteModule, fetchDeployment, fetchModuleInfos, fetchPrecedence, redeployCore, setModuleOrder } from '@/services/api/modules'
 import ModulesPage from './ModulesPage.vue'
 
 const session = vi.hoisted(() => ({ setPermissions: (_permissions: string[]): void => {} }))
@@ -16,7 +16,7 @@ vi.mock('@/services/auth/session', async () => {
   return { useAppInfo: () => ({ appInfo: readonly(appInfo) }), loadAppInfo: vi.fn() }
 })
 vi.mock('@/services/api/modules', () => ({
-  fetchModuleInfos: vi.fn(), fetchDeployment: vi.fn(), deleteModule: vi.fn(), redeployCore: vi.fn(), setModuleOrder: vi.fn(),
+  fetchModuleInfos: vi.fn(), fetchDeployment: vi.fn(), fetchPrecedence: vi.fn(), deleteModule: vi.fn(), redeployCore: vi.fn(), setModuleOrder: vi.fn(),
 }))
 
 const READER = ['ui.modules.read']
@@ -69,6 +69,7 @@ async function render(permissions: string[]): Promise<void> {
 beforeEach(() => {
   vi.mocked(fetchModuleInfos).mockResolvedValue([removed, vertex, anthropic])
   vi.mocked(fetchDeployment).mockResolvedValue(deployment(7))
+  vi.mocked(fetchPrecedence).mockResolvedValue({ families: [], changed: false })
 })
 
 afterEach(() => {
@@ -125,6 +126,19 @@ describe('ModulesPage', () => {
     )
     await wrapper.find('#redeployCore').trigger('click')
     expect(document.querySelector('.redeploy-changes')!.textContent).toContain(`Moves ${anthropic.type.name}`)
+  })
+
+  it('sums up which family module serves first above the list, when there are family modules', async () => {
+    await render(READER)
+    expect(wrapper.find('.precedence').exists()).toBe(false)
+
+    wrapper.unmount()
+    vi.mocked(fetchPrecedence).mockResolvedValue({
+      families: [{ family: 'LLM', features: [{ feature: 'impact', deployed: ['tech.illuin.ecologits'], next: ['tech.illuin.ecologits'], changed: false }] }],
+      changed: false,
+    })
+    await render(READER)
+    expect(wrapper.find('.precedence .precedence-first').text()).toBe('tech.illuin.ecologits')
   })
 
   it('explains a pill on hover', async () => {

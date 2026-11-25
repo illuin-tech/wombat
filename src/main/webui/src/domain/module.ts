@@ -80,6 +80,29 @@ export interface CoreDeploymentStatus {
   pollIntervalSeconds: number
 }
 
+/** GET /api/modules/precedence: which family module serves first, for each family and component. */
+export interface ModulePrecedence {
+  families: FamilyPrecedence[]
+  /** Whether the next deployment changes any of them. */
+  changed: boolean
+}
+
+export interface FamilyPrecedence {
+  family: ServiceFamily
+  /** The components some family module of the family provides, in either deployment. */
+  features: FeaturePrecedence[]
+}
+
+/** The family modules providing a component, the one serving first first: the next ones serve the assets it does not accept. */
+export interface FeaturePrecedence {
+  feature: ModuleFeature
+  /** In the latest deployment. */
+  deployed: string[]
+  /** In the next one: the enabled modules, in their order. */
+  next: string[]
+  changed: boolean
+}
+
 /** POST /api/modules/deployment: the redeploy, and how it went on the instance which recorded it. */
 export interface Redeployed {
   version: number

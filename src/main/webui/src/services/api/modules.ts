@@ -1,7 +1,7 @@
-import type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, Redeployed } from '@/domain/module'
+import type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, ModulePrecedence, Redeployed } from '@/domain/module'
 import { request, type StatusMessages } from '@/services/api/client'
 
-export type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, Redeployed } from '@/domain/module'
+export type { CoreDeploymentStatus, JsonSchema, ModuleInfo, ModuleMetadata, ModulePrecedence, Redeployed } from '@/domain/module'
 
 const MODULE_MESSAGES: StatusMessages = {
   403: 'You are not allowed to manage modules.',
@@ -50,6 +50,11 @@ export function deleteModule(type: string): Promise<void> {
     method: 'DELETE',
     messages: { ...MODULE_MESSAGES, 409: 'An instance detects this module again: only a missing module can be deleted.' },
   })
+}
+
+/** Which family module serves first, for each family and component, deployed and after the next redeploy. */
+export function fetchPrecedence(): Promise<ModulePrecedence> {
+  return request<ModulePrecedence>('/api/modules/precedence')
 }
 
 export function fetchDeployment(): Promise<CoreDeploymentStatus> {

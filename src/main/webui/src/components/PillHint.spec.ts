@@ -80,6 +80,18 @@ describe('PillHint', () => {
     hinted.unmount()
   })
 
+  it('explains with its hint slot, when the explanation is more than text', async () => {
+    const hinted = mount(PillHint, {
+      attachTo: document.body,
+      slots: { default: () => h('span', 'First'), hint: () => h('em', { class: 'rich' }, 'A richer explanation') },
+    })
+
+    await hinted.find('.pill-hint').trigger('mouseenter')
+
+    expect(document.querySelector('.pill-hint-bubble .rich')!.textContent).toBe('A richer explanation')
+    hinted.unmount()
+  })
+
   it('shows one explanation at a time', async () => {
     await pills()[0].trigger('focus')
     await pills()[1].trigger('mouseenter')

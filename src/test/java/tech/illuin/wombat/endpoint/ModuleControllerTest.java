@@ -98,6 +98,7 @@ class ModuleControllerTest
     {
         QuarkusTransaction.requiringNew().run(() -> {
             this.repository.findById(MODULE_ID).enabled = true;
+            this.repository.findById(BOAVIZTA_ID).enabled = true;
             this.repository.deleteById(MISSING_ID);
             this.orderings.forEach((name, ordering) -> this.repository.findById(name).ordering = ordering);
         });
@@ -339,6 +340,35 @@ class ModuleControllerTest
 
     @Test
     @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
+    void precedence_tellsWhichFamilyModuleServesEachComponentFirst()
+    {
+        given()
+            .when().get("/api/modules/precedence")
+            .then()
+            .statusCode(200)
+            .body("payload.changed", is(false))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.feature", contains("activity", "impact"))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.deployed", contains(BOAVIZTA_ID));
+    }
+
+    @Test
+    @TestSecurity(user = "boss", roles = "wombat-admins", augmentors = PermissionAugmentor.class)
+    void precedence_tellsWhatTheNextRedeployChanges()
+    {
+        given().contentType(ContentType.JSON).body("{\"enabled\": false}").when().put("/api/modules/" + BOAVIZTA_ID).then().statusCode(200);
+
+        given()
+            .when().get("/api/modules/precedence")
+            .then()
+            .statusCode(200)
+            .body("payload.changed", is(true))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.deployed", contains(BOAVIZTA_ID))
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.next", empty())
+            .body("payload.families.find { it.family == 'KUBERNETES_CONTAINER' }.features.find { it.feature == 'impact' }.changed", is(true));
+    }
+
+    @Test
+    @TestSecurity(user = "module-reader", roles = "wombat-users", augmentors = PermissionAugmentor.class)
     void aReorderIsForbiddenToUsers()
     {
         given().contentType(ContentType.JSON).body(order(List.of(BOAVIZTA_ID, METRICS_ID)))
@@ -366,6 +396,8 @@ class ModuleControllerTest
             .body("paths.'/api/modules/deployment'.keySet()", hasItems("get", "post"))
             .body("paths.'/api/modules/deployment'.post.responses.keySet()", hasItems("201", "409"))
             .body("paths.'/api/modules/order'.put.responses.keySet()", hasItems("200", "400"))
+            .body("paths.'/api/modules/precedence'.keySet()", hasItems("get"))
+            .body("components.schemas.ModulePrecedence.properties.keySet()", hasItems("families", "changed"))
             .body("components.schemas.ModuleInfo.properties.keySet()", hasItems("type", "enabled", "deployed", "pending", "missing", "source", "ordering", "provides", "assetCount"))
             .body("components.schemas.DeploymentInfo.properties.keySet()", hasItems("latest", "instances", "pending", "moved", "pollIntervalSeconds"))
             .body("components.schemas.Redeployed.properties.keySet()", hasItems("version", "id", "local"))
@@ -444,6 +476,7 @@ class ModuleControllerTest
         given().when().get("/api/modules").then().statusCode(403);
         given().when().get("/api/modules/" + MODULE_ID).then().statusCode(403);
         given().when().get("/api/modules/" + MODULE_ID + "/schema").then().statusCode(403);
+        given().when().get("/api/modules/precedence").then().statusCode(403);
     }
 
     @Test

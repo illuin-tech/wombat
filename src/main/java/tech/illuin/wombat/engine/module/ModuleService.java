@@ -3,10 +3,13 @@ package tech.illuin.wombat.engine.module;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import tech.illuin.wombat.core.asset.type.ModuleType;
+import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
 import tech.illuin.wombat.engine.module.persistence.CoreDeploymentEntity;
 import tech.illuin.wombat.engine.module.persistence.CoreInstanceEntity;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
+import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Kind;
 import tech.illuin.wombat.engine.module.registry.ModuleRegistry;
 import tech.illuin.wombat.engine.module.registry.UnknownModuleException;
 import tech.illuin.wombat.engine.module.runtime.CoreDeploymentService;
@@ -15,11 +18,15 @@ import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -101,6 +108,37 @@ public class ModuleService
     {
         this.registry.setOrder(modules, user);
         return this.list();
+    }
+
+    /**
+     * See {@link ModulePrecedence}: the latest deployment against the next one, which holds the enabled modules in the
+     * order of the modules.
+     */
+    @Transactional
+    public ModulePrecedence precedence()
+    {
+        List<ModuleMetadata> modules = this.registry.listModules();
+        Map<String, ModuleMetadata> byName = modules.stream()
+            .collect(Collectors.toMap(module -> module.type().name(), Function.identity()));
+        Map<ServiceFamily, Map<Feature, List<String>>> deployed = providers(this.latest().enabledModules.stream()
+            .map(byName::get)
+            .filter(Objects::nonNull)
+            .toList());
+        Map<ServiceFamily, Map<Feature, List<String>>> next = providers(modules.stream()
+            .filter(ModuleMetadata::enabled)
+            .sorted(ModuleMetadata.ORDERING)
+            .toList());
+
+        Set<ServiceFamily> families = EnumSet.noneOf(ServiceFamily.class);
+        families.addAll(deployed.keySet());
+        families.addAll(next.keySet());
+        List<ModulePrecedence.FamilyPrecedence> precedence = families.stream()
+            .map(family -> familyPrecedence(family, deployed.getOrDefault(family, Map.of()), next.getOrDefault(family, Map.of())))
+            .toList();
+        boolean changed = precedence.stream()
+            .flatMap(family -> family.features().stream())
+            .anyMatch(ModulePrecedence.FeaturePrecedence::changed);
+        return new ModulePrecedence(precedence, changed);
     }
 
     @Transactional
@@ -214,6 +252,42 @@ public class ModuleService
                 j++;
         }
         return common;
+    }
+
+    /* For each family and component, the family modules providing it, in the order they are given */
+    private static Map<ServiceFamily, Map<Feature, List<String>>> providers(List<ModuleMetadata> modules)
+    {
+        Map<ServiceFamily, Map<Feature, List<String>>> providers = new EnumMap<>(ServiceFamily.class);
+        for (ModuleMetadata module : modules)
+        {
+            if (module.kind() != Kind.family)
+                continue;
+            for (Feature feature : module.provides())
+            {
+                providers.computeIfAbsent(module.type().family(), family -> new EnumMap<>(Feature.class))
+                    .computeIfAbsent(feature, provided -> new ArrayList<>())
+                    .add(module.type().name());
+            }
+        }
+        return providers;
+    }
+
+    private static ModulePrecedence.FamilyPrecedence familyPrecedence(
+        ServiceFamily family,
+        Map<Feature, List<String>> deployed,
+        Map<Feature, List<String>> next
+    ) {
+        Set<Feature> features = EnumSet.noneOf(Feature.class);
+        features.addAll(deployed.keySet());
+        features.addAll(next.keySet());
+        List<ModulePrecedence.FeaturePrecedence> precedence = features.stream()
+            .map(feature -> {
+                List<String> before = List.copyOf(deployed.getOrDefault(feature, List.of()));
+                List<String> after = List.copyOf(next.getOrDefault(feature, List.of()));
+                return new ModulePrecedence.FeaturePrecedence(feature, before, after, !before.equals(after));
+            })
+            .toList();
+        return new ModulePrecedence.FamilyPrecedence(family, precedence);
     }
 
     private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, List<String> latest, Set<String> moved, Map<String, Long> counts)

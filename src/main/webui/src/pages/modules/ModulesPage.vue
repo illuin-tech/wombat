@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import type { CoreDeploymentStatus, ModuleInfo } from '@/domain/module'
+import type { CoreDeploymentStatus, ModuleInfo, ModulePrecedence } from '@/domain/module'
 import { FAMILY_HINTS, REGIME_HINTS } from '@/domain/assetTypeDisplay'
 import { errorText } from '@/services/api/client'
-import { deleteModule, fetchDeployment, fetchModuleInfos, setModuleOrder } from '@/services/api/modules'
+import { deleteModule, fetchDeployment, fetchModuleInfos, fetchPrecedence, setModuleOrder } from '@/services/api/modules'
 import { can } from '@/services/auth/permissions'
 import { useAppInfo } from '@/services/auth/session'
 import { useAsync } from '@/services/tools/useAsync'
@@ -18,17 +18,19 @@ import SourcePill from '@/components/SourcePill.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import PageHead from '@/layout/PageHead.vue'
 import CoreStatus from '@/pages/modules/components/CoreStatus.vue'
+import PrecedenceSummary from '@/pages/modules/components/PrecedenceSummary.vue'
 import RedeployDialog from '@/pages/modules/components/RedeployDialog.vue'
 import { FAMILY_MODULE_HINT, filterModules, moduleStates, moveModule, SOURCE_HINTS, STATE_LABELS, type ModuleState } from '@/pages/modules/model/moduleList'
 
 interface ModulesListing {
   modules: ModuleInfo[]
   deployment: CoreDeploymentStatus
+  precedence: ModulePrecedence
 }
 
 async function loadListing(): Promise<ModulesListing> {
-  const [modules, deployment] = await Promise.all([fetchModuleInfos(), fetchDeployment()])
-  return { modules, deployment }
+  const [modules, deployment, precedence] = await Promise.all([fetchModuleInfos(), fetchDeployment(), fetchPrecedence()])
+  return { modules, deployment, precedence }
 }
 
 const router = useRouter()
@@ -115,6 +117,11 @@ onMounted(() => listing.run())
         {{ pendingCount }} change{{ pendingCount === 1 ? '' : 's' }} not deployed: a core redeployment is required for
         monitoring and evaluations to take {{ pendingCount === 1 ? 'it' : 'them' }} into account.
       </p>
+      <PrecedenceSummary
+        v-if="listing.data.value.precedence.families.length > 0"
+        :precedence="listing.data.value.precedence"
+        :modules="listing.data.value.modules"
+      />
     </template>
 
     <div v-if="moveError" class="form-error" role="alert">{{ moveError }}</div>

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.illuin.wombat.core.asset.type.ActivityRegime;
 import tech.illuin.wombat.core.asset.type.AssetType;
+import tech.illuin.wombat.core.asset.type.FamilyType;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.module.WombatModule;
@@ -11,6 +12,8 @@ import tech.illuin.wombat.core.source.AssetMonitor;
 import tech.illuin.wombat.engine.context.asset.persistence.AssetRepository;
 import tech.illuin.wombat.engine.module.library.kubernetes_simulated.KubernetesSimulatedModule;
 import tech.illuin.wombat.engine.module.library.llm_simulated.LLMSimulatedModule;
+import tech.illuin.wombat.engine.module.ModulePrecedence.FamilyPrecedence;
+import tech.illuin.wombat.engine.module.ModulePrecedence.FeaturePrecedence;
 import tech.illuin.wombat.engine.module.persistence.CoreDeploymentEntity;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
@@ -47,6 +50,8 @@ class ModuleServiceTest
     private static final String LLM = LLM_MODULE.type().name();
     private static final AssetType REMOVED = AssetType.of("acme", "removed", ActivityRegime.MEASURED, ServiceFamily.LLM);
     private static final AssetType GONE = AssetType.of("acme", "gone", ActivityRegime.MEASURED, ServiceFamily.LLM);
+    /* An extension estimating the impacts of Kubernetes containers too, competing with Boavizta */
+    private static final FamilyType ESTIMATOR = FamilyType.of("acme", "estimator", ServiceFamily.KUBERNETES_CONTAINER);
     private static final KubernetesMetricsModule METRICS_MODULE = new KubernetesMetricsModule();
     private static final BoaviztaModule BOAVIZTA_MODULE = new BoaviztaModule();
     private static final String METRICS = METRICS_MODULE.type().name();
@@ -232,6 +237,45 @@ class ModuleServiceTest
         assertEquals(List.of(BOAVIZTA, K8S), modules.stream().map(module -> module.type().name()).toList());
     }
 
+    @Test
+    void precedence_listsTheFamilyModulesProvidingEachComponent_inTheirOrder_withoutTheAssetTypeModules()
+    {
+        this.registered(ordered(K8S_MODULE, true, 1), ordered(METRICS_MODULE, true, 2), family(ESTIMATOR, true, 3, Feature.impact), ordered(BOAVIZTA_MODULE, true, 4));
+        this.latest(K8S, METRICS, ESTIMATOR.name(), BOAVIZTA);
+
+        ModulePrecedence precedence = this.service.precedence();
+
+        assertEquals(new ModulePrecedence(List.of(new FamilyPrecedence(ServiceFamily.KUBERNETES_CONTAINER, List.of(
+            new FeaturePrecedence(Feature.activity, List.of(METRICS), List.of(METRICS), false),
+            new FeaturePrecedence(Feature.impact, List.of(ESTIMATOR.name(), BOAVIZTA), List.of(ESTIMATOR.name(), BOAVIZTA), false)
+        ))), false), precedence);
+    }
+
+    @Test
+    void precedence_tellsHowTheNextDeploymentChangesIt()
+    {
+        /* Boavizta moved before the estimator, and the metrics disabled, since the latest deployment */
+        this.registered(ordered(BOAVIZTA_MODULE, true, 1), family(ESTIMATOR, true, 2, Feature.impact), ordered(METRICS_MODULE, false, 3));
+        this.latest(METRICS, ESTIMATOR.name(), BOAVIZTA);
+
+        ModulePrecedence precedence = this.service.precedence();
+
+        assertTrue(precedence.changed());
+        assertEquals(List.of(
+            new FeaturePrecedence(Feature.activity, List.of(METRICS), List.of(), true),
+            new FeaturePrecedence(Feature.impact, List.of(ESTIMATOR.name(), BOAVIZTA), List.of(BOAVIZTA, ESTIMATOR.name()), true)
+        ), precedence.families().getFirst().features());
+    }
+
+    @Test
+    void precedence_leavesOutTheModulesThisInstanceDoesNotDetect_whoseComponentsItCannotTell()
+    {
+        this.registered(ordered(BOAVIZTA_MODULE, true, 1), new ModuleMetadata(ESTIMATOR, null, true, true, null, 2, Set.of()));
+        this.latest(BOAVIZTA, ESTIMATOR.name());
+
+        assertEquals(List.of(BOAVIZTA), this.service.precedence().families().getFirst().features().getFirst().deployed());
+    }
+
     private void latest(String... enabled)
     {
         when(this.deployments.latest()).thenReturn(Optional.of(CoreDeploymentEntity.of(1, Instant.now(), null, List.of(enabled))));
@@ -256,6 +300,12 @@ class ModuleServiceTest
     private static ModuleMetadata ordered(WombatModule module, boolean enabled, int ordering)
     {
         return ModuleMetadata.core(module, enabled, ordering);
+    }
+
+    /* A family module from the extension folder, providing the given components */
+    private static ModuleMetadata family(FamilyType type, boolean enabled, int ordering, Feature... features)
+    {
+        return new ModuleMetadata(type, null, enabled, false, ModuleMetadata.Source.extension, ordering, Set.of(features));
     }
 
     private static ModuleMetadata missing(AssetType type)

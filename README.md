@@ -35,7 +35,7 @@ Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI a
 API hubs include:
 * `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary, and `api/simulation/sandbox` for the simulations kept by Wombat: see [simulations](doc/simulations.md)
-* `api/modules` is for listing and managing registered `WombatModules` and their asset types: see [modules](doc/modules.md)
+* `api/modules` is for listing, ordering and managing registered `WombatModules` and their asset types: see [modules](doc/modules.md)
 * `api/environments` is for getting information about active environments
 * `api/metrics` is for pushing sampled metrics from worker instances to an aggregator, see [distributed setup](doc/distributed.md)
 * `api/secrets` provides admin-only management of the optional encrypted database secret store; see [secret management](doc/secret-management.md)
@@ -275,7 +275,9 @@ Custom modules are loaded **_at startup_** from every JAR found in `wombat.modul
 A JAR added later is only loaded after a restart. Once loaded, a module is enabled; it is turned off, and the core
 redeployed, from **Settings > Modules**: see [modules](doc/modules.md). A module seen for the first time goes live at
 that startup, unless `wombat.module.extension.auto-deploy` is `false` (`WOMBAT_MODULE_EXTENSION_AUTO_DEPLOY=false`): it
-then waits for a redeploy.
+then waits for a redeploy. The modules of the JARs come after those Wombat ships, in the order of the JAR file names: a
+family module of an extension is only tried after those of Wombat, until moved up from Settings > Modules, see
+[the order of the modules](doc/modules.md#the-order-of-the-modules).
 
 When starting up the app with a custom extension, you should see logs like these:
 

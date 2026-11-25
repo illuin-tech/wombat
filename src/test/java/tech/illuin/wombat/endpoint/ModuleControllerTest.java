@@ -101,7 +101,7 @@ class ModuleControllerTest
             this.repository.deleteById(MISSING_ID);
             this.orderings.forEach((name, ordering) -> this.repository.findById(name).ordering = ordering);
         });
-        if (!this.runtime.current().types().contains(KubernetesSimulatedModule.TYPE) || this.service.deployment().orderPending())
+        if (!this.runtime.current().types().contains(KubernetesSimulatedModule.TYPE) || !this.service.deployment().moved().isEmpty())
             this.deployments.redeploy(null);
     }
 
@@ -300,8 +300,10 @@ class ModuleControllerTest
             .when().get("/api/modules/deployment")
             .then()
             .statusCode(200)
-            .body("payload.orderPending", is(true))
+            .body("payload.moved", contains(BOAVIZTA_ID))
             .body("payload.pending", empty());
+        given().when().get("/api/modules/" + BOAVIZTA_ID).then().statusCode(200).body("payload.pending", is(true));
+        given().when().get("/api/modules/" + METRICS_ID).then().statusCode(200).body("payload.pending", is(false));
         assertEquals("boss", QuarkusTransaction.requiringNew().call(() -> this.repository.findById(BOAVIZTA_ID).updatedBy));
 
         given().when().post("/api/modules/deployment").then().statusCode(201);
@@ -310,7 +312,7 @@ class ModuleControllerTest
             .when().get("/api/modules/deployment")
             .then()
             .statusCode(200)
-            .body("payload.orderPending", is(false));
+            .body("payload.moved", empty());
         List<String> tried = this.runtime.current().modules().stream()
             .map(module -> module.type().name())
             .filter(List.of(METRICS_ID, BOAVIZTA_ID)::contains)
@@ -332,7 +334,7 @@ class ModuleControllerTest
         given().contentType(ContentType.JSON).body(order(withADuplicate)).when().put("/api/modules/order").then().statusCode(400);
         given().contentType(ContentType.JSON).body(order(withAnUnknownOne)).when().put("/api/modules/order").then().statusCode(400);
         given().contentType(ContentType.JSON).body("{}").when().put("/api/modules/order").then().statusCode(400);
-        given().when().get("/api/modules/deployment").then().body("payload.orderPending", is(false));
+        given().when().get("/api/modules/deployment").then().body("payload.moved", empty());
     }
 
     @Test
@@ -365,7 +367,7 @@ class ModuleControllerTest
             .body("paths.'/api/modules/deployment'.post.responses.keySet()", hasItems("201", "409"))
             .body("paths.'/api/modules/order'.put.responses.keySet()", hasItems("200", "400"))
             .body("components.schemas.ModuleInfo.properties.keySet()", hasItems("type", "enabled", "deployed", "pending", "missing", "source", "ordering", "provides", "assetCount"))
-            .body("components.schemas.DeploymentInfo.properties.keySet()", hasItems("latest", "instances", "pending", "orderPending", "pollIntervalSeconds"))
+            .body("components.schemas.DeploymentInfo.properties.keySet()", hasItems("latest", "instances", "pending", "moved", "pollIntervalSeconds"))
             .body("components.schemas.Redeployed.properties.keySet()", hasItems("version", "id", "local"))
             .body("components.schemas.InstanceStatus.enum", contains("ok", "failed"));
     }

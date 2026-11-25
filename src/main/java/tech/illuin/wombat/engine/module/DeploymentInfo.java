@@ -12,14 +12,15 @@ import java.util.Set;
  * order of the modules it does not hold yet.
  *
  * @param pending             the modules whose toggle the latest deployment does not hold yet
- * @param orderPending        whether the latest deployment holds the modules in another order than the registry
+ * @param moved               the modules the latest deployment holds at another place than the registry's order: the
+ *                            fewest which, moved, give that order
  * @param pollIntervalSeconds how often instances poll for the latest deployment
  */
 public record DeploymentInfo(
     LatestDeployment latest,
     List<CoreInstance> instances,
     List<PendingModule> pending,
-    boolean orderPending,
+    List<String> moved,
     long pollIntervalSeconds
 ) {
     /**

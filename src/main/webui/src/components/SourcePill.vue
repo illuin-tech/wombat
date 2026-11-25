@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { inject } from 'vue'
 import type { ModuleSource } from '@/domain/module'
+import { IN_PILL_HINT } from '@/components/PillHint.vue'
 
 defineProps<{ source: ModuleSource }>()
+const inHint = inject(IN_PILL_HINT, false)
 
 const LABELS: Record<ModuleSource, string> = {
   core: 'Core',
@@ -15,7 +18,7 @@ const TITLES: Record<ModuleSource, string> = {
 </script>
 
 <template>
-  <span class="icon-pill" :class="source" :title="TITLES[source]">
+  <span class="icon-pill" :class="source" :title="inHint ? undefined : TITLES[source]">
     <svg v-if="source === 'core'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M11 21.7a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7z" />
       <path d="M12 22V12" />

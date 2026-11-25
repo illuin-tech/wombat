@@ -56,7 +56,7 @@ A module detected by another instance, but not by the one serving a page, is not
 The registered modules have an order, which **Settings > Modules** lists them in, as `GET /api/modules` does. For each
 part of an asset's evaluation, the family modules of its family are tried in that order, after the module of its asset
 type wherever it stands: the first one which accepts the asset serves it. Two family modules only compete for what they
-both provide, as the Provides column tells: e.g. `kubernetes-metrics` resolves the activity of Kubernetes containers,
+both provide, as each module's page tells: e.g. `kubernetes-metrics` resolves the activity of Kubernetes containers,
 and `boavizta` their impacts, so their order changes nothing. An extension estimating those impacts too, placed before
 `boavizta`, takes precedence over it, and leaves it the assets it does not accept.
 
@@ -65,7 +65,8 @@ the order of their file names, and within a jar in the order of its `META-INF/se
 modules keep their place.
 
 An admin moves a module up or down from Settings > Modules, while the list is neither searched nor filtered, or sets the
-whole order through `PUT /api/modules/order`. Like a toggle, a new order reaches the core on the next redeploy.
+whole order through `PUT /api/modules/order`. Like a toggle, a new order reaches the core on the next redeploy: until
+then, the modules moved show as not deployed, the fewest which, moved back, give the deployed order.
 
 ## What a toggle or a reorder changes, and when
 

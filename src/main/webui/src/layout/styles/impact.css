@@ -10,6 +10,7 @@
   --accent-yellow: #ca8a04;
   --accent-yellow-soft: #fef9c3;
   --accent-orange: #ea580c;
+  --accent-orange-soft: #ffedd5;
   --accent-purple: #7c3aed;
   --accent-purple-soft: #ede9fe;
   --text: #132418;
@@ -34,6 +35,7 @@
   --accent-yellow: #eab308;
   --accent-yellow-soft: rgba(234, 179, 8, 0.16);
   --accent-orange: #fb923c;
+  --accent-orange-soft: rgba(251, 146, 60, 0.16);
   --accent-purple: #a78bfa;
   --accent-purple-soft: rgba(167, 139, 250, 0.16);
   --text: #e8efec;

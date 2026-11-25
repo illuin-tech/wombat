@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { CoreDeploymentStatus, ModuleInfo } from '@/domain/module'
+import { FAMILY_HINTS, REGIME_HINTS } from '@/domain/assetTypeDisplay'
 import { errorText } from '@/services/api/client'
 import { deleteModule, fetchDeployment, fetchModuleInfos, setModuleOrder } from '@/services/api/modules'
 import { can } from '@/services/auth/permissions'
@@ -11,13 +12,14 @@ import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import DataTable from '@/components/DataTable.vue'
 import DropdownPicker from '@/components/DropdownPicker.vue'
+import PillHint from '@/components/PillHint.vue'
 import RegimePill from '@/components/RegimePill.vue'
 import SourcePill from '@/components/SourcePill.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 import PageHead from '@/layout/PageHead.vue'
 import CoreStatus from '@/pages/modules/components/CoreStatus.vue'
 import RedeployDialog from '@/pages/modules/components/RedeployDialog.vue'
-import { FEATURE_LABELS, filterModules, moduleStates, moveModule, STATE_LABELS, type ModuleState } from '@/pages/modules/model/moduleList'
+import { FAMILY_MODULE_HINT, filterModules, moduleStates, moveModule, SOURCE_HINTS, STATE_LABELS, type ModuleState } from '@/pages/modules/model/moduleList'
 
 interface ModulesListing {
   modules: ModuleInfo[]
@@ -41,10 +43,8 @@ const shown = computed(() => filterModules(listing.data.value?.modules ?? [], se
 /* Moving a row among the shown ones only would be ambiguous: the buttons wait for the whole list */
 const filtered = computed(() => search.value.trim() !== '' || states.value.length > 0)
 const canReorder = computed(() => canManage.value && !filtered.value)
-const pendingCount = computed(() => {
-  const deployment = listing.data.value?.deployment
-  return deployment ? deployment.pending.length + (deployment.orderPending ? 1 : 0) : 0
-})
+/* A module toggled, or moved, since the latest deployment */
+const pendingCount = computed(() => listing.data.value?.modules.filter(module => module.pending).length ?? 0)
 const skeletonRows = [0, 1, 2]
 
 const moving = ref(false)
@@ -125,11 +125,11 @@ onMounted(() => listing.run())
         <DropdownPicker v-model="states" label="State" :options="stateOptions" :summary="stateSummary" picker-id="moduleStatePicker" />
       </template>
       <table class="record-table">
-        <thead><tr><th>Module</th><th>Family</th><th>Provides</th><th>Source</th><th>State</th><th>Assets</th><th></th></tr></thead>
+        <thead><tr><th>Module</th><th>Family</th><th>Source</th><th>State</th><th>Assets</th><th></th></tr></thead>
         <tbody>
           <template v-if="listing.loading.value && !listing.data.value">
             <tr v-for="row in skeletonRows" :key="row">
-              <td v-for="cell in 7" :key="cell"><SkeletonBlock :width="cell === 1 ? '160px' : '64px'" height="12px" /></td>
+              <td v-for="cell in 6" :key="cell"><SkeletonBlock :width="cell === 1 ? '160px' : '64px'" height="12px" /></td>
             </tr>
           </template>
           <template v-else-if="listing.data.value">
@@ -150,18 +150,15 @@ onMounted(() => listing.run())
               </td>
               <td>
                 <span class="module-states">
-                  <AssetTypeTag :family="module.type.family" />
-                  <RegimePill v-if="module.kind === 'asset'" :regime="module.type.regime" />
-                  <span v-else class="icon-pill" title="Serves every asset of its family, and defines none">Family</span>
+                  <PillHint :hint="FAMILY_HINTS[module.type.family]"><AssetTypeTag :family="module.type.family" /></PillHint>
+                  <PillHint v-if="module.kind === 'asset'" :hint="REGIME_HINTS[module.type.regime]"><RegimePill :regime="module.type.regime" /></PillHint>
+                  <PillHint v-else :hint="FAMILY_MODULE_HINT"><span class="icon-pill">Family</span></PillHint>
                 </span>
               </td>
-              <td>
-                <span v-if="module.provides.length > 0" class="module-states module-provides">
-                  <span v-for="feature in module.provides" :key="feature" class="icon-pill">{{ FEATURE_LABELS[feature] }}</span>
-                </span>
+              <td class="module-source">
+                <PillHint v-if="module.source" :hint="SOURCE_HINTS[module.source]"><SourcePill :source="module.source" /></PillHint>
                 <template v-else>—</template>
               </td>
-              <td class="module-source"><SourcePill v-if="module.source" :source="module.source" /><template v-else>—</template></td>
               <td>
                 <span class="module-states">
                   <span v-for="state in moduleStates(module)" :key="state" class="module-state" :class="state">{{ STATE_LABELS[state] }}</span>

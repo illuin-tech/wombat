@@ -44,7 +44,7 @@ function deployment(version: number, overrides: Partial<CoreDeploymentStatus> = 
       status: 'ok', error: null, detectedModules: [], missingModules: [], current: true,
     }],
     pending: [{ type: vertex.type.name, enabled: false }],
-    orderPending: false,
+    moved: [],
     pollIntervalSeconds: 30,
     ...overrides,
   }
@@ -88,13 +88,6 @@ describe('ModulesPage', () => {
     expect(rows[0].find('.module-state').text()).toBe('Missing')
   })
 
-  it('tells what each module provides', async () => {
-    await render(READER)
-
-    const rows = wrapper.findAll('.module-row')
-    expect(rows[2].findAll('.module-provides .icon-pill').map(pill => pill.text())).toEqual(['Source', 'Activity'])
-    expect(rows[0].find('.module-provides').exists()).toBe(false)
-  })
 
   it('tells a family module apart, as it has no regime', async () => {
     const boavizta: ModuleInfo = {
@@ -121,15 +114,25 @@ describe('ModulesPage', () => {
     )
   })
 
-  it('counts an order not deployed as one change', async () => {
-    vi.mocked(fetchDeployment).mockResolvedValue(deployment(7, { orderPending: true }))
+  it('counts each module moved since the latest deployment as a change', async () => {
+    vi.mocked(fetchModuleInfos).mockResolvedValue([removed, vertex, { ...anthropic, pending: true }])
+    vi.mocked(fetchDeployment).mockResolvedValue(deployment(7, { moved: [anthropic.type.name] }))
     await render(MANAGER)
 
+    expect(wrapper.findAll('.module-row')[2].findAll('.module-state').map(state => state.text())).toEqual(['Enabled', 'Not deployed'])
     expect(wrapper.find('.module-pending-banner').text()).toBe(
       '2 changes not deployed: a core redeployment is required for monitoring and evaluations to take them into account.',
     )
     await wrapper.find('#redeployCore').trigger('click')
-    expect(document.querySelector('.redeploy-changes')!.textContent).toContain('Reorders')
+    expect(document.querySelector('.redeploy-changes')!.textContent).toContain(`Moves ${anthropic.type.name}`)
+  })
+
+  it('explains a pill on hover', async () => {
+    await render(READER)
+
+    await wrapper.findAll('.module-row')[1].find('.module-source .pill-hint').trigger('mouseenter')
+
+    expect(document.querySelector('.pill-hint-bubble')!.textContent).toBe('Shipped with Wombat.')
   })
 
   it('leaves redeploying, deleting and reordering to managers', async () => {

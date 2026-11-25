@@ -17,9 +17,9 @@ import java.util.Set;
  * @param assetClass null when the serving instance does not detect the module, and for a family module
  * @param enabled    the registry state, which the asset pickers follow at once
  * @param deployed   whether the core running on the serving instance holds the module
- * @param pending    whether the latest deployment does not hold the registry state yet, until a redeploy; never for a
- *                   missing module, which a redeploy cannot bring in. The order of the modules is pending apart, see
- *                   {@link DeploymentInfo#orderPending()}
+ * @param pending    whether the latest deployment does not hold the registry state yet, until a redeploy: its toggle,
+ *                   or its place, see {@link DeploymentInfo#moved()}; never for a missing module, which a redeploy
+ *                   cannot bring in
  * @param missing    whether no live instance detects the module any more, e.g. its extension jar was removed
  * @param source     null when the serving instance does not detect the module
  * @param ordering   the place of the module in the order of the modules, from 1, which the next core deployed follows:

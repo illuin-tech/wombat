@@ -46,6 +46,7 @@ class ModuleServiceTest
     private static final String K8S = K8S_MODULE.type().name();
     private static final String LLM = LLM_MODULE.type().name();
     private static final AssetType REMOVED = AssetType.of("acme", "removed", ActivityRegime.MEASURED, ServiceFamily.LLM);
+    private static final AssetType GONE = AssetType.of("acme", "gone", ActivityRegime.MEASURED, ServiceFamily.LLM);
     private static final KubernetesMetricsModule METRICS_MODULE = new KubernetesMetricsModule();
     private static final BoaviztaModule BOAVIZTA_MODULE = new BoaviztaModule();
     private static final String METRICS = METRICS_MODULE.type().name();
@@ -173,32 +174,48 @@ class ModuleServiceTest
     }
 
     @Test
-    void deployment_tellsWhenTheOrderIsPending_apartFromTheToggles()
+    void aModuleMovedToTheTopIsTheOnlyOneMoved_apartFromTheToggles()
     {
-        this.registered(ordered(K8S_MODULE, true, 3), ordered(BOAVIZTA_MODULE, true, 1), ordered(METRICS_MODULE, true, 2));
+        this.registered(ordered(BOAVIZTA_MODULE, true, 1), ordered(K8S_MODULE, true, 2), ordered(METRICS_MODULE, true, 3));
         this.latest(K8S, METRICS, BOAVIZTA);
+        this.deployed(K8S_MODULE, METRICS_MODULE, BOAVIZTA_MODULE);
         when(this.deployments.liveInstances()).thenReturn(List.of());
         when(this.deployments.pollInterval()).thenReturn(Duration.ofSeconds(30));
 
         DeploymentInfo deployment = this.service.deployment();
+        Map<String, ModuleInfo> modules = byName(this.service.list());
 
-        assertTrue(deployment.orderPending());
+        assertEquals(List.of(BOAVIZTA), deployment.moved());
         assertEquals(List.of(), deployment.pending());
-        assertEquals(List.of(K8S, METRICS, BOAVIZTA), deployment.latest().modules());
+        assertTrue(modules.get(BOAVIZTA).pending());
+        assertFalse(modules.get(K8S).pending());
+        assertFalse(modules.get(METRICS).pending());
     }
 
     @Test
-    void theOrderIsNotPending_whenTheLatestDeploymentHoldsTheModulesItDeploysInTheRegistryOrder()
+    void twoModulesSwapped_countAsOneMoved()
     {
-        /* Boavizta is disabled since, and the removed module was never deployed: neither changes the order */
-        this.registered(ordered(K8S_MODULE, true, 1), ordered(BOAVIZTA_MODULE, false, 2), missing(REMOVED, 3), ordered(METRICS_MODULE, true, 4));
-        this.latest(K8S, BOAVIZTA, METRICS);
+        this.registered(ordered(METRICS_MODULE, true, 1), ordered(K8S_MODULE, true, 2));
+        this.latest(K8S, METRICS);
+        when(this.deployments.liveInstances()).thenReturn(List.of());
+        when(this.deployments.pollInterval()).thenReturn(Duration.ofSeconds(30));
+
+        assertEquals(1, this.service.deployment().moved().size());
+    }
+
+    @Test
+    void nothingMoved_whenTheLatestDeploymentHoldsTheModulesItDeploysInTheRegistryOrder()
+    {
+        /* Boavizta is disabled since, the removed module was never deployed, and a missing one moved: none of them counts */
+        this.registered(ordered(K8S_MODULE, true, 2), ordered(BOAVIZTA_MODULE, false, 3), missing(REMOVED, 4), ordered(METRICS_MODULE, true, 5),
+            new ModuleMetadata(GONE, null, true, true, null, 1, Set.of()));
+        this.latest(K8S, BOAVIZTA, GONE.name(), METRICS);
         when(this.deployments.liveInstances()).thenReturn(List.of());
         when(this.deployments.pollInterval()).thenReturn(Duration.ofSeconds(30));
 
         DeploymentInfo deployment = this.service.deployment();
 
-        assertFalse(deployment.orderPending());
+        assertEquals(List.of(), deployment.moved());
         assertEquals(List.of(new DeploymentInfo.PendingModule(BOAVIZTA, false)), deployment.pending());
     }
 

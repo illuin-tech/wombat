@@ -1,4 +1,4 @@
-import type { ModuleFeature, ModuleInfo } from '@/domain/module'
+import type { ModuleFeature, ModuleInfo, ModuleSource } from '@/domain/module'
 
 export type ModuleState = 'enabled' | 'disabled' | 'pending' | 'missing'
 
@@ -15,6 +15,21 @@ export const FEATURE_LABELS: Record<ModuleFeature, string> = {
   impact: 'Impact',
   cost: 'Cost',
 }
+
+/** What each kind of component does, as its pill explains it on hover. */
+export const FEATURE_HINTS: Record<ModuleFeature, string> = {
+  source: 'Samples the assets: polls the system they run on for their metrics, which are stored and read back when evaluating them.',
+  activity: 'Resolves what the assets did over a time range, e.g. the CPU and memory they used, or their requests and tokens: read back from the sampled metrics, queried from a provider, or modeled from a declared profile.',
+  impact: 'Estimates the environmental impacts of that activity, e.g. greenhouse gas emissions, primary energy and the depletion of resources.',
+  cost: 'Estimates the cost of that activity.',
+}
+
+export const SOURCE_HINTS: Record<ModuleSource, string> = {
+  core: 'Shipped with Wombat.',
+  extension: 'Loaded at startup from a jar of the extension folder (wombat.module.extension.path).',
+}
+
+export const FAMILY_MODULE_HINT = 'A family module defines no asset type: it serves every asset of its family, e.g. an impact methodology. Its components are tried after those of each asset\'s own module, in the order of the modules.'
 
 export function moduleStates(module: ModuleInfo): ModuleState[] {
   if (module.missing) return ['missing']

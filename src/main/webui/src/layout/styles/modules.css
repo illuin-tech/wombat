@@ -1,11 +1,16 @@
 /* Settings > Modules: the module states and their order, the running core and its instances, the redeploy */
 
 .module-states { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.module-state { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
+.module-state, .module-feature { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; white-space: nowrap; }
 .module-state.enabled { background: var(--accent-green-soft); color: var(--accent-green); }
 .module-state.disabled { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
 .module-state.pending { background: var(--accent-yellow-soft); color: var(--accent-yellow); }
 .module-state.missing { background: transparent; color: var(--accent-orange); border: 1px solid rgba(234,88,12,0.35); }
+/* What a module provides, one colour per kind of component */
+.module-feature.source { background: var(--accent-blue-soft); color: var(--accent-blue); }
+.module-feature.activity { background: var(--accent-orange-soft); color: var(--accent-orange); }
+.module-feature.impact { background: var(--accent-green-soft); color: var(--accent-green); }
+.module-feature.cost { background: var(--accent-yellow-soft); color: var(--accent-yellow); }
 
 .module-row-name { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .module-source { font-size: 12px; color: var(--text-muted); }

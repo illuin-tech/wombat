@@ -75,8 +75,8 @@ export interface CoreDeploymentStatus {
   latest: { version: number; id: string; requestedAt: string; requestedBy: string | null; modules: string[] }
   instances: CoreInstance[]
   pending: { type: string; enabled: boolean }[]
-  /** Whether the latest deployment holds the modules in another order than the registry. */
-  orderPending: boolean
+  /** The modules the latest deployment holds at another place than their order: the fewest which, moved, give it. */
+  moved: string[]
   pollIntervalSeconds: number
 }
 

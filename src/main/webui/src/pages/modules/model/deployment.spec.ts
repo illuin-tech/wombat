@@ -13,7 +13,7 @@ function instance(instanceId: string, deployedVersion: number, overrides: Partia
 function status(...instances: CoreInstance[]): CoreDeploymentStatus {
   return {
     latest: { version: 7, id: 'id-7', requestedAt: '2026-11-20T14:02:00Z', requestedBy: null, modules: [] },
-    instances, pending: [], orderPending: false, pollIntervalSeconds: 30,
+    instances, pending: [], moved: [], pollIntervalSeconds: 30,
   }
 }
 

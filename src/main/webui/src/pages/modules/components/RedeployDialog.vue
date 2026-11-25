@@ -67,10 +67,10 @@ function close(): void {
     <div class="redeploy-dialog">
       <template v-if="phase === 'confirm' || phase === 'deploying'">
         <p class="confirm-dialog-text">Every instance rebuilds its core with the modules enabled now, in their order.</p>
-        <ul v-if="added.length > 0 || removed.length > 0 || status.orderPending" class="redeploy-changes">
+        <ul v-if="added.length > 0 || removed.length > 0 || status.moved.length > 0" class="redeploy-changes">
           <li v-for="type in added" :key="type"><span class="module-state enabled">Starts</span> <code class="tech-name">{{ type }}</code></li>
           <li v-for="type in removed" :key="type"><span class="module-state disabled">Stops</span> <code class="tech-name">{{ type }}</code></li>
-          <li v-if="status.orderPending"><span class="module-state pending">Reorders</span> the family modules are tried in their new order</li>
+          <li v-for="type in status.moved" :key="type"><span class="module-state pending">Moves</span> <code class="tech-name">{{ type }}</code></li>
         </ul>
         <p v-else class="form-hint">No module changes: a redeploy still resets the evaluation caches.</p>
         <p class="form-hint">

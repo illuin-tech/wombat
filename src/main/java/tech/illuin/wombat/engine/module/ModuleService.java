@@ -13,10 +13,14 @@ import tech.illuin.wombat.engine.module.runtime.CoreDeploymentService;
 import tech.illuin.wombat.engine.module.runtime.CoreDeploymentService.Redeploy;
 import tech.illuin.wombat.engine.module.runtime.CoreRuntime;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The modules administration view, for {@code ModuleController} only: the rest of the app reads the modules from the
@@ -47,9 +51,11 @@ public class ModuleService
         Map<String, Long> counts = this.assets.countVisibleByType();
         Set<ModuleType> deployed = this.runtime.current().types();
         List<String> latest = this.latest().enabledModules;
-        return this.registry.listModules().stream()
+        List<ModuleMetadata> modules = this.registry.listModules();
+        Set<String> moved = moved(modules, latest);
+        return modules.stream()
             .sorted(ModuleMetadata.ORDERING)
-            .map(module -> info(module, deployed, latest, counts))
+            .map(module -> info(module, deployed, latest, moved, counts))
             .toList();
     }
 
@@ -59,8 +65,11 @@ public class ModuleService
     @Transactional
     public ModuleInfo find(String name)
     {
+        List<String> latest = this.latest().enabledModules;
+        /* Whether it moved depends on the places of the others */
+        Set<String> moved = moved(this.registry.listModules(), latest);
         return this.registry.getModule(name)
-            .map(module -> info(module, this.runtime.current().types(), this.latest().enabledModules, this.assets.countVisibleByType()))
+            .map(module -> info(module, this.runtime.current().types(), latest, moved, this.assets.countVisibleByType()))
             .orElseThrow(() -> new UnknownModuleException(name));
     }
 
@@ -112,7 +121,7 @@ public class ModuleService
             new DeploymentInfo.LatestDeployment(latest.version, latest.id, latest.requestedAt, latest.requestedBy, latest.enabledModules),
             instances,
             pending,
-            isOrderPending(modules, latest.enabledModules),
+            List.copyOf(moved(modules, latest.enabledModules)),
             this.deployments.pollInterval().toSeconds()
         );
     }
@@ -156,10 +165,15 @@ public class ModuleService
         return !module.missing() && module.enabled() != latest.contains(module.type().name());
     }
 
-    /* Whether the latest deployment holds its modules in another order than the registry; a toggle is pending apart */
-    private static boolean isOrderPending(List<ModuleMetadata> modules, List<String> latest)
+    /**
+     * The modules the latest deployment holds at another place than the registry's order: the fewest which, moved, give
+     * that order, i.e. those out of the longest sequence both orders share. In the registry's order; never a missing
+     * module, nor one the latest deployment does not hold, which a toggle tells.
+     */
+    private static Set<String> moved(List<ModuleMetadata> modules, List<String> latest)
     {
         List<String> registered = modules.stream()
+            .filter(module -> !module.missing())
             .sorted(ModuleMetadata.ORDERING)
             .map(module -> module.type().name())
             .filter(latest::contains)
@@ -167,10 +181,42 @@ public class ModuleService
         List<String> deployed = latest.stream()
             .filter(registered::contains)
             .toList();
-        return !registered.equals(deployed);
+        Set<String> kept = new HashSet<>(longestCommonSequence(registered, deployed));
+        return registered.stream()
+            .filter(name -> !kept.contains(name))
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, List<String> latest, Map<String, Long> counts)
+    /* The longest sequence of names found in both lists in the same order, though not necessarily side by side */
+    private static List<String> longestCommonSequence(List<String> first, List<String> second)
+    {
+        int[][] lengths = new int[first.size() + 1][second.size() + 1];
+        for (int i = first.size() - 1; i >= 0; i--)
+        {
+            for (int j = second.size() - 1; j >= 0; j--)
+                lengths[i][j] = first.get(i).equals(second.get(j)) ? lengths[i + 1][j + 1] + 1 : Math.max(lengths[i + 1][j], lengths[i][j + 1]);
+        }
+
+        List<String> common = new ArrayList<>();
+        int i = 0;
+        int j = 0;
+        while (i < first.size() && j < second.size())
+        {
+            if (first.get(i).equals(second.get(j)))
+            {
+                common.add(first.get(i));
+                i++;
+                j++;
+            }
+            else if (lengths[i + 1][j] >= lengths[i][j + 1])
+                i++;
+            else
+                j++;
+        }
+        return common;
+    }
+
+    private static ModuleInfo info(ModuleMetadata module, Set<ModuleType> deployedTypes, List<String> latest, Set<String> moved, Map<String, Long> counts)
     {
         return new ModuleInfo(
             module.type(),
@@ -179,7 +225,7 @@ public class ModuleService
             module.enabled(),
             module.creatable(),
             deployedTypes.contains(module.type()),
-            isPending(module, latest),
+            isPending(module, latest) || moved.contains(module.type().name()),
             module.missing(),
             module.source(),
             module.ordering(),

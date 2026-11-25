@@ -159,7 +159,16 @@ onMounted(() => listing.run())
                 <span class="module-states">
                   <PillHint :hint="FAMILY_HINTS[module.type.family]"><AssetTypeTag :family="module.type.family" /></PillHint>
                   <PillHint v-if="module.kind === 'asset'" :hint="REGIME_HINTS[module.type.regime]"><RegimePill :regime="module.type.regime" /></PillHint>
-                  <PillHint v-else :hint="FAMILY_MODULE_HINT"><span class="icon-pill">Family</span></PillHint>
+                  <PillHint v-else :hint="FAMILY_MODULE_HINT">
+                    <span class="icon-pill">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12.8 2.2a2 2 0 0 0-1.7 0L2.6 6.1a1 1 0 0 0 0 1.8l8.6 3.9a2 2 0 0 0 1.7 0l8.6-3.9a1 1 0 0 0 0-1.8z" />
+                        <path d="M2 12a1 1 0 0 0 .6.9l8.6 3.9a2 2 0 0 0 1.7 0l8.6-3.9A1 1 0 0 0 22 12" />
+                        <path d="M2 17a1 1 0 0 0 .6.9l8.6 3.9a2 2 0 0 0 1.7 0l8.6-3.9A1 1 0 0 0 22 17" />
+                      </svg>
+                      Family
+                    </span>
+                  </PillHint>
                 </span>
               </td>
               <td class="module-source">

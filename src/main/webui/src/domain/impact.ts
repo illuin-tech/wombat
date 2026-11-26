@@ -30,7 +30,8 @@ export interface Footprint {
 export interface AssetIdentity {
   id: string
   environmentId: string
-  name: string
+  /** The asset's type name. */
+  type: string
 }
 
 export interface ClusterInfo {
@@ -106,12 +107,30 @@ export interface TimeRangeJson {
   resolution?: string
 }
 
+/** Where the profile an asset was evaluated with comes from: declared by the user, or inferred from its cluster. */
+export type ProfileOrigin = 'DECLARED' | 'NODES' | 'RESOURCE_QUOTAS' | 'CONTAINER_REQUESTS' | 'CONTAINER_LIMITS'
+
 export interface AssetImpact {
   assetIdentity: AssetIdentity
   footprint: Footprint
   serviceImpacts: ServiceImpact[]
   provider: 'BOAVIZTA' | 'ECOLOGITS'
   range: TimeRangeJson | null
+  profileOrigin: ProfileOrigin
+  /** What the evaluation had to assume, e.g. to infer the asset's profile; empty when nothing. */
+  warnings: string[]
+}
+
+/** `status.metadata.failures` of the impact responses: an asset left out of them because its evaluation failed. */
+export interface AssetEvaluationFailure {
+  assetIdentity: AssetIdentity
+  reason: string
+}
+
+/** The impacts of the assets evaluated, and the assets that could not be. */
+export interface ImpactResult {
+  impacts: AssetImpact[]
+  failures: AssetEvaluationFailure[]
 }
 
 export interface ImpactRequest {
@@ -137,6 +156,19 @@ export interface TimelineResponse {
   stepPlural: string
   bucketStarts: number[]
   series: TimelineSeries[]
+}
+
+/** `status.metadata.failures` of the impact responses, both successful and no-data ones; malformed entries are left out. */
+export function evaluationFailures(metadata: Record<string, unknown>): AssetEvaluationFailure[] {
+  const failures = metadata.failures
+  if (!Array.isArray(failures)) return []
+  return failures.filter((failure): failure is AssetEvaluationFailure => {
+    if (!failure || typeof failure !== 'object') return false
+    const { assetIdentity, reason } = failure as Record<string, unknown>
+    return typeof reason === 'string'
+      && !!assetIdentity && typeof assetIdentity === 'object'
+      && typeof (assetIdentity as Record<string, unknown>).id === 'string'
+  })
 }
 
 export function isKubernetesImpact(impact: ServiceImpact): impact is KubernetesImpact {

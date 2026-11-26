@@ -11,8 +11,10 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
+import tech.illuin.wombat.core.evaluation.EvaluationReport;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
+import tech.illuin.wombat.core.evaluation.WombatProfileResolver;
 import tech.illuin.wombat.core.module.ProcessorFactory;
 
 import java.util.List;
@@ -43,6 +45,12 @@ public class RuntimeAssetEvaluator extends AssetEvaluator
     public List<AssetEvaluation> evaluate(TimeRange range, AssetFilter filter) throws WombatEvaluationException
     {
         return this.runtime.current().evaluator().evaluate(range, filter);
+    }
+
+    @Override
+    public EvaluationReport report(TimeRange range, AssetFilter filter) throws WombatEvaluationException
+    {
+        return this.runtime.current().evaluator().report(range, filter);
     }
 
     @Override
@@ -96,6 +104,12 @@ public class RuntimeAssetEvaluator extends AssetEvaluator
 
     @Override
     public AssetEvaluator registerImpactResolver(ModuleType type, ProcessorFactory<WombatEvaluationResolver> factory)
+    {
+        throw new UnsupportedOperationException("Resolvers come from the deployed modules");
+    }
+
+    @Override
+    public AssetEvaluator registerProfileResolver(ModuleType type, ProcessorFactory<WombatProfileResolver> factory)
     {
         throw new UnsupportedOperationException("Resolvers come from the deployed modules");
     }

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import type { EnvironmentInfo, LiveEnvironment } from '@/domain/environment'
-import type { AssetImpact, ImpactRequest, TimelineResponse } from '@/domain/impact'
+import type { ImpactRequest, ImpactResult, TimelineResponse } from '@/domain/impact'
 import { fetchEnvironments, fetchLiveEnvironments } from '@/services/api/environments'
 import { fetchImpact, fetchTimeline } from '@/services/api/impact'
 import { useAsync, type AsyncState } from '@/services/tools/useAsync'
@@ -9,14 +9,14 @@ import type { DashboardRequests } from '@/pages/impact/model/dashboard'
 export interface DashboardApi {
   fetchLiveEnvironments: () => Promise<LiveEnvironment[]>
   fetchEnvironments: () => Promise<EnvironmentInfo[]>
-  fetchImpact: (request: ImpactRequest) => Promise<AssetImpact[]>
+  fetchImpact: (request: ImpactRequest) => Promise<ImpactResult>
   fetchTimeline: (request: ImpactRequest) => Promise<TimelineResponse>
 }
 
 export interface DashboardData {
   liveEnvironments: AsyncState<LiveEnvironment[], []>
   persistedEnvironments: AsyncState<EnvironmentInfo[], []>
-  impact: AsyncState<AssetImpact[], [request: ImpactRequest]>
+  impact: AsyncState<ImpactResult, [request: ImpactRequest]>
   timeline: AsyncState<TimelineResponse, [request: ImpactRequest]>
   impactEnvironmentId: ReturnType<typeof ref<string | null>>
   timelineEnvironmentId: ReturnType<typeof ref<string | null>>

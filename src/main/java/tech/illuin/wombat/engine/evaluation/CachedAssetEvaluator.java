@@ -13,8 +13,10 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
+import tech.illuin.wombat.core.evaluation.EvaluationReport;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
+import tech.illuin.wombat.core.evaluation.WombatProfileResolver;
 import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
@@ -27,7 +29,7 @@ public class CachedAssetEvaluator extends AssetEvaluator
 {
     private final AssetEvaluator delegate;
     private final CachedAssetEvaluatorProperties properties;
-    private final Cache<EvaluateCacheKey, List<AssetEvaluation>> evaluateCache;
+    private final Cache<EvaluateCacheKey, EvaluationReport> evaluateCache;
     private final Cache<ActivityCacheKey, Optional<AssetActivity>> activityCache;
     private final Cache<ImpactCacheKey, Optional<AssetEvaluation>> impactCache;
     private final Cache<CostCacheKey, Optional<AssetEvaluation>> costCache;
@@ -51,12 +53,18 @@ public class CachedAssetEvaluator extends AssetEvaluator
             .build();
     }
 
-    @Override @SuppressWarnings("RedundantThrows")
+    @Override
     public List<AssetEvaluation> evaluate(TimeRange timeRange, AssetFilter filter) throws WombatEvaluationException
+    {
+        return this.report(timeRange, filter).evaluations();
+    }
+
+    @Override @SuppressWarnings("RedundantThrows")
+    public EvaluationReport report(TimeRange timeRange, AssetFilter filter) throws WombatEvaluationException
     {
         return this.evaluateCache.get(
             new EvaluateCacheKey(timeRange, filter),
-            uncheck(k -> this.delegate.evaluate(timeRange, filter))
+            uncheck(k -> this.delegate.report(timeRange, filter))
         );
     }
 
@@ -117,6 +125,13 @@ public class CachedAssetEvaluator extends AssetEvaluator
     public AssetEvaluator registerImpactResolver(ModuleType type, ProcessorFactory<WombatEvaluationResolver> factory)
     {
         this.delegate.registerImpactResolver(type, factory);
+        return this;
+    }
+
+    @Override
+    public AssetEvaluator registerProfileResolver(ModuleType type, ProcessorFactory<WombatProfileResolver> factory)
+    {
+        this.delegate.registerProfileResolver(type, factory);
         return this;
     }
 

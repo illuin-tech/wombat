@@ -33,7 +33,7 @@ The Wombat dashboard is accessible at the root path and after running for some t
 Wombat exposes HTTP endpoints, it aims at the same feature coverage in both UI and API so as to enable integration with other tools.
 
 API hubs include:
-* `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services
+* `api/impact` is the equivalent of the dashboard but in JSON form, it makes it possible to query active environments and get impact estimations for their services; assets that could not be evaluated are listed with their reason in the response's `status.metadata.failures`
 * `api/simulation` is for getting estimates over entirely manufactured asset descriptions and service activity summary, and `api/simulation/sandbox` for the simulations kept by Wombat: see [simulations](doc/simulations.md)
 * `api/modules` is for listing, ordering and managing registered `WombatModules` and their asset types: see [modules](doc/modules.md)
 * `api/environments` is for getting information about active environments
@@ -246,7 +246,10 @@ Optionally, environments can also be provisioned from a YAML file, kept in sync 
 [environments and provisioning](doc/provisioning.md). To try it, create `monitored-environments.yaml` from
 [`monitored-environments.yaml.dist`](compose/demo-standalone/monitored-environments.yaml.dist), whose comments tell what
 to adapt, and uncomment its volume in `compose.yaml`. A live `kubernetes-api` asset also needs a kubeconfig, which it names
-by its secret key: see the template's comments and [secret management](doc/secret-management.md).
+by its secret key: see the template's comments and [secret management](doc/secret-management.md). Its `profile` can be
+left out, the cluster's hardware then being inferred from its nodes, quotas or containers: see the
+[module's documentation](https://github.com/illuin-tech/wombat-core/blob/master/doc/module/kubernetes-api.md#inferred)
+for the permissions this needs.
 
 For a distributed setup (an aggregator and two workers), see [running it locally](doc/distributed.md#running-it-locally).
 

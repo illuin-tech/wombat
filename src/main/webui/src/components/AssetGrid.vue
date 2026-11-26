@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends AssetInfo">
-import { assetFamily, assetTypeName, displayName, type ActivityRegime, type AssetInfo, type AssetType } from '@/domain/environment'
+import { assetFamily, assetTypeName, displayName, hasInferredProfile, type ActivityRegime, type AssetInfo, type AssetType } from '@/domain/environment'
 import AssetTypeTag from '@/components/AssetTypeTag.vue'
 import LockBadge from '@/components/LockBadge.vue'
 import RegimePill from '@/components/RegimePill.vue'
@@ -46,6 +46,7 @@ function knownRegime(asset: AssetInfo): ActivityRegime | null {
       <span class="asset-card-tags">
         <AssetTypeTag :family="assetFamily(asset, typesByName)" />
         <RegimePill v-if="knownRegime(asset)" :regime="knownRegime(asset)!" />
+        <span v-if="hasInferredProfile(asset)" class="status-chip" title="Hardware inferred from the cluster">Inferred profile</span>
         <span v-if="asset.disabledAt" class="status-chip">Disabled</span>
         <slot name="badges" :asset="asset" />
       </span>

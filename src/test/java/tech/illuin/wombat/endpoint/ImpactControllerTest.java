@@ -82,7 +82,10 @@ class ImpactControllerTest
             .body("payload[0].provider", is("BOAVIZTA"))
             .body("payload[0].footprint.gwp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
-            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"));
+            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"))
+            .body("payload[0].profileOrigin", is("DECLARED"))
+            .body("payload[0].warnings.size()", is(0))
+            .body("status.metadata." + ImpactController.FAILURES_KEY + ".size()", is(0));
     }
 
     @Test
@@ -239,7 +242,8 @@ class ImpactControllerTest
             .when().post("/api/impact")
             .then()
             .statusCode(400)
-            .body("status.metadata.reason", is(ImpactController.NO_DATA_REASON));
+            .body("status.metadata.reason", is(ImpactController.NO_DATA_REASON))
+            .body("status.metadata." + ImpactController.FAILURES_KEY, notNullValue());
     }
 
     @Test

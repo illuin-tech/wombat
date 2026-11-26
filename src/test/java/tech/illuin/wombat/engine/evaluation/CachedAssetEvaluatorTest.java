@@ -14,6 +14,7 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.type.AssetType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
+import tech.illuin.wombat.core.evaluation.EvaluationReport;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
@@ -64,14 +65,14 @@ class CachedAssetEvaluatorTest
     void identicalEvaluateRequestsHitCacheAndInvokeDelegateOnce() throws WombatEvaluationException
     {
         AssetEvaluation eval1 = mock(AssetEvaluation.class);
-        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(eval1));
+        when(this.delegate.report(this.timeRange, this.filter)).thenReturn(new EvaluationReport(List.of(eval1), List.of()));
 
         List<AssetEvaluation> result1 = this.evaluator.evaluate(this.timeRange, this.filter);
         List<AssetEvaluation> result2 = this.evaluator.evaluate(this.timeRange, this.filter);
 
         assertEquals(1, result1.size());
         assertEquals(result1, result2);
-        verify(this.delegate, times(1)).evaluate(this.timeRange, this.filter);
+        verify(this.delegate, times(1)).report(this.timeRange, this.filter);
     }
 
     @Test
@@ -86,16 +87,16 @@ class CachedAssetEvaluatorTest
             this.timeRange.resolution()
         );
 
-        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(eval1));
-        when(this.delegate.evaluate(otherTimeRange, this.filter)).thenReturn(List.of(eval2));
+        when(this.delegate.report(this.timeRange, this.filter)).thenReturn(new EvaluationReport(List.of(eval1), List.of()));
+        when(this.delegate.report(otherTimeRange, this.filter)).thenReturn(new EvaluationReport(List.of(eval2), List.of()));
 
         List<AssetEvaluation> result1 = this.evaluator.evaluate(this.timeRange, this.filter);
         List<AssetEvaluation> result2 = this.evaluator.evaluate(otherTimeRange, this.filter);
 
         assertEquals(List.of(eval1), result1);
         assertEquals(List.of(eval2), result2);
-        verify(this.delegate, times(1)).evaluate(this.timeRange, this.filter);
-        verify(this.delegate, times(1)).evaluate(otherTimeRange, this.filter);
+        verify(this.delegate, times(1)).report(this.timeRange, this.filter);
+        verify(this.delegate, times(1)).report(otherTimeRange, this.filter);
     }
 
     @Test
@@ -106,16 +107,16 @@ class CachedAssetEvaluatorTest
 
         AssetFilter otherFilter = new AssetFilter(Set.of(new AssetFilter.Environment("env2", Set.of())));
 
-        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(eval1));
-        when(this.delegate.evaluate(this.timeRange, otherFilter)).thenReturn(List.of(eval2));
+        when(this.delegate.report(this.timeRange, this.filter)).thenReturn(new EvaluationReport(List.of(eval1), List.of()));
+        when(this.delegate.report(this.timeRange, otherFilter)).thenReturn(new EvaluationReport(List.of(eval2), List.of()));
 
         List<AssetEvaluation> result1 = this.evaluator.evaluate(this.timeRange, this.filter);
         List<AssetEvaluation> result2 = this.evaluator.evaluate(this.timeRange, otherFilter);
 
         assertEquals(List.of(eval1), result1);
         assertEquals(List.of(eval2), result2);
-        verify(this.delegate, times(1)).evaluate(this.timeRange, this.filter);
-        verify(this.delegate, times(1)).evaluate(this.timeRange, otherFilter);
+        verify(this.delegate, times(1)).report(this.timeRange, this.filter);
+        verify(this.delegate, times(1)).report(this.timeRange, otherFilter);
     }
 
     @Test
@@ -124,28 +125,28 @@ class CachedAssetEvaluatorTest
         AssetImpact impact = mock(AssetImpact.class);
         AssetEvaluation otherEvaluation = mock(AssetEvaluation.class);
 
-        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(impact, otherEvaluation));
+        when(this.delegate.report(this.timeRange, this.filter)).thenReturn(new EvaluationReport(List.of(impact, otherEvaluation), List.of()));
 
         List<AssetImpact> typedResults = this.evaluator.evaluate(this.timeRange, this.filter, AssetImpact.class);
         List<AssetEvaluation> untypedResults = this.evaluator.evaluate(this.timeRange, this.filter);
 
         assertEquals(List.of(impact), typedResults);
         assertEquals(List.of(impact, otherEvaluation), untypedResults);
-        verify(this.delegate, times(1)).evaluate(this.timeRange, this.filter);
+        verify(this.delegate, times(1)).report(this.timeRange, this.filter);
     }
 
     @Test
     void evaluateExceptionPropagatesCleanlyWithoutPoisoningSubsequentCalls() throws WombatEvaluationException
     {
-        when(this.delegate.evaluate(this.timeRange, this.filter))
+        when(this.delegate.report(this.timeRange, this.filter))
             .thenThrow(new WombatEvaluationException("Evaluation failed"))
-            .thenReturn(List.of(mock(AssetEvaluation.class)));
+            .thenReturn(new EvaluationReport(List.of(mock(AssetEvaluation.class)), List.of()));
 
         assertThrows(WombatEvaluationException.class, () -> this.evaluator.evaluate(this.timeRange, this.filter));
 
         List<AssetEvaluation> secondResult = this.evaluator.evaluate(this.timeRange, this.filter);
         assertEquals(1, secondResult.size());
-        verify(this.delegate, times(2)).evaluate(this.timeRange, this.filter);
+        verify(this.delegate, times(2)).report(this.timeRange, this.filter);
     }
 
     @Test
@@ -302,7 +303,7 @@ class CachedAssetEvaluatorTest
     {
         AssetActivity activity = mock(AssetActivity.class);
         when(this.delegate.computeActivity(this.asset, this.timeRange, this.filter)).thenReturn(Optional.of(activity));
-        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(mock(AssetEvaluation.class)));
+        when(this.delegate.report(this.timeRange, this.filter)).thenReturn(new EvaluationReport(List.of(mock(AssetEvaluation.class)), List.of()));
 
         this.evaluator.computeActivity(this.asset, this.timeRange, this.filter);
         this.evaluator.evaluate(this.timeRange, this.filter);
@@ -312,7 +313,7 @@ class CachedAssetEvaluatorTest
 
         verify(this.delegate).refresh(this.identity);
         verify(this.delegate, times(2)).computeActivity(this.asset, this.timeRange, this.filter);
-        verify(this.delegate, times(2)).evaluate(this.timeRange, this.filter);
+        verify(this.delegate, times(2)).report(this.timeRange, this.filter);
     }
 
     @Test
@@ -356,17 +357,17 @@ class CachedAssetEvaluatorTest
         verify(this.delegate).registerImpactResolver(assetType, evaluationResolver);
 
         AssetEvaluation eval = mock(AssetEvaluation.class);
-        when(this.delegate.evaluate(this.timeRange, this.filter)).thenReturn(List.of(eval));
+        when(this.delegate.report(this.timeRange, this.filter)).thenReturn(new EvaluationReport(List.of(eval), List.of()));
 
         this.evaluator.evaluate(this.timeRange, this.filter);
-        verify(this.delegate, times(1)).evaluate(this.timeRange, this.filter);
+        verify(this.delegate, times(1)).report(this.timeRange, this.filter);
 
         this.evaluator.close();
         verify(this.delegate).close();
 
         // After close, caches are invalidated so next evaluate invocation triggers delegate again
         this.evaluator.evaluate(this.timeRange, this.filter);
-        verify(this.delegate, times(2)).evaluate(this.timeRange, this.filter);
+        verify(this.delegate, times(2)).report(this.timeRange, this.filter);
     }
 
     private record TestCachedAssetEvaluatorProperties(

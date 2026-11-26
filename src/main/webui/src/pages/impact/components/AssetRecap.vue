@@ -10,12 +10,17 @@ import RegimePill from '@/components/RegimePill.vue'
 import Modal from '@/components/Modal.vue'
 import PillHint from '@/components/PillHint.vue'
 import UnrecognizedAssetsModal from '@/pages/impact/components/UnrecognizedAssetsModal.vue'
+import EvaluationFailuresModal from '@/pages/impact/components/EvaluationFailuresModal.vue'
+import type {FailedAsset} from '@/pages/impact/model/failures'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 
-const props = defineProps<{model?: DashboardModel | null; assets: AssetInfo[]; loading?: boolean; refreshing?: boolean}>()
+const props = withDefaults(defineProps<{model?: DashboardModel | null; assets: AssetInfo[]; failures?: FailedAsset[]; loading?: boolean; refreshing?: boolean}>(), {
+  failures: () => [],
+})
 const recap = ref<HTMLElement | null>(null)
 const expanded = ref<string | null>(null)
 const showUnrecognized = ref(false)
+const showFailures = ref(false)
 const unrecognized = computed(() => props.assets)
 const selected = computed(() => props.model?.assetPanels.find(panel => panelKey(panel) === expanded.value))
 let observer: ResizeObserver | null = null
@@ -59,9 +64,15 @@ function llm(panel: AssetPanel): panel is LlmPanelType {
 
 <template>
   <div ref="recap" class="kpi-card yellow" :class="{'is-refreshing': refreshing}">
-    <button v-if="!loading && unrecognized.length" type="button" class="recap-warning-btn" id="unrecognizedAssetsTrigger" title="Unrecognized assets detected" aria-label="Unrecognized assets detected" @click="showUnrecognized = true">
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1L15.5 14H0.5L8 1Z" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-linejoin="round"/><path d="M8 5.5V9.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.75" r="0.75" fill="#ffffff"/></svg>
-    </button>
+    <div v-if="!loading && (unrecognized.length || failures.length)" class="recap-warnings">
+      <button v-if="failures.length" type="button" class="recap-warning-btn" id="evaluationFailuresTrigger" title="Assets could not be evaluated" aria-label="Assets could not be evaluated" @click="showFailures = true">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1L15.5 14H0.5L8 1Z" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-linejoin="round"/><path d="M8 5.5V9.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.75" r="0.75" fill="#ffffff"/></svg>
+        <span class="recap-warning-count">{{ failures.length }}</span>
+      </button>
+      <button v-if="unrecognized.length" type="button" class="recap-warning-btn" id="unrecognizedAssetsTrigger" title="Unrecognized assets detected" aria-label="Unrecognized assets detected" @click="showUnrecognized = true">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1L15.5 14H0.5L8 1Z" fill="#ea580c" stroke="#ea580c" stroke-width="1" stroke-linejoin="round"/><path d="M8 5.5V9.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.75" r="0.75" fill="#ffffff"/></svg>
+      </button>
+    </div>
     <div v-if="loading" class="stat-row">
       <div v-for="item in 4" :key="item" class="stat"><div class="kpi-label"><SkeletonBlock width="96px" height="12px"/></div><div class="kpi-value"><SkeletonBlock width="54px" height="24px"/></div></div>
     </div>
@@ -90,4 +101,5 @@ function llm(panel: AssetPanel): panel is LlmPanelType {
     <LlmPanel v-else-if="selected && llm(selected)" :panel="selected" modal />
   </Modal>
   <UnrecognizedAssetsModal v-if="unrecognized.length" :open="showUnrecognized" :assets="unrecognized" @close="showUnrecognized = false" />
+  <EvaluationFailuresModal v-if="failures.length" :open="showFailures" :failures="failures" @close="showFailures = false" />
 </template>

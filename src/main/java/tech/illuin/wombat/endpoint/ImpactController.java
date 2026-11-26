@@ -14,6 +14,8 @@ import tech.illuin.wombat.engine.context.environment.UnknownEnvironmentException
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.core.context.WombatContextProvider;
 import tech.illuin.wombat.core.activity.commons.AssetFilter;
+import tech.illuin.wombat.core.evaluation.AssetEvaluationFailure;
+import tech.illuin.wombat.core.evaluation.EvaluationReport;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
 import tech.illuin.wombat.core.evaluation.impact.commons.AssetImpact;
@@ -41,6 +43,8 @@ import java.util.stream.Collectors;
 public class ImpactController
 {
     public static final String NO_DATA_REASON = "no-data";
+    /** Status metadata listing the assets left out of the response because their evaluation failed. */
+    public static final String FAILURES_KEY = "failures";
 
     private final AssetEvaluator assetEvaluator;
     private final WombatContextProvider contextProvider;
@@ -121,17 +125,18 @@ public class ImpactController
             TimeRange timeRange = request.sourceTimeRange() == null ? currentMonthTimeRange() : request.sourceTimeRange();
             AssetFilter scope = scope(request.environments());
 
-            List<AssetImpact> assetImpacts = this.calculate(timeRange, scope);
+            EvaluationReport report = this.calculate(timeRange, scope);
+            List<AssetImpact> assetImpacts = report.evaluations(AssetImpact.class);
 
             if (assetImpacts.isEmpty())
-                throw noData("No assets matched scope " + scope.environments(), null);
-            return Response.success(assetImpacts);
+                throw noData("No assets matched scope " + scope.environments(), null, report.failures());
+            return Response.success(assetImpacts).set(FAILURES_KEY, report.failures());
         }
         catch (WombatEvaluationException e) {
             throw new InternalServerErrorException(e);
         }
         catch (NoCPUUsageException e) {
-            throw noData("No CPU Usage Could be found", e);
+            throw noData("No CPU Usage Could be found", e, List.of());
         }
     }
 
@@ -158,24 +163,25 @@ public class ImpactController
             AssetFilter scope = scope(request.environments());
             TimelineStep step = TimelineStep.of(sourceTimeRange);
             TimeRange timelineRange = TimeRange.cloneRescale(sourceTimeRange, Duration.ofMillis(step.millis()));
-            List<AssetImpact> impacts = this.calculate(timelineRange, scope);
+            EvaluationReport report = this.calculate(timelineRange, scope);
+            List<AssetImpact> impacts = report.evaluations(AssetImpact.class);
 
             if (impacts.isEmpty())
-                throw noData("No assets matched scope " + scope.environments(), null);
-            return Response.success(TimelineResponse.from(ImpactTimeline.of(timelineRange, impacts)));
+                throw noData("No assets matched scope " + scope.environments(), null, report.failures());
+            return Response.success(TimelineResponse.from(ImpactTimeline.of(timelineRange, impacts))).set(FAILURES_KEY, report.failures());
         }
         catch (WombatEvaluationException e) {
             throw new InternalServerErrorException(e);
         }
         catch (NoCPUUsageException e) {
-            throw noData("No CPU Usage Could be found", e);
+            throw noData("No CPU Usage Could be found", e, List.of());
         }
     }
 
-    private List<AssetImpact> calculate(TimeRange timeRange, AssetFilter filter) throws NoCPUUsageException, WombatEvaluationException
+    private EvaluationReport calculate(TimeRange timeRange, AssetFilter filter) throws NoCPUUsageException, WombatEvaluationException
     {
         try {
-            return this.assetEvaluator.evaluate(timeRange, filter, AssetImpact.class);
+            return this.assetEvaluator.report(timeRange, filter);
         }
         catch (WombatEvaluationException e) {
             if (e.getCause() instanceof NoCPUUsageException cause)
@@ -184,12 +190,12 @@ public class ImpactController
         }
     }
 
-    private static BadRequestException noData(String message, Throwable cause)
+    private static BadRequestException noData(String message, Throwable cause, List<AssetEvaluationFailure> failures)
     {
         return new BadRequestException(
             jakarta.ws.rs.core.Response.status(jakarta.ws.rs.core.Response.Status.BAD_REQUEST)
                 .type(MediaType.APPLICATION_JSON)
-                .entity(Response.status(message).set("reason", NO_DATA_REASON))
+                .entity(Response.status(message).set("reason", NO_DATA_REASON).set(FAILURES_KEY, failures))
                 .build(),
             cause
         );

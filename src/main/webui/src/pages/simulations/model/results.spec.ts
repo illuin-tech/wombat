@@ -34,6 +34,8 @@ const impact = (services: (KubernetesImpact | LLMImpact)[]): AssetEvaluation => 
   serviceImpacts: services,
   provider: services[0].assetType.family === 'LLM' ? 'ECOLOGITS' : 'BOAVIZTA',
   range: null,
+  profileOrigin: 'DECLARED',
+  warnings: [],
 })
 /* As the server scales them: each service's footprint, and the asset's cost in euros, per day, times the period's days */
 const DAYS = { DAY: 1, WEEK: 7, MONTH: 30, YEAR: 365 }

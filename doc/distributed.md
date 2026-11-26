@@ -145,8 +145,9 @@ Each instance reads its `monitored-environments.yaml` from its own directory of 
 The Anthropic asset has no source, so the aggregator declares it itself, and needs its admin key. Workers only need
 what their sources use.
 
-1. Create the environments of each instance from its template, then edit the clusters (`namespace`, `profile`) and the
-   Anthropic asset to match yours:
+1. Create the environments of each instance from its template, then edit the clusters (`namespaces`, `profile`) and the
+   Anthropic asset to match yours. Keep the clusters' `profile` declared: an inferred one is read by the aggregator, which
+   has no kubeconfig.
    ```sh
    for node in aggregator worker-east worker-west; do
      cp compose/demo-distributed/$node/monitored-environments.yaml.dist compose/demo-distributed/$node/monitored-environments.yaml

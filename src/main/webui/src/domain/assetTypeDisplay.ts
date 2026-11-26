@@ -1,4 +1,5 @@
 import type { ActivityRegime, ServiceFamily } from '@/domain/environment'
+import type { ProfileOrigin } from '@/domain/impact'
 
 export interface FamilyDisplay {
   label: string
@@ -35,4 +36,21 @@ export const REGIME_HINTS: Record<ActivityRegime, string> = {
   MEASURED: 'Its activity is measured on a running system: sampled from its metrics, or read from a provider\'s usage reports.',
   MODELED: 'Its activity is modeled from a declared profile, e.g. a yearly volume of requests shaped by temporal scenarios: for a system not running yet, or which cannot be observed.',
   UNKNOWN: 'How its activity is known is not told.',
+}
+
+/** Where the server profile an asset was evaluated with comes from. */
+export const PROFILE_ORIGIN_LABELS: Record<ProfileOrigin, string> = {
+  DECLARED: 'Declared',
+  NODES: 'Inferred from nodes',
+  RESOURCE_QUOTAS: 'Inferred from resource quotas',
+  CONTAINER_REQUESTS: 'Inferred from container requests',
+  CONTAINER_LIMITS: 'Inferred from container limits',
+}
+
+export const PROFILE_ORIGIN_TITLES: Record<ProfileOrigin, string> = {
+  DECLARED: 'The server profile is the one declared on the asset',
+  NODES: 'The hardware is inferred from the capacity of the cluster\'s nodes',
+  RESOURCE_QUOTAS: 'The hardware is inferred from the resource quotas of the namespaces: a slice of the cluster',
+  CONTAINER_REQUESTS: 'The hardware is inferred from the resources the containers request: a slice of the cluster',
+  CONTAINER_LIMITS: 'The hardware is inferred from the resource limits of the containers: a slice of the cluster',
 }

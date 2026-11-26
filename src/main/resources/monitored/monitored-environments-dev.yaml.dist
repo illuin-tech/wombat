@@ -69,11 +69,14 @@ environments:
 #        id: my-cluster-live
 #        environment-id: preprod
 #        name: My cluster live (preprod)
-#        namespace: my-namespace
+#        namespaces:
+#          - my-namespace
 #        kubeconfig-key: my-kubeconfig
 #        period: 2s
 #        resolvers:
 #          cost: random
+#        # Omit the profile to infer the hardware from the cluster's nodes, quotas or containers, or keep only its
+#        # location and lifespan with `type: inferred`
 #        profile:
 #          provider: aws
 #          instance-type: c5a.4xlarge

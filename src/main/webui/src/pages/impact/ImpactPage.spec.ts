@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import type { EnvironmentInfo, LiveEnvironment } from '@/domain/environment'
-import type { AssetImpact, TimelineResponse } from '@/domain/impact'
+import type { ImpactResult, TimelineResponse } from '@/domain/impact'
 import App from '@/App.vue'
 import { router } from '@/router'
 import { ApiError } from '@/services/api/client'
@@ -42,7 +42,7 @@ describe('ImpactPage progressive loading', () => {
   it('renders the filter shell immediately and resolves timeline and impact modules independently', async () => {
     const live = deferred<LiveEnvironment[]>()
     const persisted = deferred<EnvironmentInfo[]>()
-    const impact = deferred<AssetImpact[]>()
+    const impact = deferred<ImpactResult>()
     const timeline = deferred<TimelineResponse>()
     api.fetchAppInfo.mockResolvedValue({
       auth: { enabled: false },
@@ -93,7 +93,7 @@ describe('ImpactPage progressive loading', () => {
     expect(wrapper.find('.kpi-row .skeleton-block').exists()).toBe(true)
 
     persisted.resolve([{ id: 'test', name: 'Test environment', assets: [] }])
-    impact.resolve([])
+    impact.resolve({ impacts: [], failures: [] })
     await flushPromises()
     expect(wrapper.find('.kpi-row .skeleton-block').exists()).toBe(false)
     expect(wrapper.find('.overview-row').exists()).toBe(true)
@@ -132,10 +132,55 @@ describe('ImpactPage errors', () => {
     wrapper.unmount()
   })
 
+  it('lists the assets which could not be evaluated when there is no data', async () => {
+    const failures = [{ assetIdentity: { id: 'asset', environmentId: 'test', type: 'tech.illuin.wombat-module.kubernetes-api' }, reason: 'Cannot infer the server profile: nodes unreadable' }]
+    const wrapper = await mountWithImpactError(new ApiError(400, 'Unexpected error (400), try again.', 'no-data', 'No assets matched scope', { reason: 'no-data', failures }))
+    expect(wrapper.find('.error-title').text()).toBe('No activity found')
+    expect(wrapper.find('.error-failures-title').text()).toBe('An asset could not be evaluated')
+    expect(wrapper.find('.error-failures .unrecognized-asset-name').text()).toBe('Asset')
+    expect(wrapper.find('.error-failures .failure-reason').text()).toBe('Cannot infer the server profile: nodes unreadable')
+    expect(wrapper.find('.error-failures').text()).toContain('Test environment')
+    wrapper.unmount()
+  })
+
   it('shows any other failure with its message', async () => {
     const wrapper = await mountWithImpactError(new ApiError(500, 'Unexpected error (500), try again.'))
     expect(wrapper.find('.error-title').text()).toBe('The impact could not be loaded')
     expect(wrapper.find('.error-body').text()).toBe('Unexpected error (500), try again.')
+    wrapper.unmount()
+  })
+})
+
+describe('ImpactPage evaluation failures', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('opens the assets left out of the results from the recap', async () => {
+    api.fetchAppInfo.mockResolvedValue({
+      auth: { enabled: false },
+      user: { authenticated: false, name: null, roles: [], permissions: ['ui.dashboard.read'] },
+      ui: { maxDateRange: { millis: 90 * 86_400_000, label: '90 days' } },
+    })
+    api.fetchLiveEnvironments.mockResolvedValue([{ id: 'test', name: 'Test environment', assets: [{ id: 'asset', name: 'Asset' }, { id: 'cluster' }] }])
+    api.fetchEnvironments.mockResolvedValue([])
+    api.fetchImpact.mockResolvedValue({
+      impacts: [],
+      failures: [{ assetIdentity: { id: 'cluster', environmentId: 'test', type: 'tech.illuin.wombat-module.kubernetes-api' }, reason: 'Cannot infer the server profile' }],
+    })
+    api.fetchTimeline.mockResolvedValue({ stepMs: 86_400_000, stepLabel: 'day', stepPlural: 'days', bucketStarts: [], series: [] })
+
+    await router.push('/impact/test')
+    await router.isReady()
+    const wrapper = mount(App, { global: { plugins: [router], stubs: { ChartCanvas: { template: '<canvas />' } } } })
+    await flushPromises()
+
+    const trigger = wrapper.find('#evaluationFailuresTrigger')
+    expect(trigger.text()).toBe('1')
+    await trigger.trigger('click')
+    const item = document.body.querySelector('.asset-modal-overlay:not([hidden]) .unrecognized-asset-item')
+    expect(item?.querySelector('.unrecognized-asset-name')?.textContent).toBe('cluster')
+    expect(item?.querySelector('.failure-reason')?.textContent).toBe('Cannot infer the server profile')
     wrapper.unmount()
   })
 })
@@ -157,7 +202,7 @@ describe('ImpactPage API requests', () => {
       { id: 'prod', name: 'Production', assets: [{ id: 'prod-api', name: 'API' }, { id: 'prod-db', name: 'Database' }] },
     ])
     api.fetchEnvironments.mockReset().mockResolvedValue([])
-    api.fetchImpact.mockReset().mockResolvedValue([])
+    api.fetchImpact.mockReset().mockResolvedValue({ impacts: [], failures: [] })
     api.fetchTimeline.mockReset().mockResolvedValue({
       stepMs: 86_400_000,
       stepLabel: 'day',

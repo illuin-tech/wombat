@@ -7,6 +7,7 @@ import tech.illuin.wombat.core.activity.commons.TimeRange;
 import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
+import tech.illuin.wombat.core.evaluation.EvaluationReport;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.source.AssetMonitor;
 
@@ -60,16 +61,16 @@ class RuntimeProxiesTest
         when(this.factory.create(anyLong(), anyString(), any())).thenReturn(first, second);
         TimeRange range = mock(TimeRange.class);
         AssetFilter filter = mock(AssetFilter.class);
-        List<AssetEvaluation> evaluations = List.of(mock(AssetEvaluation.class));
-        when(second.evaluator().evaluate(range, filter)).thenReturn(evaluations);
+        EvaluationReport report = new EvaluationReport(List.of(mock(AssetEvaluation.class)), List.of());
+        when(second.evaluator().report(range, filter)).thenReturn(report);
 
         RuntimeAssetEvaluator evaluator = new RuntimeAssetEvaluator(this.runtime);
         this.runtime.deploy(1, "id-1", List.of());
-        evaluator.evaluate(range, filter);
-        verify(first.evaluator()).evaluate(range, filter);
+        evaluator.report(range, filter);
+        verify(first.evaluator()).report(range, filter);
 
         this.runtime.deploy(2, "id-2", List.of());
-        assertSame(evaluations, evaluator.evaluate(range, filter));
+        assertSame(report, evaluator.report(range, filter));
     }
 
     @Test

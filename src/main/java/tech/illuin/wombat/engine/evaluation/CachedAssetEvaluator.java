@@ -20,7 +20,6 @@ import tech.illuin.wombat.core.evaluation.WombatProfileResolver;
 import tech.illuin.wombat.core.module.ProcessorFactory;
 import tech.illuin.wombat.engine.evaluation.CachedAssetEvaluatorProperties.ResolverCacheProperties;
 
-import java.util.List;
 import java.util.Optional;
 
 import static tech.illuin.wombat.commons.ExceptionHelper.uncheck;
@@ -53,12 +52,6 @@ public class CachedAssetEvaluator extends AssetEvaluator
             .build();
     }
 
-    @Override
-    public List<AssetEvaluation> evaluate(TimeRange timeRange, AssetFilter filter) throws WombatEvaluationException
-    {
-        return this.report(timeRange, filter).evaluations();
-    }
-
     @Override @SuppressWarnings("RedundantThrows")
     public EvaluationReport report(TimeRange timeRange, AssetFilter filter) throws WombatEvaluationException
     {
@@ -66,15 +59,6 @@ public class CachedAssetEvaluator extends AssetEvaluator
             new EvaluateCacheKey(timeRange, filter),
             uncheck(k -> this.delegate.report(timeRange, filter))
         );
-    }
-
-    @Override
-    public <E extends AssetEvaluation> List<E> evaluate(TimeRange timeRange, AssetFilter filter, Class<E> type) throws WombatEvaluationException
-    {
-        return this.evaluate(timeRange, filter).stream()
-            .filter(type::isInstance)
-            .map(type::cast)
-            .toList();
     }
 
     @Override @SuppressWarnings("RedundantThrows")

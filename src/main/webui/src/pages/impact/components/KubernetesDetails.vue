@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type {KubernetesPanel} from '@/pages/impact/model/aggregate'
 import {asDecimal} from '@/services/format/formatters'
-import {PROFILE_ORIGIN_LABELS, PROFILE_ORIGIN_TITLES} from '@/domain/assetTypeDisplay'
+import {profileOriginLabel, profileOriginTitle} from '@/domain/assetTypeDisplay'
 import AssetTypeParam from '@/pages/impact/components/AssetTypeParam.vue'
 
 defineProps<{panel: KubernetesPanel}>()
@@ -23,7 +23,7 @@ defineProps<{panel: KubernetesPanel}>()
   <div class="params-inline">
     <div class="profile-head">
       <span class="card-section-label">Server profile</span>
-      <span class="status-chip profile-origin" :title="PROFILE_ORIGIN_TITLES[panel.profileOrigin]">{{ PROFILE_ORIGIN_LABELS[panel.profileOrigin] }}</span>
+      <span class="status-chip profile-origin" :title="profileOriginTitle(panel.profileOrigin)">{{ profileOriginLabel(panel.profileOrigin) }}</span>
     </div>
     <div v-if="panel.provider" class="param-item"><span class="param-key">Provider</span><span class="param-val">{{ panel.provider }}</span></div>
     <div v-if="panel.instanceType" class="param-item"><span class="param-key">Instance type</span><span class="param-val">{{ panel.instanceType }}</span></div>

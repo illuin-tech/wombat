@@ -107,8 +107,14 @@ export interface TimeRangeJson {
   resolution?: string
 }
 
-/** Where the profile an asset was evaluated with comes from: declared by the user, or inferred from its cluster. */
-export type ProfileOrigin = 'DECLARED' | 'NODES' | 'RESOURCE_QUOTAS' | 'CONTAINER_REQUESTS' | 'CONTAINER_LIMITS'
+/** The origins this UI knows how to describe: declared by the user, or inferred by the kubernetes-api module. */
+export type KnownProfileOrigin = 'DECLARED' | 'NODES' | 'RESOURCE_QUOTAS' | 'CONTAINER_REQUESTS' | 'CONTAINER_LIMITS'
+
+/**
+ * Where the profile an asset was evaluated with comes from. Each module defines the origins of the profiles it infers,
+ * so values beyond the known ones may come.
+ */
+export type ProfileOrigin = KnownProfileOrigin | (string & {})
 
 export interface AssetImpact {
   assetIdentity: AssetIdentity

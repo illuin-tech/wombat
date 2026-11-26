@@ -1,5 +1,5 @@
 import type { ActivityRegime, ServiceFamily } from '@/domain/environment'
-import type { ProfileOrigin } from '@/domain/impact'
+import type { KnownProfileOrigin, ProfileOrigin } from '@/domain/impact'
 
 export interface FamilyDisplay {
   label: string
@@ -39,7 +39,7 @@ export const REGIME_HINTS: Record<ActivityRegime, string> = {
 }
 
 /** Where the server profile an asset was evaluated with comes from. */
-export const PROFILE_ORIGIN_LABELS: Record<ProfileOrigin, string> = {
+const PROFILE_ORIGIN_LABELS: Record<KnownProfileOrigin, string> = {
   DECLARED: 'Declared',
   NODES: 'Inferred from nodes',
   RESOURCE_QUOTAS: 'Inferred from resource quotas',
@@ -47,10 +47,24 @@ export const PROFILE_ORIGIN_LABELS: Record<ProfileOrigin, string> = {
   CONTAINER_LIMITS: 'Inferred from container limits',
 }
 
-export const PROFILE_ORIGIN_TITLES: Record<ProfileOrigin, string> = {
+const PROFILE_ORIGIN_TITLES: Record<KnownProfileOrigin, string> = {
   DECLARED: 'The server profile is the one declared on the asset',
   NODES: 'The hardware is inferred from the capacity of the cluster\'s nodes',
   RESOURCE_QUOTAS: 'The hardware is inferred from the resource quotas of the namespaces: a slice of the cluster',
   CONTAINER_REQUESTS: 'The hardware is inferred from the resources the containers request: a slice of the cluster',
   CONTAINER_LIMITS: 'The hardware is inferred from the resource limits of the containers: a slice of the cluster',
+}
+
+function isKnownProfileOrigin(origin: ProfileOrigin): origin is KnownProfileOrigin {
+  return Object.hasOwn(PROFILE_ORIGIN_LABELS, origin)
+}
+
+/** The label of a profile origin; an origin of a module this UI does not know is shown as sent. */
+export function profileOriginLabel(origin: ProfileOrigin): string {
+  return isKnownProfileOrigin(origin) ? PROFILE_ORIGIN_LABELS[origin] : origin
+}
+
+/** What a profile origin means; an origin of a module this UI does not know is only said to be inferred. */
+export function profileOriginTitle(origin: ProfileOrigin): string {
+  return isKnownProfileOrigin(origin) ? PROFILE_ORIGIN_TITLES[origin] : `The server profile is inferred (${origin})`
 }

@@ -41,4 +41,10 @@ describe('KubernetesDetails', () => {
     expect(keys(wrapper)).toEqual(['Location', 'Lifespan', 'vCPU', 'Memory'])
     expect(wrapper.findAll('.profile-warnings li').map(item => item.text())).toEqual(warnings)
   })
+
+  it('shows an origin defined by another module as sent', () => {
+    const wrapper = render({ provider: null, instanceType: null, profileOrigin: 'MODEL_CARD', warnings: [] })
+    expect(wrapper.find('.profile-origin').text()).toBe('MODEL_CARD')
+    expect(wrapper.find('.profile-origin').attributes('title')).toBe('The server profile is inferred (MODEL_CARD)')
+  })
 })

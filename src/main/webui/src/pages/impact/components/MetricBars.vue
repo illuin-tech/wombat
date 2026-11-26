@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import type {DashboardModel} from '@/pages/impact/model/aggregate'
-import {buildServiceMetricData} from '@/pages/impact/model/dashboard'
+import {buildServiceMetricData, servicesByMetric} from '@/pages/impact/model/dashboard'
 import {useTheme} from '@/layout/theme/useTheme'
 import ChartCanvas from '@/components/ChartCanvas.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
@@ -48,8 +48,9 @@ const createData = (key: 'gwp' | 'pe' | 'adp', variable: string, fallback: strin
   }
 }
 
-const options = (unit: string, variable: string, fallback: string) => {
+const options = (key: 'gwp' | 'pe' | 'adp', unit: string, variable: string, fallback: string) => {
   const color = colorOf(variable, fallback)
+  const services = props.model ? servicesByMetric(props.model, key) : []
   return {
   responsive: true,
   maintainAspectRatio: false,
@@ -58,7 +59,7 @@ const options = (unit: string, variable: string, fallback: string) => {
   plugins: {
     legend: {position: 'top' as const, labels: {boxWidth: 10, padding: 14}},
     tooltip: {mode: 'index' as const, callbacks: {title: (items: {dataIndex: number}[]) => {
-      const service = props.model?.serviceImpacts[items[0]?.dataIndex]
+      const service = services[items[0]?.dataIndex]
       return service ? service.label : ''
     }}},
   },
@@ -66,7 +67,7 @@ const options = (unit: string, variable: string, fallback: string) => {
     x: {stacked: true, grid: {color: getComputedStyle(document.documentElement).getPropertyValue('--border').trim()}, title: {display: true, text: unit, color}},
     y: {stacked: true, grid: {color: getComputedStyle(document.documentElement).getPropertyValue('--border').trim()}, ticks: {
       font: {size: 11, lineHeight: 1.05},
-      callback: (value: string | number) => wrapLabel(props.model?.serviceImpacts[Number(value)]?.service ?? String(value)),
+      callback: (value: string | number) => wrapLabel(services[Number(value)]?.service ?? String(value)),
     }},
   },
   }
@@ -80,7 +81,7 @@ const options = (unit: string, variable: string, fallback: string) => {
         <div class="chart-wrap hbar" :style="{height: `${height}px`}">
           <div class="hbar-inner" :style="{height: `${fullHeight}px`}">
             <SkeletonBlock v-if="loading" height="100%"/>
-            <ChartCanvas v-else-if="model" type="bar" :data="createData(metric.key, metric.color, metric.fallback)" :options="options(metric.unit, metric.color, metric.fallback)"/>
+            <ChartCanvas v-else-if="model" type="bar" :data="createData(metric.key, metric.color, metric.fallback)" :options="options(metric.key, metric.unit, metric.color, metric.fallback)"/>
         </div>
       </div>
     </div>

@@ -6,15 +6,14 @@ import type { AssetImpact, Footprint, KubernetesImpact, LLMImpact, TimeRangeJson
 const K8S_TYPE: AssetType = { namespace: 'tech.illuin.wombat-module', localName: 'kubernetes-api', name: 'tech.illuin.wombat-module.kubernetes-api', regime: 'MEASURED', family: 'KUBERNETES_CONTAINER' }
 const LLM_TYPE: AssetType = { namespace: 'tech.illuin.wombat-module', localName: 'llm-static', name: 'tech.illuin.wombat-module.llm-static', regime: 'MODELED', family: 'LLM' }
 
-function footprint(gwp: number, pe: number, adp: number): Footprint {
+function footprint(gwp: number, pe: number, adp: number, energy = 0): Footprint {
   const impact = (unit: string, value: number) => ({ unit, description: '', embedded: { value: 0 }, use: { value } })
-  return { gwp: impact('kgCO2eq', gwp), pe: impact('MJ', pe), adp: impact('kgSbeq', adp) }
+  return { gwp: impact('kgCO2eq', gwp), pe: impact('MJ', pe), adp: impact('kgSbeq', adp), energy: impact('kWh', energy) }
 }
 
-function llm(serviceId: string, fp: Footprint, tokens: number, requests: number, energy: number): LLMImpact {
+function llm(serviceId: string, fp: Footprint, tokens: number, requests: number): LLMImpact {
   return {
     serviceId, assetType: LLM_TYPE, profile: {}, provider: 'mistralai', model: serviceId, location: 'FRA', footprint: fp,
-    estimation: { impacts: { energy: { type: 'energy', name: 'Energy', value: { min: energy, max: energy }, unit: 'kWh' }, gwp: null, adpe: null, pe: null } },
     outputTokenCount: tokens, requestCount: requests,
   }
 }
@@ -40,8 +39,8 @@ function asset(id: string, serviceImpacts: AssetImpact['serviceImpacts'], evalua
 const THIRTY_DAYS: TimeRangeJson = { start: '2026-01-01T00:00:00Z', end: '2026-01-31T00:00:00Z' }
 
 const impacts = [
-  asset('llm', [llm('mistral-large-latest', footprint(1.5, 3, 0.1), 1500, 10, 0.02), llm('mistral-small-latest', footprint(0.5, 1, 0.05), 500, 20, 0.01)], { range: THIRTY_DAYS }),
-  asset('cluster', [k8s('api', footprint(4, 8, 0.2)), k8s('worker', footprint(2, 4, 0.1))]),
+  asset('llm', [llm('mistral-large-latest', footprint(1.5, 3, 0.1, 0.2), 1500, 10), llm('mistral-small-latest', footprint(0.5, 1, 0.05, 0.2), 500, 20)], { range: THIRTY_DAYS }),
+  asset('cluster', [k8s('api', footprint(4, 8, 0.2, 1)), k8s('worker', footprint(2, 4, 0.1, 0.5))]),
 ]
 const assets = [{ id: 'llm', name: 'LLM asset', type: LLM_TYPE.name }, { id: 'cluster', name: 'Cluster', type: K8S_TYPE.name }]
 
@@ -56,7 +55,7 @@ describe('aggregate (EnvironmentImpact)', () => {
     expect(panel.requestCount).toBe(30)
     expect(panel.requestPerYear).toBe(365)
     expect(panel.gwpTotal.value).toBeCloseTo(2.0, 4)
-    expect(panel.energyTotal).toEqual({ value: expect.closeTo(0.4, 6), unit: 'KWh' })
+    expect(panel.energyTotal).toEqual({ value: expect.closeTo(0.4, 6), unit: 'kWh' })
     expect(panel.gwpPerRequest.value).toBeCloseTo(2 / 30, 6)
     expect(panel.provider).toBe('mistralai')
     expect(panel.model).toBe('mistral-large-latest, mistral-small-latest')
@@ -93,7 +92,7 @@ describe('aggregate (EnvironmentImpact)', () => {
     expect(panel.lifespan).toBe(43_800)
     expect(panel.clusters).toEqual([{ id: 'test-cluster', namespace: 'test-ns' }])
     expect(panel.load).toEqual({ cpuUsageCores: 2, loadPercent: 25, nodeCount: 1 })
-    expect(panel.energyTotal.value).toBe(0)
+    expect(panel.energyTotal).toEqual({ value: expect.closeTo(1.5, 6), unit: 'kWh' })
     expect(panel.profileOrigin).toBe('DECLARED')
     expect(panel.warnings).toEqual([])
   })

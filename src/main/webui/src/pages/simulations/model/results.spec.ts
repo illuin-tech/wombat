@@ -18,14 +18,14 @@ const assets: AssetInfo[] = [
 
 function footprint(gwp: number): Footprint {
   const impact = (value: number, unit: string) => ({ unit, description: '', embedded: { value: value / 4 }, use: { value: value * 3 / 4 } })
-  return { gwp: impact(gwp, 'kgCO2eq'), pe: impact(gwp * 10, 'MJ'), adp: impact(gwp / 10, 'kgSbeq') }
+  return { gwp: impact(gwp, 'kgCO2eq'), pe: impact(gwp * 10, 'MJ'), adp: impact(gwp / 10, 'kgSbeq'), energy: null }
 }
 
 const container = (serviceId: string, gwp: number): KubernetesImpact => ({
   serviceId, assetType: kubernetes, footprint: footprint(gwp), profile: null, share: 0.5, location: null, serverSpecification: null, loadPercent: 20, nodeCount: 1,
 })
 const model = (serviceId: string, gwp: number): LLMImpact => ({
-  serviceId, assetType: llmStatic, footprint: footprint(gwp), profile: null, provider: 'mistral', model: serviceId, location: 'FR', estimation: null, outputTokenCount: 100, requestCount: 10,
+  serviceId, assetType: llmStatic, footprint: footprint(gwp), profile: null, provider: 'mistral', model: serviceId, location: 'FR', outputTokenCount: 100, requestCount: 10,
 })
 /* Over the window, a month, as the evaluator returns it */
 const impact = (services: (KubernetesImpact | LLMImpact)[]): AssetEvaluation => ({

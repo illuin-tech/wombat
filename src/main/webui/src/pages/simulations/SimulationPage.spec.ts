@@ -60,7 +60,7 @@ const whatIf: SimulationInfo = {
 
 function footprint(gwp: number): Footprint {
   const impact = (value: number, unit: string) => ({ unit, description: '', embedded: { value: 0 }, use: { value } })
-  return { gwp: impact(gwp, 'kgCO2eq'), pe: impact(gwp * 10, 'MJ'), adp: impact(gwp / 10, 'kgSbeq') }
+  return { gwp: impact(gwp, 'kgCO2eq'), pe: impact(gwp * 10, 'MJ'), adp: impact(gwp / 10, 'kgSbeq'), energy: null }
 }
 /* As the server scales the chatbot's one service */
 const scaled = (perDay: number) => Object.fromEntries(([['DAY', 1], ['WEEK', 7], ['MONTH', 30], ['YEAR', 365]] as const).map(([period, days]) => [period, {
@@ -74,7 +74,7 @@ const chatbotImpact = {
   footprint: footprint(60),
   serviceImpacts: [{
     serviceId: 'mistral-large', assetType: llmStatic.type, footprint: footprint(60), profile: null,
-    provider: 'mistral', model: 'mistral-large', location: 'FR', estimation: null, outputTokenCount: 100, requestCount: 10,
+    provider: 'mistral', model: 'mistral-large', location: 'FR', outputTokenCount: 100, requestCount: 10,
   }],
   provider: 'ECOLOGITS' as const,
   range: null,

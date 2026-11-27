@@ -1,6 +1,6 @@
 package tech.illuin.wombat.engine.connector.ecologits;
 
-import tech.illuin.wombat.core.evaluation.impact.llm.EcologitsEstimationResponse;
+import tech.illuin.wombat.module.ecologits.connector.model.EcologitsEstimationResponse;
 
 public final class EcologitsTestData
 {

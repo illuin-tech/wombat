@@ -108,12 +108,13 @@ public record ModuleMetadata(
 
     /**
      * What a module provides for its assets, or those of its family: sampling them, or resolving their activity,
-     * impacts or cost. Two family modules of a family only compete for what they both provide.
+     * the profile they are evaluated with, their impacts or cost. Two family modules of a family only compete for what they both provide.
      */
     public enum Feature
     {
         source,
         activity,
+        profile,
         impact,
         cost,
         ;
@@ -125,6 +126,8 @@ public record ModuleMetadata(
                 features.add(source);
             if (module.activityResolver().isPresent())
                 features.add(activity);
+            if (module.profileResolver().isPresent())
+                features.add(profile);
             if (module.impactResolver().isPresent())
                 features.add(impact);
             if (module.costResolver().isPresent())

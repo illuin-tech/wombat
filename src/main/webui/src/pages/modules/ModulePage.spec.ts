@@ -89,6 +89,10 @@ describe('ModulePage', () => {
     expect(document.querySelector('.pill-hint-bubble')!.textContent).toContain('Resolves what the assets did over a time range')
 
     wrapper.unmount()
+    await render(READER, { ...anthropic, provides: ['source', 'profile'] })
+    expect(wrapper.findAll('.module-provides .module-feature').map(feature => feature.text())).toEqual(['Source', 'Profile'])
+
+    wrapper.unmount()
     await render(READER, { ...anthropic, source: null, assetClass: null, provides: [] })
     expect(wrapper.find('.module-provides').exists()).toBe(false)
     expect(wrapper.find('.module-facts').text()).toMatch(/Provides\s*Unknown/)

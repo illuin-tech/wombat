@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest'
-import {buildDashboardRequests, buildServiceMetricData, buildTimelineDatasets, buildTimelineLabels, encodeFilters, includedServices, serviceOptions} from '@/pages/impact/model/dashboard'
+import {buildDashboardRequests, buildServiceMetricData, servicesByMetric, buildTimelineDatasets, buildTimelineLabels, encodeFilters, includedServices, serviceOptions} from '@/pages/impact/model/dashboard'
 import {aggregate, type ServiceImpact} from '@/pages/impact/model/aggregate'
 import type {AssetInfo} from '@/domain/environment'
 import type {AssetImpact, TimelineResponse} from '@/domain/impact'
@@ -88,5 +88,23 @@ describe('dashboard helpers', () => {
             labels: ['svc'],
             datasets: [{label: 'Embedded', data: [2]}, {label: 'Use', data: [3]}],
         })
+    })
+
+    it('orders each metric chart by that metric, not by GWP', () => {
+        const service = (name: string, gwp: number, pe: number): ServiceImpact => ({
+            assetName: 'A',
+            service: name,
+            label: `A / ${name}`,
+            assetType: {namespace: 'test', localName: 'container', name: 'Container', regime: 'MEASURED', family: 'KUBERNETES_CONTAINER'},
+            footprint: {
+                gwp: {unit: 'kgCO2eq', description: 'GWP', embedded: {value: gwp}, use: {value: 0}},
+                pe: {unit: 'MJ', description: 'PE', embedded: {value: 0}, use: {value: pe}},
+                adp: null,
+            },
+        })
+        const model = {...aggregate([], []), serviceImpacts: [service('heavy-co2', 10, 1), service('heavy-energy', 1, 10)]}
+        expect(buildServiceMetricData(model, 'gwp').labels).toEqual(['heavy-co2', 'heavy-energy'])
+        expect(buildServiceMetricData(model, 'pe').labels).toEqual(['heavy-energy', 'heavy-co2'])
+        expect(servicesByMetric(model, 'pe').map(service => service.service)).toEqual(['heavy-energy', 'heavy-co2'])
     })
 })

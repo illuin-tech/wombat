@@ -1,4 +1,4 @@
-import {aggregate, type DashboardModel} from '@/pages/impact/model/aggregate'
+import {aggregate, totalValue, type DashboardModel, type ServiceImpact} from '@/pages/impact/model/aggregate'
 import type {AssetInfo} from '@/domain/environment'
 import type {AssetImpact, ImpactRequest, TimelineResponse} from '@/domain/impact'
 import type {ServicesSelection} from '@/pages/impact/model/servicesQuery'
@@ -82,12 +82,18 @@ export function buildTimelineDatasets(timeline: TimelineResponse, metric: Timeli
     ]
 }
 
+/** Services ordered by their total for `metric`, highest first; ties keep the model's order. */
+export function servicesByMetric(model: DashboardModel, metric: 'gwp' | 'pe' | 'adp'): ServiceImpact[] {
+    return [...model.serviceImpacts].sort((a, b) => totalValue(b.footprint[metric]) - totalValue(a.footprint[metric]))
+}
+
 export function buildServiceMetricData(model: DashboardModel, metric: 'gwp' | 'pe' | 'adp') {
+    const services = servicesByMetric(model, metric)
     return {
-        labels: model.serviceImpacts.map(service => service.service),
+        labels: services.map(service => service.service),
         datasets: [
-            {label: 'Embedded', data: model.serviceImpacts.map(service => service.footprint[metric]?.embedded.value ?? 0)},
-            {label: 'Use', data: model.serviceImpacts.map(service => service.footprint[metric]?.use.value ?? 0)},
+            {label: 'Embedded', data: services.map(service => service.footprint[metric]?.embedded.value ?? 0)},
+            {label: 'Use', data: services.map(service => service.footprint[metric]?.use.value ?? 0)},
         ],
     }
 }

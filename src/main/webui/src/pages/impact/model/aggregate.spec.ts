@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { aggregate, lifetimeHours, totalValue } from '@/pages/impact/model/aggregate'
 import type { AssetType } from '@/domain/environment'
-import type { AssetImpact, Footprint, KubernetesImpact, LLMImpact } from '@/domain/impact'
+import type { AssetImpact, Footprint, KubernetesImpact, LLMImpact, TimeRangeJson } from '@/domain/impact'
 
 const K8S_TYPE: AssetType = { namespace: 'tech.illuin.wombat-module', localName: 'kubernetes-api', name: 'tech.illuin.wombat-module.kubernetes-api', regime: 'MEASURED', family: 'KUBERNETES_CONTAINER' }
 const LLM_TYPE: AssetType = { namespace: 'tech.illuin.wombat-module', localName: 'llm-static', name: 'tech.illuin.wombat-module.llm-static', regime: 'MODELED', family: 'LLM' }
@@ -36,8 +36,11 @@ function asset(id: string, serviceImpacts: AssetImpact['serviceImpacts'], evalua
   }
 }
 
+/* 30 days, so a year holds 365 / 30 of it */
+const THIRTY_DAYS: TimeRangeJson = { start: '2026-01-01T00:00:00Z', end: '2026-01-31T00:00:00Z' }
+
 const impacts = [
-  asset('llm', [llm('mistral-large-latest', footprint(1.5, 3, 0.1), 1500, 10, 0.02), llm('mistral-small-latest', footprint(0.5, 1, 0.05), 500, 20, 0.01)]),
+  asset('llm', [llm('mistral-large-latest', footprint(1.5, 3, 0.1), 1500, 10, 0.02), llm('mistral-small-latest', footprint(0.5, 1, 0.05), 500, 20, 0.01)], { range: THIRTY_DAYS }),
   asset('cluster', [k8s('api', footprint(4, 8, 0.2)), k8s('worker', footprint(2, 4, 0.1))]),
 ]
 const assets = [{ id: 'llm', name: 'LLM asset', type: LLM_TYPE.name }, { id: 'cluster', name: 'Cluster', type: K8S_TYPE.name }]
@@ -51,13 +54,19 @@ describe('aggregate (EnvironmentImpact)', () => {
     expect(panel.serviceIds).toEqual(['mistral-large-latest', 'mistral-small-latest'])
     expect(panel.outputTokenCount).toBe(2000)
     expect(panel.requestCount).toBe(30)
-    expect(panel.requestPerYear).toBe(30)
+    expect(panel.requestPerYear).toBe(365)
     expect(panel.gwpTotal.value).toBeCloseTo(2.0, 4)
     expect(panel.energyTotal).toEqual({ value: expect.closeTo(0.4, 6), unit: 'KWh' })
     expect(panel.gwpPerRequest.value).toBeCloseTo(2 / 30, 6)
     expect(panel.provider).toBe('mistralai')
     expect(panel.model).toBe('mistral-large-latest, mistral-small-latest')
     expect(panel.location).toBe('FRA')
+  })
+
+  it('scales the requests of an LLM asset to a year only when its period is known', () => {
+    const withoutRange = aggregate([asset('llm', impacts[0].serviceImpacts)], assets).llmPanels[0]
+    expect(withoutRange.requestCount).toBe(30)
+    expect(withoutRange.requestPerYear).toBe(0)
   })
 
   it('splits Docker and LLM totals, sorts services by GWP and computes shares', () => {

@@ -2,7 +2,6 @@
 import {
   type AssetImpact,
   type ClusterInfo,
-  type EcologitsMetric,
   type Footprint,
   type FootprintImpact,
   type KubernetesImpact,
@@ -17,7 +16,7 @@ import {
 import type { ActivityRegime, AssetInfo, AssetType, ServiceFamily } from '@/domain/environment'
 
 /** AmountUnit symbols. */
-export const UNIT = { mj: 'MJ', kwh: 'KWh', kgCo2eq: 'kgCO2eq', kgSbeq: 'kgSbeq' } as const
+export const UNIT = { mj: 'MJ', kwh: 'kWh', kgCo2eq: 'kgCO2eq', kgSbeq: 'kgSbeq' } as const
 const KNOWN_UNITS = new Set<string>(Object.values(UNIT))
 
 export interface Amount {
@@ -129,11 +128,12 @@ function sumImpact(impacts: (FootprintImpact | null | undefined)[]): FootprintIm
 
 export function sumFootprints(footprints: Footprint[]): Footprint {
   if (footprints.length === 0)
-    return { gwp: zero(UNIT.kgCo2eq), pe: zero(UNIT.mj), adp: zero(UNIT.kgSbeq) }
+    return { gwp: zero(UNIT.kgCo2eq), pe: zero(UNIT.mj), adp: zero(UNIT.kgSbeq), energy: zero(UNIT.kwh) }
   return {
     gwp: sumImpact(footprints.map(footprint => footprint.gwp)),
     pe: sumImpact(footprints.map(footprint => footprint.pe)),
     adp: sumImpact(footprints.map(footprint => footprint.adp)),
+    energy: sumImpact(footprints.map(footprint => footprint.energy)),
   }
 }
 
@@ -144,10 +144,6 @@ function unitOrFallback(symbol: string | null | undefined, fallback: string): st
 function footprintAmount(impact: FootprintImpact | null | undefined, fallback: string): Amount {
   if (!impact) return { value: 0, unit: fallback }
   return { value: totalValue(impact), unit: unitOrFallback(impact.unit, fallback) }
-}
-
-export function metricMean(metric: EcologitsMetric): number {
-  return (metric.value.min + metric.value.max) / 2
 }
 
 const HOURS_PER_DAY = 24
@@ -286,8 +282,7 @@ function kubernetesPanel(name: string, asset: Pick<AssetImpact, 'profileOrigin' 
     regime: first.assetType.regime,
     serviceIds: impacts.map(impact => impact.serviceId),
     gwpTotal: footprintAmount(footprint.gwp, UNIT.kgCo2eq),
-    // Boavizta reports no energy metric for a server impact; only the LLM panel renders an energy total.
-    energyTotal: { value: 0, unit: UNIT.kwh },
+    energyTotal: footprintAmount(footprint.energy, UNIT.kwh),
     peTotal: footprintAmount(footprint.pe, UNIT.mj),
     adpeTotal: footprintAmount(footprint.adp, UNIT.kgSbeq),
     provider: (profile.provider as string | undefined) ?? null,
@@ -319,16 +314,6 @@ function llmPanel(name: string, footprint: Footprint, impacts: LLMImpact[], rang
   const requestCount = impacts.reduce((sum, impact) => sum + impact.requestCount, 0)
   const requestPerYear = perYear(requestCount, range)
 
-  let energy = 0
-  let energyUnit: string = UNIT.kwh
-  for (const impact of impacts) {
-    const metric = impact.estimation?.impacts?.energy
-    if (metric) {
-      energy += metricMean(metric) * impact.requestCount
-      energyUnit = unitOrFallback(metric.unit, UNIT.kwh)
-    }
-  }
-
   const providers = distinct(impacts.map(impact => impact.provider))
   return {
     kind: 'llm',
@@ -337,7 +322,7 @@ function llmPanel(name: string, footprint: Footprint, impacts: LLMImpact[], rang
     regime: first.assetType.regime,
     serviceIds: impacts.map(impact => impact.serviceId),
     gwpTotal: footprintAmount(footprint.gwp, UNIT.kgCo2eq),
-    energyTotal: { value: energy, unit: energyUnit },
+    energyTotal: footprintAmount(footprint.energy, UNIT.kwh),
     peTotal: footprintAmount(footprint.pe, UNIT.mj),
     adpeTotal: footprintAmount(footprint.adp, UNIT.kgSbeq),
     gwpPerRequest: { value: requestCount > 0 ? totalValue(footprint.gwp) / requestCount : 0, unit: UNIT.kgCo2eq },
@@ -362,7 +347,7 @@ function serviceLine(service: ServiceImpact): ServiceLine {
     regime: service.assetType.regime,
     family: service.assetType.family,
     gwp: footprintAmount(service.footprint.gwp, UNIT.kgCo2eq),
-    energy: { value: 0, unit: UNIT.kwh },
+    energy: footprintAmount(service.footprint.energy, UNIT.kwh),
     pe: footprintAmount(service.footprint.pe, UNIT.mj),
     adpe: footprintAmount(service.footprint.adp, UNIT.kgSbeq),
   }

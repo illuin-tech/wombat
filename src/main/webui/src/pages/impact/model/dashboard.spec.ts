@@ -14,7 +14,7 @@ describe('dashboard helpers', () => {
         const service = (serviceId: string) => ({
             serviceId,
             assetType: {namespace: 'test', localName: 'container', name: 'Container', regime: 'MEASURED', family: 'KUBERNETES_CONTAINER'},
-            footprint: {gwp: null, pe: null, adp: null},
+            footprint: {gwp: null, pe: null, adp: null, energy: null},
             profile: null,
             share: 1,
             location: null,
@@ -23,8 +23,8 @@ describe('dashboard helpers', () => {
             nodeCount: 0,
         })
         const impacts = [
-            {assetIdentity: {id: 'a', environmentId: 'env', type: 'Container'}, footprint: {gwp: null, pe: null, adp: null}, serviceImpacts: [service('zeta'), service('alpha')], provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: []},
-            {assetIdentity: {id: 'b', environmentId: 'env', type: 'Container'}, footprint: {gwp: null, pe: null, adp: null}, serviceImpacts: [service('alpha'), service('beta')], provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: []},
+            {assetIdentity: {id: 'a', environmentId: 'env', type: 'Container'}, footprint: {gwp: null, pe: null, adp: null, energy: null}, serviceImpacts: [service('zeta'), service('alpha')], provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: []},
+            {assetIdentity: {id: 'b', environmentId: 'env', type: 'Container'}, footprint: {gwp: null, pe: null, adp: null, energy: null}, serviceImpacts: [service('alpha'), service('beta')], provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: []},
         ] as AssetImpact[]
         expect(serviceOptions(impacts)).toEqual(['alpha', 'beta', 'zeta'])
     })
@@ -81,6 +81,7 @@ describe('dashboard helpers', () => {
                 gwp: {unit: 'kgCO2eq', description: 'GWP', embedded: {value: 2}, use: {value: 3}},
                 pe: null,
                 adp: null,
+                energy: null,
             },
         }
         const model = {...aggregate([], []), serviceImpacts: [service]}
@@ -100,6 +101,7 @@ describe('dashboard helpers', () => {
                 gwp: {unit: 'kgCO2eq', description: 'GWP', embedded: {value: gwp}, use: {value: 0}},
                 pe: {unit: 'MJ', description: 'PE', embedded: {value: 0}, use: {value: pe}},
                 adp: null,
+                energy: null,
             },
         })
         const model = {...aggregate([], []), serviceImpacts: [service('heavy-co2', 10, 1), service('heavy-energy', 1, 10)]}

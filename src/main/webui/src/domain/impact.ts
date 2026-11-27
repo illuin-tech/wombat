@@ -25,6 +25,7 @@ export interface Footprint {
   gwp: FootprintImpact | null
   pe: FootprintImpact | null
   adp: FootprintImpact | null
+  energy: FootprintImpact | null
 }
 
 export interface AssetIdentity {
@@ -57,23 +58,6 @@ export interface ServerProfile {
   [key: string]: unknown
 }
 
-export interface EcologitsMetric {
-  type: string
-  name: string
-  value: { min: number; max: number }
-  unit: string
-}
-
-export interface EcologitsEstimation {
-  impacts: {
-    energy: EcologitsMetric | null
-    gwp: EcologitsMetric | null
-    adpe: EcologitsMetric | null
-    pe: EcologitsMetric | null
-    [key: string]: unknown
-  } | null
-}
-
 export interface BaseServiceImpact {
   serviceId: string
   assetType: AssetType
@@ -94,7 +78,6 @@ export interface LLMImpact extends BaseServiceImpact {
   provider: string | null
   model: string | null
   location: string | null
-  estimation: EcologitsEstimation | null
   outputTokenCount: number
   requestCount: number
 }

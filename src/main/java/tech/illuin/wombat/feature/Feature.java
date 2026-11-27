@@ -51,6 +51,8 @@ public enum Feature
         public static final String ADMIN = PREFIX + "admin";
         /** The {@link #ADMIN} feature with a secret write mode: {@code @EndpointDisabled} only takes a single key. */
         public static final String ADMIN_SECRETS = PREFIX + "admin-secrets";
+        /** A worker whose environments are also declared through its API ({@code wombat.worker.environments.api=true}). */
+        public static final String WORKER_ENVIRONMENTS = PREFIX + "worker-environments";
 
         private Keys() {}
     }

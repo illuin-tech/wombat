@@ -39,6 +39,9 @@ The mode also sets which functionalities an instance serves:
 | `api-write` | `POST /api/workers/{worker}/metrics`, `PUT /api/workers/{worker}/environments` |              | ✓            |          |
 | `admin`     | `/api/users`, `/api/keys`, `/api/secrets`                                      | ✓            | ✓            |          |
 
+A worker whose environments are also [declared through its API](#environments-declared-through-the-api) serves
+`GET` and `PUT /api/worker/environments`, and nothing else.
+
 `api-write` only covers what workers push, so only an aggregator serves it. The endpoints managing an instance (users,
 API keys, secrets) write too, but fall under `admin`, so that a standalone instance can still be administered.
 
@@ -113,7 +116,8 @@ WOMBAT_WORKER_AGGREGATOR_PROXY_URL=http://proxy.example.com:3128  # optional, HT
 
 The aggregator cannot tell two workers sharing an id apart: each declaration replaces the other's assets, and their metrics are mixed. Give every worker its own id.
 
-A worker serves no page nor API, so its `wombat.monitor.environments-file` is what it samples.
+A worker serves no page nor API, so its `wombat.monitor.environments-file` is what it samples, along with the
+environments [declared through its API](#environments-declared-through-the-api) if enabled.
 It declares that whole file at startup, then again every minute: declaring unchanged environments changes nothing, and an aggregator started after its workers, or restored from a backup, catches up within a minute.
 A declaration that fails is logged, and the next one tries again. Removing an asset from the worker's file removes it from the aggregator at the worker's next startup.
 
@@ -122,6 +126,39 @@ No metric is written to the worker's database, so a worker always runs on an in-
 A worker enables every module it detects and currently cannot turn them off: it will only declare to the aggregator the assets it samples. The worker deploys its own core at startup, and does not take part in the [core deployments](modules.md#replicas) of the aggregator.
 
 Each window is sent in at most one request per metric family. A push that fails (aggregator unreachable, rejected key) is retried a few times on network errors, then logged and dropped: the worker does not buffer windows it could not send.
+
+### Environments declared through the API
+
+When some environments of a worker are only known at runtime, e.g. one per namespace of its cluster, a process next to
+it (a sidecar listing the namespaces) can declare them, on top of those of the environments file:
+
+```sh
+WOMBAT_WORKER_ENVIRONMENTS_API=true   # default: false
+```
+
+* `PUT /api/worker/environments` replaces the environments declared through it. It takes the content of an environments
+  file, as JSON with camelCase properties like the rest of the API:
+  ```json
+  {"environments": {"payments": {"id": "payments", "assets": [{
+    "type": "tech.illuin.wombat-module.kubernetes-api", "id": "payments-cluster", "environmentId": "payments",
+    "kubeconfigKey": "kubeconfig", "namespaces": ["payments"],
+    "profile": {"provider": "aws", "instanceType": "c5.xlarge", "location": "FRA", "lifespan": 43800}
+  }]}}}
+  ```
+  The assets it no longer declares are deleted, the others created or updated. The worker samples them from its next
+  heartbeat, and declares them to the aggregator with those of its file within a minute. `GET /api/worker/environments`
+  returns the last declaration, without the file's environments.
+* The file's assets are never touched by a declaration. Both may put assets in the same environment, but an asset id
+  declared by both is rejected with `409`.
+* Each asset must be one the worker samples (a known, monitorable type) and have its secrets in a secret source of the
+  worker: otherwise the request is rejected with `400`, nothing from it is applied, and the reason is logged by the worker.
+* The worker's database is in memory: after a restart, the worker samples its file but declares nothing to the
+  aggregator until it receives a declaration, so that the aggregator keeps the assets of its previous one. Have the
+  declaring process send the whole list again at every run, and as soon as the worker is ready. Keep the asset ids
+  stable (e.g. derived from the namespace): an asset declared again keeps its history on the aggregator.
+* The endpoints require `api.environment.write` (`PUT`) and `api.environment.read` (`GET`) when authentication is on.
+  API keys live in the worker's in-memory database, which a worker cannot administer: run the worker without
+  authentication, and restrict who reaches its port (e.g. with a NetworkPolicy) when the process runs in the same pod.
 
 ## Replicas
 

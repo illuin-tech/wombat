@@ -10,6 +10,7 @@ import tech.illuin.wombat.engine.secret.SecretProperties;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.OptionalInt;
 
@@ -20,6 +21,7 @@ import static tech.illuin.wombat.commons.ConfigSourceFactories.FEATURE_FLAG;
 public class FeatureConfigSourceFactory implements ConfigSourceFactory
 {
     static final String SECRET_WRITE_MODE = "wombat.secret.write-mode";
+    static final String WORKER_ENVIRONMENTS_API = "wombat.worker.environments.api";
 
     @Override
     public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context)
@@ -33,6 +35,9 @@ public class FeatureConfigSourceFactory implements ConfigSourceFactory
 
         boolean secretsWritable = isSecretWritable(context.getValue(SECRET_WRITE_MODE).getValue());
         properties.put(Feature.Keys.ADMIN_SECRETS, String.valueOf(Feature.ADMIN.enabledIn(mode) && secretsWritable));
+
+        boolean environmentsApi = Boolean.parseBoolean(Objects.toString(context.getValue(WORKER_ENVIRONMENTS_API).getValue(), "false").strip());
+        properties.put(Feature.Keys.WORKER_ENVIRONMENTS, String.valueOf(mode == NodeMode.worker && environmentsApi));
 
         return List.of(new PropertiesConfigSource(
             properties,

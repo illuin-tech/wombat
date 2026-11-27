@@ -24,7 +24,6 @@ import tech.illuin.wombat.module.llm_static.LLMStaticModule;
 import tech.illuin.wombat.persistence.backend.push.WorkerProperties;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -138,6 +137,7 @@ class MonitoredEnvironmentsTemplateTest
                 return new WorkerProperties() {
                     @Override public Optional<String> id() { return Optional.empty(); }
                     @Override public Optional<tech.illuin.wombat.persistence.backend.push.AggregatorProperties> aggregator() { return Optional.empty(); }
+                    @Override public EnvironmentsProperties environments() { return () -> false; }
                 };
             }
 

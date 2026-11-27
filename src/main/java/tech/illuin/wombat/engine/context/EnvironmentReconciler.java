@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tech.illuin.wombat.core.asset.Asset;
+import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.Environment;
 import tech.illuin.wombat.engine.context.asset.AssetConflictException;
 import tech.illuin.wombat.engine.context.asset.AssetHistoryRecorder;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +51,8 @@ public class EnvironmentReconciler
     static final int STARTUP_PRIORITY_RECONCILE = 2000;
 
     public static final String LOCAL_OWNER = null;
+    /** What a worker receives on {@code PUT /api/worker/environments}: not a valid worker id, so it never clashes with one. */
+    public static final String WORKER_API_OWNER = ":worker-api";
     private static final Logger logger = LoggerFactory.getLogger(EnvironmentReconciler.class);
 
     private final EnvironmentRepository repository;
@@ -78,6 +82,16 @@ public class EnvironmentReconciler
     @Transactional
     public Result reconcile(String owner, Map<String, Environment> desired)
     {
+        return this.reconcile(owner, desired, identity -> {});
+    }
+
+    /**
+     * @param changed called with each asset updated or deleted, whose components built by a running monitor or evaluator
+     *                are now stale: refresh them once this transaction is committed
+     */
+    @Transactional
+    public Result reconcile(String owner, Map<String, Environment> desired, Consumer<AssetIdentity> changed)
+    {
         int created = 0;
         int updated = 0;
 
@@ -92,11 +106,15 @@ public class EnvironmentReconciler
                 if (action == AssetConfigAction.CREATE)
                     created++;
                 else if (action == AssetConfigAction.UPDATE)
+                {
                     updated++;
+                    changed.accept(asset.identity());
+                }
             }
         }
 
         List<AssetEntity> deleted = this.deleteMissingAssets(owner, desiredAssetIds);
+        deleted.forEach(entity -> changed.accept(entity.properties.identity()));
         this.deleteEmptyEnvironments(owner, desired.keySet(), deleted);
 
         return new Result(created, updated, deleted.size());
@@ -227,7 +245,11 @@ public class EnvironmentReconciler
 
     private static String describe(String owner)
     {
-        return Objects.equals(owner, LOCAL_OWNER) ? "the monitored-environments file" : "worker " + owner;
+        if (Objects.equals(owner, LOCAL_OWNER))
+            return "the monitored-environments file";
+        if (WORKER_API_OWNER.equals(owner))
+            return "PUT /api/worker/environments";
+        return "worker " + owner;
     }
 
     public record Result(

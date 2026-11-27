@@ -112,6 +112,9 @@ wombat:
   #    api-key: "<key holding api.metric.write and api.environment.write on the aggregator>"
   #    proxy-url: "http://proxy.example.com:3128"  # optional, HTTP proxy to reach the aggregator through
   #    timeout: 30s
+  #  environments:
+  #    # true: PUT /api/worker/environments also declares environments (e.g. from a sidecar), on top of the monitored-environments file
+  #    api: false
 
   monitor:
     heartbeat: "10s"

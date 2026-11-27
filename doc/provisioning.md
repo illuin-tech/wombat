@@ -52,5 +52,6 @@ The [`monitored-environments.yaml.dist`](../compose/demo-standalone/monitored-en
 
 ## Workers
 
-A [worker](distributed.md#workers) serves no page nor API: its environments file is the only way to tell it what to sample.
+A [worker](distributed.md#workers) serves no page nor API: its environments file tells it what to sample, along with
+the environments [declared through its API](distributed.md#environments-declared-through-the-api) if enabled, e.g. by a sidecar.
 It declares the file's environments to its aggregator, which provisions them the same way, as read-only.

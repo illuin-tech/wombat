@@ -64,8 +64,8 @@ public class AssetEntity
     public Instant deletedAt;
 
     /**
-     * Who declares this asset: {@code null} for the monitored-environments file, else the id of the worker which
-     * pushed it. Each reconciliation only creates, updates and deletes the assets of its own owner.
+     * Who declares this asset: {@code null} for the monitored-environments file, on an aggregator the id of the worker
+     * which pushed it, on a worker {@code :worker-api} for {@code PUT /api/worker/environments}. Each reconciliation only creates, updates and deletes the assets of its own owner.
      */
     @Column(name = "owner")
     public String owner;

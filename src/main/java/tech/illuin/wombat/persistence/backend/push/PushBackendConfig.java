@@ -14,7 +14,7 @@ import jakarta.inject.Singleton;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.core.asset.type.ServiceFamily;
-import tech.illuin.wombat.engine.monitor.MonitoredEnvironments;
+import tech.illuin.wombat.engine.context.WorkerEnvironmentService;
 import tech.illuin.wombat.persistence.backend.api.Action;
 import tech.illuin.wombat.persistence.backend.api.HookSupplier;
 import tech.illuin.wombat.persistence.backend.api.PersistenceBackend;
@@ -50,7 +50,7 @@ public class PushBackendConfig
         WombatProperties wombat,
         Instance<ObjectMapper> mapper,
         Instance<JsonMapper> assetMapper,
-        Instance<MonitoredEnvironments> environments
+        Instance<WorkerEnvironmentService> environments
     ) {
         if (wombat.mode() != NodeMode.worker)
             return PersistenceBackend.disabled(BACKEND_PUSH);
@@ -62,7 +62,7 @@ public class PushBackendConfig
             throw new IllegalArgumentException("wombat.worker.id must match " + WORKER_ID_PATTERN + ", got: " + worker);
 
         Supplier<Action> declaration = () -> new EnvironmentDeclaration(
-            createClient(WombatEnvironmentClient.class, aggregator, assetMapper.get()), worker, environments.get()
+            createClient(WombatEnvironmentClient.class, aggregator, assetMapper.get()), worker, environments.get()::current
         );
         return PersistenceBackend.of(
             BACKEND_PUSH,

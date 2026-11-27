@@ -4,20 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.junit.jupiter.api.Test;
-import tech.illuin.wombat.core.asset.type.ServiceFamily;
 import tech.illuin.wombat.core.module.ModuleSettings;
 import tech.illuin.wombat.module.boavizta.BoaviztaModule;
 import tech.illuin.wombat.module.boavizta.BoaviztaSettings;
-import tech.illuin.wombat.core.evaluation.impact.kubernetes.KubernetesMetricResolver;
-import tech.illuin.wombat.core.evaluation.impact.llm.LLMMetricResolver;
 import tech.illuin.wombat.core.module.WombatModule;
 import tech.illuin.wombat.commons.NodeMode;
 import tech.illuin.wombat.commons.WombatProperties;
 import tech.illuin.wombat.engine.module.extension.CompositeExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.ExtensionLoader;
 import tech.illuin.wombat.engine.module.extension.WombatModuleProperties;
-import tech.illuin.wombat.persistence.BackendMode;
-import tech.illuin.wombat.persistence.PersistenceBackendProperties;
 import tech.illuin.wombat.persistence.backend.push.WorkerProperties;
 import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.llm_prometheus.LLMPrometheusModule;
@@ -171,6 +166,7 @@ class WombatModuleConfigTest
                 return new WorkerProperties() {
                     @Override public Optional<String> id() { return Optional.empty(); }
                     @Override public Optional<tech.illuin.wombat.persistence.backend.push.AggregatorProperties> aggregator() { return Optional.empty(); }
+                    @Override public EnvironmentsProperties environments() { return () -> false; }
                 };
             }
 

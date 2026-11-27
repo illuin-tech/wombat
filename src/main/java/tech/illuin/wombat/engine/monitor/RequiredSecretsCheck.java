@@ -11,6 +11,7 @@ import tech.illuin.wombat.core.secret.SecretAware;
 import tech.illuin.wombat.core.secret.SecretResolver;
 import tech.illuin.wombat.engine.secret.SecretProperties;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -56,19 +57,8 @@ public class RequiredSecretsCheck
 
     private void validateRequiredSecrets()
     {
-        Set<String> required = new LinkedHashSet<>();
-        for (Asset asset : this.monitoredEnvironments.allAssets())
-        {
-            if (asset instanceof SecretAware secretAware)
-                required.addAll(secretAware.requiredSecretKeys());
-        }
-
-        Set<String> missing = new LinkedHashSet<>();
-        for (String key : required)
-        {
-            if (this.secrets.find(key).isEmpty())
-                missing.add(key);
-        }
+        Set<String> required = requiredSecrets(this.monitoredEnvironments.allAssets());
+        Set<String> missing = this.missingSecrets(this.monitoredEnvironments.allAssets());
 
         if (!missing.isEmpty())
         {
@@ -79,5 +69,28 @@ public class RequiredSecretsCheck
         }
 
         logger.info("Resolved {} required secret(s) from configured secret sources", required.size());
+    }
+
+    /** The secrets the assets need that no configured secret source provides. */
+    public Set<String> missingSecrets(Collection<Asset> assets)
+    {
+        Set<String> missing = new LinkedHashSet<>();
+        for (String key : requiredSecrets(assets))
+        {
+            if (this.secrets.find(key).isEmpty())
+                missing.add(key);
+        }
+        return missing;
+    }
+
+    private static Set<String> requiredSecrets(Collection<Asset> assets)
+    {
+        Set<String> required = new LinkedHashSet<>();
+        for (Asset asset : assets)
+        {
+            if (asset instanceof SecretAware secretAware)
+                required.addAll(secretAware.requiredSecretKeys());
+        }
+        return required;
     }
 }

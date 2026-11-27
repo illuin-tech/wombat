@@ -11,13 +11,13 @@ import tech.illuin.wombat.core.asset.AssetIdentity;
 import tech.illuin.wombat.core.asset.type.ModuleType;
 import tech.illuin.wombat.core.evaluation.AssetEvaluation;
 import tech.illuin.wombat.core.evaluation.AssetEvaluator;
+import tech.illuin.wombat.core.evaluation.EvaluationReport;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationException;
 import tech.illuin.wombat.core.evaluation.WombatEvaluationResolver;
+import tech.illuin.wombat.core.evaluation.WombatProfileResolver;
 import tech.illuin.wombat.core.module.ProcessorFactory;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * The app's {@link AssetEvaluator}: each call runs on the evaluator of the current {@link CoreDeployment}. A subclass
@@ -34,15 +34,9 @@ public class RuntimeAssetEvaluator extends AssetEvaluator
     }
 
     @Override
-    public <E extends AssetEvaluation> List<E> evaluate(TimeRange range, AssetFilter filter, Class<E> evalType) throws WombatEvaluationException
+    public EvaluationReport report(TimeRange range, AssetFilter filter) throws WombatEvaluationException
     {
-        return this.runtime.current().evaluator().evaluate(range, filter, evalType);
-    }
-
-    @Override
-    public List<AssetEvaluation> evaluate(TimeRange range, AssetFilter filter) throws WombatEvaluationException
-    {
-        return this.runtime.current().evaluator().evaluate(range, filter);
+        return this.runtime.current().evaluator().report(range, filter);
     }
 
     @Override
@@ -69,18 +63,6 @@ public class RuntimeAssetEvaluator extends AssetEvaluator
         return this.runtime.current().evaluator().computeCost(asset, activity);
     }
 
-    @Override
-    public CompletableFuture<Optional<AssetEvaluation>> computeImpactAsync(Asset asset, ActivityData activity)
-    {
-        return this.runtime.current().evaluator().computeImpactAsync(asset, activity);
-    }
-
-    @Override
-    public CompletableFuture<Optional<AssetEvaluation>> computeCostAsync(Asset asset, ActivityData activity)
-    {
-        return this.runtime.current().evaluator().computeCostAsync(asset, activity);
-    }
-
     /** Resolvers are registered by {@link CoreDeploymentFactory}, from the deployed modules. */
     @Override
     public AssetEvaluator registerActivityResolver(ModuleType type, ProcessorFactory<WombatActivityResolver> factory)
@@ -96,6 +78,12 @@ public class RuntimeAssetEvaluator extends AssetEvaluator
 
     @Override
     public AssetEvaluator registerImpactResolver(ModuleType type, ProcessorFactory<WombatEvaluationResolver> factory)
+    {
+        throw new UnsupportedOperationException("Resolvers come from the deployed modules");
+    }
+
+    @Override
+    public AssetEvaluator registerProfileResolver(ModuleType type, ProcessorFactory<WombatProfileResolver> factory)
     {
         throw new UnsupportedOperationException("Resolvers come from the deployed modules");
     }

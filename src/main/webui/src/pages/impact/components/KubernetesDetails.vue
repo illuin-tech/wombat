@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {KubernetesPanel} from '@/pages/impact/model/aggregate'
 import {asDecimal} from '@/services/format/formatters'
+import {profileOriginLabel, profileOriginTitle} from '@/domain/assetTypeDisplay'
 import AssetTypeParam from '@/pages/impact/components/AssetTypeParam.vue'
 
 defineProps<{panel: KubernetesPanel}>()
@@ -20,12 +21,19 @@ defineProps<{panel: KubernetesPanel}>()
     </div>
   </div>
   <div class="params-inline">
-    <div class="param-item"><span class="param-key">Provider</span><span class="param-val">{{ panel.provider }}</span></div>
-    <div class="param-item"><span class="param-key">Instance type</span><span class="param-val">{{ panel.instanceType }}</span></div>
+    <div class="profile-head">
+      <span class="card-section-label">Server profile</span>
+      <span class="status-chip profile-origin" :title="profileOriginTitle(panel.profileOrigin)">{{ profileOriginLabel(panel.profileOrigin) }}</span>
+    </div>
+    <div v-if="panel.provider" class="param-item"><span class="param-key">Provider</span><span class="param-val">{{ panel.provider }}</span></div>
+    <div v-if="panel.instanceType" class="param-item"><span class="param-key">Instance type</span><span class="param-val">{{ panel.instanceType }}</span></div>
     <div class="param-item"><span class="param-key">Location</span><span class="param-val">{{ panel.location }}</span></div>
     <div class="param-item"><span class="param-key">Lifespan</span><span class="param-val">{{ asDecimal(panel.lifespan) }} h</span></div>
     <div class="param-item"><span class="param-key">vCPU</span><span class="param-val">{{ panel.specification?.vcpu }}</span></div>
     <div class="param-item"><span class="param-key">Memory</span><span class="param-val">{{ panel.specification?.memory }} GB</span></div>
+    <ul v-if="panel.warnings.length" class="profile-warnings">
+      <li v-for="warning in panel.warnings" :key="warning">{{ warning }}</li>
+    </ul>
   </div>
   <div class="card-section asset-load">
     <div class="card-section-label">Asset load over period</div>

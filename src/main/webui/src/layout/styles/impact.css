@@ -176,6 +176,10 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .container-location { font-size: 11px; font-weight: 500; padding: 2px 8px; margin-left: 6px; border-radius: 14px; background: var(--accent-blue-soft); color: var(--accent-blue); white-space: nowrap; }
 .params-inline { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 .param-item { min-width: 100px; }
+.profile-head { flex-basis: 100%; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.profile-head .card-section-label { margin-bottom: 0; }
+/* What the evaluation assumed, e.g. to infer the profile: the tone of .module-pending-banner */
+.profile-warnings { flex-basis: 100%; margin: 0; padding: 8px 12px 8px 28px; display: flex; flex-direction: column; gap: 4px; background: var(--accent-yellow-soft); border: 1px solid var(--accent-yellow); border-radius: var(--radius-sm); font-size: 12px; line-height: 1.4; color: var(--text); }
 
 /* ── Service type icon (e.g. container/Docker) ── */
 .svc-icon { width: 13px; height: 10px; vertical-align: -1px; margin-right: 5px; }
@@ -347,7 +351,8 @@ tbody tr:hover { background: var(--surface2); }
 .shares-legend-pct { font-size: 11px; font-weight: 600; color: var(--text); flex-shrink: 0; }
 
 /* ── Recap warning trigger & modal ── */
-.recap-warning-btn { position: absolute; top: 14px; right: 14px; z-index: 10; background: var(--surface2); border: 1px solid rgba(234, 88, 12, 0.4); border-radius: var(--radius-sm); cursor: pointer; padding: 5px 7px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s, transform 0.15s; }
+.recap-warnings { position: absolute; top: 14px; right: 14px; z-index: 10; display: flex; gap: 6px; }
+.recap-warning-btn { background: var(--surface2); border: 1px solid rgba(234, 88, 12, 0.4); border-radius: var(--radius-sm); cursor: pointer; padding: 5px 7px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.15s, border-color 0.15s, transform 0.15s; }
 .recap-warning-btn:hover { background: var(--surface); border-color: var(--accent-orange); transform: scale(1.08); }
 .recap-warning-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.25); }
 .warning-icon-head { display: inline-flex; align-items: center; }
@@ -358,6 +363,10 @@ tbody tr:hover { background: var(--surface2); }
 .unrecognized-asset-meta { font-size: 12px; color: var(--text-dim); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .unrecognized-meta-label { font-weight: 500; color: var(--text-dim); }
 .unrecognized-code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--text-muted); font-family: monospace; }
+.recap-warning-count { font-size: 11px; font-weight: 700; color: var(--accent-orange); line-height: 1; }
+.failure-reason { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.error-failures { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.error-failures-title { font-size: 13px; font-weight: 600; color: var(--text); }
 
 /* ── API keys page ── */
 .page-head { display: flex; flex-direction: column; gap: 6px; }

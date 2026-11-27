@@ -7,6 +7,7 @@ import {
   type FootprintImpact,
   type KubernetesImpact,
   type LLMImpact,
+  type ProfileOrigin,
   type ServerSpecification,
   type ServiceImpact as RawServiceImpact,
   type TimeRangeJson,
@@ -55,10 +56,14 @@ interface PanelBase {
 
 export interface KubernetesPanel extends PanelBase {
   kind: 'kubernetes'
+  /** Null for a bare server profile, which has neither provider nor instance type. */
   provider: string | null
   instanceType: string | null
   location: string | null
   lifespan: number
+  profileOrigin: ProfileOrigin
+  /** What the evaluation of the asset had to assume, e.g. to infer its profile. */
+  warnings: string[]
   clusters: ClusterInfo[]
   specification: ServerSpecification | null
   load: { cpuUsageCores: number; loadPercent: number; nodeCount: number }
@@ -204,7 +209,7 @@ export function aggregate(impacts: AssetImpact[], assets: AssetInfo[], requested
     const kubernetesImpacts = includedImpacts.filter(isKubernetesImpact)
     if (kubernetesImpacts.length > 0) {
       dockerFootprints.push(assetFootprint)
-      panels.push(kubernetesPanel(name, assetFootprint, kubernetesImpacts))
+      panels.push(kubernetesPanel(name, assetImpact, assetFootprint, kubernetesImpacts))
     }
 
     const llmImpacts = includedImpacts.filter(isLLMImpact)
@@ -263,7 +268,7 @@ function summarize(services: ServiceImpact[], dockerFootprints: Footprint[], llm
   }
 }
 
-function kubernetesPanel(name: string, footprint: Footprint, impacts: KubernetesImpact[]): KubernetesPanel {
+function kubernetesPanel(name: string, asset: Pick<AssetImpact, 'profileOrigin' | 'warnings'>, footprint: Footprint, impacts: KubernetesImpact[]): KubernetesPanel {
   const first = impacts[0]
   const profile = first.profile ?? {}
   const specification = first.serverSpecification
@@ -289,6 +294,9 @@ function kubernetesPanel(name: string, footprint: Footprint, impacts: Kubernetes
     instanceType: profile.instanceType ?? null,
     location: (profile.location as string | undefined) ?? null,
     lifespan: lifetimeHours(profile.lifespan),
+    // Impacts served before profiles could be inferred have neither
+    profileOrigin: asset.profileOrigin ?? 'DECLARED',
+    warnings: asset.warnings ?? [],
     clusters,
     specification,
     load: { cpuUsageCores: cpuUsageCores(first, specification), loadPercent: first.loadPercent, nodeCount: first.nodeCount },

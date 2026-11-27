@@ -1,7 +1,7 @@
 package tech.illuin.wombat.engine.connector.ecologits.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import tech.illuin.wombat.core.evaluation.impact.llm.EcologitsEstimationResponse;
+import tech.illuin.wombat.module.ecologits.connector.model.EcologitsEstimationResponse;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

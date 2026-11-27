@@ -78,6 +78,8 @@ const chatbotImpact = {
   }],
   provider: 'ECOLOGITS' as const,
   range: null,
+  profileOrigin: 'DECLARED' as const,
+  warnings: [],
 }
 const evaluation: SimulationEvaluation = {
   window: { start: '2026-10-22T00:00:00Z', end: '2026-11-21T00:00:00Z', period: 'MONTH' },

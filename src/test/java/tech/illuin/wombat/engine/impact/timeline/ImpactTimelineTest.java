@@ -87,7 +87,8 @@ class ImpactTimelineTest
             List.of(impact("cluster", 0, new Footprint(
                 component("kgCO2eq", 12.0f, 8.0f),
                 component("MJ", 30.0f, 10.0f),
-                component("kgSbeq", 0.6f, 0.4f)
+                component("kgSbeq", 0.6f, 0.4f),
+                null
             )))
         );
 
@@ -170,15 +171,15 @@ class ImpactTimelineTest
 
     private static Footprint footprint(float embedded, float use)
     {
-        return new Footprint(component("kgCO2eq", embedded, use), null, null);
+        return new Footprint(component("kgCO2eq", embedded, use), null, null, null);
     }
 
     private static Footprint.FootprintImpact component(String unit, float embedded, float use)
     {
         return new Footprint.FootprintImpact(
             unit, "",
-            new Footprint.FootprintImpact.FootprintImpactItem(embedded, List.of()),
-            new Footprint.FootprintImpact.FootprintImpactItem(use, List.of())
+            new Footprint.FootprintImpact.FootprintImpactItem(embedded),
+            new Footprint.FootprintImpact.FootprintImpactItem(use)
         );
     }
 }

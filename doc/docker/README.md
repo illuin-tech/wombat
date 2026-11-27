@@ -158,8 +158,11 @@ environments:
       # - type: tech.illuin.wombat-module.kubernetes-api
       #   id: prod-cluster
       #   environment-id: demo
-      #   namespace: my-project-namespace # this should match the namespace you deployed your applications to
+      #   namespaces: # the namespaces you deployed your applications to, all of them when omitted
+      #     - my-project-namespace
       #   kubeconfig-key: my-kube # the secret holding your kubeconfig, e.g. the file secrets/my-kube mounted in compose.yaml
+      #   # Omit the profile to infer the hardware from the cluster, provided the kubeconfig can read its nodes, or else the
+      #   # namespace's quotas or pods
       #   profile:
       #     provider: aws
       #     instance-type: c5.xlarge

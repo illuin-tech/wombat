@@ -23,8 +23,8 @@ describe('dashboard helpers', () => {
             nodeCount: 0,
         })
         const impacts = [
-            {assetIdentity: {id: 'a', environmentId: 'env', name: 'A'}, footprint: {gwp: null, pe: null, adp: null}, serviceImpacts: [service('zeta'), service('alpha')], provider: 'BOAVIZTA', range: null},
-            {assetIdentity: {id: 'b', environmentId: 'env', name: 'B'}, footprint: {gwp: null, pe: null, adp: null}, serviceImpacts: [service('alpha'), service('beta')], provider: 'BOAVIZTA', range: null},
+            {assetIdentity: {id: 'a', environmentId: 'env', type: 'Container'}, footprint: {gwp: null, pe: null, adp: null}, serviceImpacts: [service('zeta'), service('alpha')], provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: []},
+            {assetIdentity: {id: 'b', environmentId: 'env', type: 'Container'}, footprint: {gwp: null, pe: null, adp: null}, serviceImpacts: [service('alpha'), service('beta')], provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: []},
         ] as AssetImpact[]
         expect(serviceOptions(impacts)).toEqual(['alpha', 'beta', 'zeta'])
     })

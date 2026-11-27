@@ -29,15 +29,18 @@ function k8s(serviceId: string, fp: Footprint): KubernetesImpact {
   }
 }
 
-function asset(id: string, serviceImpacts: AssetImpact['serviceImpacts'], range: TimeRangeJson | null = null): AssetImpact {
-  return { assetIdentity: { id, environmentId: 'test', name: id }, footprint: footprint(0, 0, 0), serviceImpacts, provider: 'BOAVIZTA', range }
+function asset(id: string, serviceImpacts: AssetImpact['serviceImpacts'], evaluation: Partial<AssetImpact> = {}): AssetImpact {
+  return {
+    assetIdentity: { id, environmentId: 'test', type: serviceImpacts[0]?.assetType.name ?? K8S_TYPE.name }, footprint: footprint(0, 0, 0), serviceImpacts,
+    provider: 'BOAVIZTA', range: null, profileOrigin: 'DECLARED', warnings: [], ...evaluation,
+  }
 }
 
 /* 30 days, so a year holds 365 / 30 of it */
 const THIRTY_DAYS: TimeRangeJson = { start: '2026-01-01T00:00:00Z', end: '2026-01-31T00:00:00Z' }
 
 const impacts = [
-  asset('llm', [llm('mistral-large-latest', footprint(1.5, 3, 0.1), 1500, 10, 0.02), llm('mistral-small-latest', footprint(0.5, 1, 0.05), 500, 20, 0.01)], THIRTY_DAYS),
+  asset('llm', [llm('mistral-large-latest', footprint(1.5, 3, 0.1), 1500, 10, 0.02), llm('mistral-small-latest', footprint(0.5, 1, 0.05), 500, 20, 0.01)], { range: THIRTY_DAYS }),
   asset('cluster', [k8s('api', footprint(4, 8, 0.2)), k8s('worker', footprint(2, 4, 0.1))]),
 ]
 const assets = [{ id: 'llm', name: 'LLM asset', type: LLM_TYPE.name }, { id: 'cluster', name: 'Cluster', type: K8S_TYPE.name }]
@@ -91,6 +94,32 @@ describe('aggregate (EnvironmentImpact)', () => {
     expect(panel.clusters).toEqual([{ id: 'test-cluster', namespace: 'test-ns' }])
     expect(panel.load).toEqual({ cpuUsageCores: 2, loadPercent: 25, nodeCount: 1 })
     expect(panel.energyTotal.value).toBe(0)
+    expect(panel.profileOrigin).toBe('DECLARED')
+    expect(panel.warnings).toEqual([])
+  })
+
+  it('carries where an inferred profile comes from and what it assumed', () => {
+    const warnings = ['Sized after the resource quotas of namespaces payments: a slice of the cluster, not its nodes', 'No location set, the world average is assumed']
+    const impact = asset('cluster', [{
+      ...k8s('api', footprint(1, 1, 1)),
+      profile: { location: 'WOR', lifespan: '5y', cpu: { units: 1, coreUnits: 4 }, ram: { units: 1, capacity: 16 } },
+    }], { profileOrigin: 'RESOURCE_QUOTAS', warnings })
+
+    const panel = aggregate([impact], assets).kubernetesPanels[0]
+    expect(panel.profileOrigin).toBe('RESOURCE_QUOTAS')
+    expect(panel.warnings).toEqual(warnings)
+    // A bare server profile has neither provider nor instance type
+    expect(panel.provider).toBeNull()
+    expect(panel.instanceType).toBeNull()
+    expect(panel.location).toBe('WOR')
+  })
+
+  it('takes a profile without origin as declared', () => {
+    const { profileOrigin: _origin, warnings: _warnings, ...legacy } = asset('cluster', [k8s('api', footprint(1, 1, 1))])
+
+    const panel = aggregate([legacy as AssetImpact], assets).kubernetesPanels[0]
+    expect(panel.profileOrigin).toBe('DECLARED')
+    expect(panel.warnings).toEqual([])
   })
 
   it('does not read a kebab-case instance type from a server profile', () => {

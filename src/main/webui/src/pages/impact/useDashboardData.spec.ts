@@ -1,7 +1,7 @@
 import { effectScope } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import type { EnvironmentInfo, LiveEnvironment } from '@/domain/environment'
-import type { AssetImpact, ImpactRequest, TimelineResponse } from '@/domain/impact'
+import type { ImpactRequest, ImpactResult, TimelineResponse } from '@/domain/impact'
 import { useDashboardData, type DashboardApi } from './useDashboardData'
 
 function deferred<T>() {
@@ -22,7 +22,7 @@ describe('useDashboardData', () => {
   it('loads persisted environments independently and starts impact and timeline together', async () => {
     const live = deferred<LiveEnvironment[]>()
     const persisted = deferred<EnvironmentInfo[]>()
-    const impact = deferred<AssetImpact[]>()
+    const impact = deferred<ImpactResult>()
     const timeline = deferred<TimelineResponse>()
     const api: DashboardApi = {
       fetchLiveEnvironments: vi.fn(() => live.promise),
@@ -63,18 +63,18 @@ describe('useDashboardData', () => {
     expect(data.timeline.data.value).toEqual(timelineResult)
     expect(data.impact.data.value).toBeNull()
 
-    impact.resolve([])
+    impact.resolve({ impacts: [], failures: [] })
     await Promise.resolve()
     await Promise.resolve()
-    expect(data.impact.data.value).toEqual([])
+    expect(data.impact.data.value).toEqual({ impacts: [], failures: [] })
     expect(data.impactEnvironmentId.value).toBe('test')
     expect(data.timelineEnvironmentId.value).toBe('test')
     scope.stop()
   })
 
   it('does not associate stale evaluation results with a newer environment', async () => {
-    const first = deferred<AssetImpact[]>()
-    const second = deferred<AssetImpact[]>()
+    const first = deferred<ImpactResult>()
+    const second = deferred<ImpactResult>()
     let impactCall = 0
     const api: DashboardApi = {
       fetchLiveEnvironments: vi.fn(async () => []),
@@ -87,11 +87,11 @@ describe('useDashboardData', () => {
 
     data.loadEvaluation('first', requests)
     data.loadEvaluation('second', requests)
-    first.resolve([])
+    first.resolve({ impacts: [], failures: [] })
     await Promise.resolve()
     await Promise.resolve()
     expect(data.impactEnvironmentId.value).toBeNull()
-    second.resolve([])
+    second.resolve({ impacts: [], failures: [] })
     await Promise.resolve()
     await Promise.resolve()
     expect(data.impactEnvironmentId.value).toBe('second')

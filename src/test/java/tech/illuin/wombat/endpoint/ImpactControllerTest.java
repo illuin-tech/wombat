@@ -21,7 +21,9 @@ import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,7 +84,10 @@ class ImpactControllerTest
             .body("payload[0].provider", is("BOAVIZTA"))
             .body("payload[0].footprint.gwp", notNullValue())
             .body("payload[0].serviceImpacts.size()", greaterThan(0))
-            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"));
+            .body("payload[0].serviceImpacts[0].assetType.name", is("tech.illuin.wombat-module.kubernetes-api"))
+            .body("payload[0].profileOrigin", is("DECLARED"))
+            .body("payload[0].warnings.size()", is(0))
+            .body("status.metadata." + ImpactController.FAILURES_KEY + ".size()", is(0));
     }
 
     @Test
@@ -145,7 +150,9 @@ class ImpactControllerTest
             .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].profile.instanceType", is("c5.large"))
             .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].serverSpecification", notNullValue())
             .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].location.namespace", is("test-ns"))
-            .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].estimation", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-cluster' }.serviceImpacts[0].footprint.energy.use.value", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].footprint.energy.use.value", notNullValue())
+            .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0]", not(hasKey("estimation")))
             .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].requestCount", notNullValue())
             .body("payload.find { it.assetIdentity.id == 'test-llm' }.serviceImpacts[0].outputTokenCount", notNullValue());
     }
@@ -239,7 +246,8 @@ class ImpactControllerTest
             .when().post("/api/impact")
             .then()
             .statusCode(400)
-            .body("status.metadata.reason", is(ImpactController.NO_DATA_REASON));
+            .body("status.metadata.reason", is(ImpactController.NO_DATA_REASON))
+            .body("status.metadata." + ImpactController.FAILURES_KEY, notNullValue());
     }
 
     @Test

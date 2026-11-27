@@ -2,7 +2,7 @@
 import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { findUnrecognizedAssets, withEnvironmentNames, withRecordDetails } from '@/domain/environment'
-import type { AssetImpact, TimelineResponse } from '@/domain/impact'
+import { evaluationFailures, type ImpactResult, type TimelineResponse } from '@/domain/impact'
 import { asLocalDateTime } from '@/services/format/formatters'
 import { ApiError } from '@/services/api/client'
 import { NO_DATA_REASON } from '@/services/api/impact'
@@ -10,6 +10,7 @@ import { useAppInfo } from '@/services/auth/session'
 import { datesQuery, filtersFor, rememberDashboard, resetServices, servicesState } from '@/pages/impact/model/useDashboardQuery'
 import { aggregateDashboard, buildDashboardRequests, serviceOptions } from '@/pages/impact/model/dashboard'
 import { computeTimeRange } from '@/pages/impact/model/timeRange'
+import { failedAssets } from '@/pages/impact/model/failures'
 import { useDashboardData } from '@/pages/impact/useDashboardData'
 import FilterBar from '@/pages/impact/components/FilterBar.vue'
 import TimelineChart from '@/pages/impact/components/TimelineChart.vue'
@@ -18,6 +19,7 @@ import SharesDonut from '@/pages/impact/components/SharesDonut.vue'
 import AssetRecap from '@/pages/impact/components/AssetRecap.vue'
 import MetricBars from '@/pages/impact/components/MetricBars.vue'
 import ServiceTable from '@/pages/impact/components/ServiceTable.vue'
+import EvaluationFailureList from '@/pages/impact/components/EvaluationFailureList.vue'
 
 const DEFAULT_MAX_DATE_RANGE_MS = 90 * 86_400_000
 const route = useRoute()
@@ -33,7 +35,8 @@ const range = computed(() => computeTimeRange(currentFilters.value.from, current
 const from = computed(() => asLocalDateTime(range.value.start))
 const to = computed(() => asLocalDateTime(range.value.end))
 const liveLoading = computed(() => dashboard.liveEnvironments.loading.value || (dashboard.liveEnvironments.data.value === null && dashboard.liveEnvironments.error.value === null))
-const impact = computed<AssetImpact[] | null>(() => dashboard.impactEnvironmentId.value === environment.value?.id ? dashboard.impact.data.value : null)
+const impactResult = computed<ImpactResult | null>(() => dashboard.impactEnvironmentId.value === environment.value?.id ? dashboard.impact.data.value : null)
+const impact = computed(() => impactResult.value?.impacts ?? null)
 const timeline = computed<TimelineResponse | null>(() => dashboard.timelineEnvironmentId.value === environment.value?.id ? dashboard.timeline.data.value : null)
 const impactLoading = computed(() => liveLoading.value || (!!environment.value && impact.value === null && dashboard.impact.error.value === null))
 const timelineLoading = computed(() => liveLoading.value || (!!environment.value && timeline.value === null && dashboard.timeline.error.value === null))
@@ -50,6 +53,12 @@ const persistedEnvironments = computed(() => dashboard.persistedEnvironments.dat
 const persistedEnvironment = computed(() => persistedEnvironments.value.find(candidate => candidate.id === environment.value?.id))
 const unrecognizedAssets = computed(() => findUnrecognizedAssets(persistedEnvironment.value?.assets ?? [], environment.value?.assets ?? []))
 const liveAssets = computed(() => withRecordDetails(environment.value?.assets ?? [], persistedEnvironment.value?.assets ?? []))
+/* Told by the impact, or by its no-data error when no asset could be evaluated */
+const failures = computed(() => failedAssets(
+  impactResult.value?.failures ?? (noData.value && impactError.value instanceof ApiError ? evaluationFailures(impactError.value.metadata) : []),
+  [...liveAssets.value, ...(persistedEnvironment.value?.assets ?? [])],
+  environments.value,
+))
 
 watch(() => [
   route.params.environment,
@@ -111,6 +120,10 @@ function resetFilters(): void {
       <div class="error-header"><div class="error-dot"/><span class="error-label">No data</span></div>
       <div class="error-title">No activity found</div>
       <div class="error-body">No metrics were recorded for this environment in the selected time range. Try a wider range or check that Wombat was running and monitoring it.</div>
+      <div v-if="failures.length" class="error-failures">
+        <div class="error-failures-title">{{ failures.length === 1 ? 'An asset' : `${failures.length} assets` }} could not be evaluated</div>
+        <EvaluationFailureList :failures="failures" />
+      </div>
     </div>
     <div v-else-if="impactError" class="error-card">
       <div class="error-header"><div class="error-dot"/><span class="error-label">Error</span></div>
@@ -121,7 +134,7 @@ function resetFilters(): void {
       <KpiRow :model="model" :loading="impactLoading" :refreshing="impactRefreshing" />
       <div class="overview-row">
         <SharesDonut :model="model" :loading="impactLoading" :refreshing="impactRefreshing" />
-        <AssetRecap :model="model" :assets="unrecognizedAssets" :loading="impactLoading" :refreshing="impactRefreshing" />
+        <AssetRecap :model="model" :assets="unrecognizedAssets" :failures="failures" :loading="impactLoading" :refreshing="impactRefreshing" />
       </div>
       <MetricBars :model="model" :loading="impactLoading" :refreshing="impactRefreshing" />
       <ServiceTable :model="model" :loading="impactLoading" :refreshing="impactRefreshing" />

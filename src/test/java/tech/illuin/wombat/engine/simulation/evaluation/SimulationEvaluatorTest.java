@@ -346,12 +346,12 @@ class SimulationEvaluatorTest
 
     private static Footprint footprint(float gwp)
     {
-        return new Footprint(impact("kgCO2eq", gwp), impact("MJ", gwp * 2), impact("kgSbeq", gwp / 10));
+        return new Footprint(impact("kgCO2eq", gwp), impact("MJ", gwp * 2), impact("kgSbeq", gwp / 10), null);
     }
 
     private static FootprintImpact impact(String unit, float use)
     {
-        return new FootprintImpact(unit, "", new FootprintImpactItem(0f, List.of()), new FootprintImpactItem(use, List.of()));
+        return new FootprintImpact(unit, "", new FootprintImpactItem(0f), new FootprintImpactItem(use));
     }
 
     /* Copied from the asset real-chatbot of the environment prod */

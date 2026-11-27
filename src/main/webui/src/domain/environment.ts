@@ -68,6 +68,20 @@ export function assetTypeName(asset: AssetInfo): string | null {
   return asset.type?.name ?? null
 }
 
+/** Local name of the module type whose assets may leave their server profile to infer from their cluster. */
+const KUBERNETES_API_TYPE = 'kubernetes-api'
+
+/** Whether the asset's hardware is inferred from its cluster: a `kubernetes-api` asset whose profile is missing or of type `inferred`. */
+export function hasInferredProfile(asset: AssetInfo): boolean {
+  const name = assetTypeName(asset)
+  if (!name || !(name === KUBERNETES_API_TYPE || name.endsWith(`.${KUBERNETES_API_TYPE}`)))
+    return false
+  const profile = asset.profile
+  if (profile === undefined || profile === null)
+    return true
+  return typeof profile === 'object' && (profile as Record<string, unknown>).type === 'inferred'
+}
+
 /** The asset's family, from its type when served in full, otherwise from the type registry (`typesByName`). */
 export function assetFamily(asset: AssetInfo, typesByName: ReadonlyMap<string, AssetType>): ServiceFamily {
   if (asset.type && typeof asset.type === 'object')

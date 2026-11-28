@@ -15,7 +15,7 @@
     "@jsonforms/core": "3.8.0",
     "@jsonforms/vue": "3.8.0",
     "@jsonforms/vue-vanilla": "3.8.0",
-    "@vueuse/core": "15.0.0",
+    "@vueuse/core": "15.1.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "chart.js": "4.6.2",

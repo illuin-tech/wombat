@@ -68,6 +68,14 @@ describe('aggregate (EnvironmentImpact)', () => {
     expect(withoutRange.requestPerYear).toBe(0)
   })
 
+  it('gives each service its activity over its asset period', () => {
+    const model = aggregate(impacts, assets)
+    const activity = (label: string) => model.serviceImpacts.find(service => service.label === label)?.activity
+    expect(activity('LLM asset / mistral-large-latest')).toMatchObject({ kind: 'llm', outputTokenCount: 1500, outputTokensPerDay: 50, requestsPerDay: expect.closeTo(1 / 3, 6) })
+    /* A share of 0.5 of 25 % of 8 vCPU */
+    expect(activity('Cluster / api')).toMatchObject({ kind: 'kubernetes', cpuShare: 0.5, cpuUsageCores: 1 })
+  })
+
   it('splits Docker and LLM totals, sorts services by GWP and computes shares', () => {
     const model = aggregate(impacts, assets)
     expect(totalValue(model.globalImpact.gwp)).toBeCloseTo(8, 6)

@@ -6,6 +6,7 @@ import {FAMILIES} from '@/domain/assetTypeDisplay'
 import {useTheme} from '@/layout/theme/useTheme'
 import {asDecimal, asPercent} from '@/services/format/formatters'
 import ChartCanvas from '@/components/ChartCanvas.vue'
+import ServiceActivity from '@/pages/impact/components/ServiceActivity.vue'
 import SkeletonBlock from '@/components/SkeletonBlock.vue'
 
 const props = defineProps<{model?: DashboardModel | null; loading?: boolean; refreshing?: boolean}>()
@@ -111,6 +112,7 @@ function detailOptions(metric: typeof metrics[number]) {
           </tr>
           <tr :id="`detail-${index + 1}`" class="service-detail" :class="{collapsed: !open.has(service.label)}">
             <td colspan="12">
+              <ServiceActivity v-if="open.has(service.label) && service.activity" :activity="service.activity"/>
               <div v-if="open.has(service.label)" class="detail-charts">
                 <div v-for="metric in metrics" :key="metric.key" class="detail-chart-card">
                   <div class="chart-title">{{ metric.label }} ({{ metric.unit }})</div>

@@ -14,6 +14,7 @@ import {
   isLLMImpact,
 } from '@/domain/impact'
 import type { ActivityRegime, AssetInfo, AssetType, ServiceFamily } from '@/domain/environment'
+import { type ServiceActivity, cpuUsageCores, rangeHours, serviceActivity } from '@/pages/impact/model/serviceActivity'
 
 /** AmountUnit symbols. */
 export const UNIT = { mj: 'MJ', kwh: 'kWh', kgCo2eq: 'kgCO2eq', kgSbeq: 'kgSbeq' } as const
@@ -30,6 +31,8 @@ export interface ServiceImpact {
   label: string
   assetType: AssetType
   footprint: Footprint
+  /** What the service did over the period; absent when only its footprint is known, e.g. in a simulation. */
+  activity?: ServiceActivity
 }
 
 export interface ServiceLine {
@@ -149,7 +152,6 @@ function footprintAmount(impact: FootprintImpact | null | undefined, fallback: s
 const HOURS_PER_DAY = 24
 const HOURS_PER_YEAR = 365 * HOURS_PER_DAY
 const HOURS_PER_MONTH = Math.trunc(HOURS_PER_YEAR / 12)
-const MS_PER_HOUR = 3_600_000
 
 /** Lifetime.asHours() from its JSON text ("5y", "43800", "30d"…). */
 export function lifetimeHours(lifespan: unknown): number {
@@ -167,13 +169,14 @@ export function lifetimeHours(lifespan: unknown): number {
 }
 
 /** A service's line in the model, under its asset's name. */
-export function serviceImpact(assetName: string, impact: Pick<RawServiceImpact, 'serviceId' | 'assetType' | 'footprint'>): ServiceImpact {
+export function serviceImpact(assetName: string, impact: Pick<RawServiceImpact, 'serviceId' | 'assetType' | 'footprint'>, activity?: ServiceActivity | null): ServiceImpact {
   return {
     assetName,
     service: impact.serviceId,
     label: `${assetName} / ${impact.serviceId}`,
     assetType: impact.assetType,
     footprint: impact.footprint,
+    ...(activity ? { activity } : {}),
   }
 }
 
@@ -199,7 +202,7 @@ export function aggregate(impacts: AssetImpact[], assets: AssetInfo[], requested
     const includedImpacts = assetImpact.serviceImpacts.filter(impact => included.has(impact.serviceId))
     if (includedImpacts.length === 0) continue
 
-    includedImpacts.forEach(impact => services.push(serviceImpact(name, impact)))
+    includedImpacts.forEach(impact => services.push(serviceImpact(name, impact, serviceActivity(impact, assetImpact.range))))
     const assetFootprint = sumFootprints(includedImpacts.map(impact => impact.footprint))
 
     const kubernetesImpacts = includedImpacts.filter(isKubernetesImpact)
@@ -298,12 +301,6 @@ function kubernetesPanel(name: string, asset: Pick<AssetImpact, 'profileOrigin' 
   }
 }
 
-/** The load formula is `loadPercent = cores / vcpu * 100`, so the cores are recovered by inverting it. */
-function cpuUsageCores(impact: KubernetesImpact, specification: ServerSpecification | null): number {
-  const vcpu = specification?.vcpu ?? 0
-  return vcpu > 0 ? impact.loadPercent / 100 * vcpu : 0
-}
-
 function distinct<T>(values: (T | null | undefined)[]): T[] {
   return [...new Set(values.filter((value): value is T => value !== null && value !== undefined))]
 }
@@ -337,7 +334,7 @@ function llmPanel(name: string, footprint: Footprint, impacts: LLMImpact[], rang
 
 /* A NaN from a missing or malformed bound fails the `> 0` test like an empty period does */
 function perYear(count: number, range: TimeRangeJson | null): number {
-  const hours = range ? (Date.parse(range.end) - Date.parse(range.start)) / MS_PER_HOUR : 0
+  const hours = rangeHours(range)
   return hours > 0 ? Math.round(count * HOURS_PER_YEAR / hours) : 0
 }
 

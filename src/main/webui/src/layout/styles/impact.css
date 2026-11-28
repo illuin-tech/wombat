@@ -259,6 +259,8 @@ table { min-width: 600px; }
 .service-detail { background: var(--surface2); }
 .service-detail.collapsed { display: none; }
 .service-detail td { padding: 0; border-bottom: 2px solid var(--border); }
+.service-activity { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.service-activity-row { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .detail-charts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; }
 .detail-chart-card { padding: 16px 20px; border-right: 1px solid var(--border); }
 .detail-chart-card:last-child { border-right: none; }

@@ -36,7 +36,7 @@ export function assetTypesByName(modules: ModuleMetadata[]): Map<string, AssetTy
 export type ModuleSource = 'core' | 'extension'
 
 /** What a module provides for its assets, or those of its family: two family modules only compete for what both provide. */
-export type ModuleFeature = 'source' | 'activity' | 'impact' | 'cost'
+export type ModuleFeature = 'source' | 'activity' | 'profile' | 'impact' | 'cost'
 
 /** A module as Settings > Modules shows it: its registry state, and whether the running core holds it. */
 export type ModuleInfo = ModuleMetadata & {

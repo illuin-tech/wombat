@@ -9,6 +9,7 @@
 /* What a module provides, one colour per kind of component */
 .module-feature.source { background: var(--accent-blue-soft); color: var(--accent-blue); }
 .module-feature.activity { background: var(--accent-orange-soft); color: var(--accent-orange); }
+.module-feature.profile { background: var(--accent-purple-soft); color: var(--accent-purple); }
 .module-feature.impact { background: var(--accent-green-soft); color: var(--accent-green); }
 .module-feature.cost { background: var(--accent-yellow-soft); color: var(--accent-yellow); }
 

@@ -18,6 +18,7 @@ import tech.illuin.wombat.engine.module.persistence.ModuleRepository;
 import tech.illuin.wombat.engine.module.registry.ModuleMetadata.Feature;
 import tech.illuin.wombat.module.boavizta.BoaviztaModule;
 import tech.illuin.wombat.module.ecologits.EcologitsModule;
+import tech.illuin.wombat.module.kubernetes_api.KubernetesAPIModule;
 import tech.illuin.wombat.module.kubernetes_metrics.KubernetesMetricsModule;
 
 import java.nio.file.Path;
@@ -283,6 +284,12 @@ class DbModuleRegistryTest
         assertEquals(Set.of(Feature.activity), modules.get(METRICS).provides());
         assertEquals(4, modules.get(REMOVED_ESTIMATOR.name()).ordering());
         assertEquals(Set.of(), modules.get(REMOVED_ESTIMATOR.name()).provides(), "not detected here, so unknown");
+    }
+
+    @Test
+    void provides_tellsTheModuleResolvesTheProfileOfItsAssets()
+    {
+        assertEquals(Set.of(Feature.source, Feature.profile), ModuleMetadata.core(new KubernetesAPIModule(), true, null).provides());
     }
 
     @Test

@@ -12,6 +12,7 @@ export const STATE_LABELS: Record<ModuleState, string> = {
 export const FEATURE_LABELS: Record<ModuleFeature, string> = {
   source: 'Source',
   activity: 'Activity',
+  profile: 'Profile',
   impact: 'Impact',
   cost: 'Cost',
 }
@@ -20,6 +21,7 @@ export const FEATURE_LABELS: Record<ModuleFeature, string> = {
 export const FEATURE_HINTS: Record<ModuleFeature, string> = {
   source: 'Samples the assets: polls the system they run on for their metrics, which are stored and read back when evaluating them.',
   activity: 'Resolves what the assets did over a time range, e.g. the CPU and memory they used, or their requests and tokens: read back from the sampled metrics, queried from a provider, or modeled from a declared profile.',
+  profile: 'Infers the profile the assets are evaluated with, e.g. the hardware of the servers they run on, when their declared profile asks for it.',
   impact: 'Estimates the environmental impacts of that activity, e.g. greenhouse gas emissions, primary energy and the depletion of resources.',
   cost: 'Estimates the cost of that activity.',
 }
